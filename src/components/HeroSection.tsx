@@ -130,7 +130,7 @@ const VisualContent = styled(motion.div)`
   margin-left: -50vw;
   width: 100vw;
   height: 100%;
-  opacity: 0.04;
+  opacity: 0.01;
   z-index: 0;
   pointer-events: none;
   display: flex;
