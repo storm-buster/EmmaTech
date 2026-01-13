@@ -105,7 +105,7 @@ export const WaitlistForm: React.FC<WaitlistFormProps> = ({
         <Input
           id="fullName"
           type="text"
-          placeholder="John Doe"
+          placeholder="Your Namre"
           $hasError={!!errors.fullName}
           {...register('fullName', {
             required: 'Please enter your full name',
@@ -131,7 +131,7 @@ export const WaitlistForm: React.FC<WaitlistFormProps> = ({
         <Input
           id="email"
           type="email"
-          placeholder="john@example.com"
+          placeholder="@example.com"
           $hasError={!!errors.email}
           {...register('email', {
             required: 'Please enter your email address',
