@@ -172,7 +172,7 @@ export const Footer: React.FC = () => {
         <FooterSection>
           <FooterTitle>Follow Us</FooterTitle>
           <SocialLinks>
-            <SocialLink href="#" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+            <SocialLink href="https://www.linkedin.com/company/emma-tech/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
               💼
             </SocialLink>
             <SocialLink href="#" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
