@@ -113,7 +113,7 @@ export const Logo: React.FC = () => {
         fontFamily="'Playfair Display', serif"
         style={{ filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.3))' }}
       >
-        EmmaTech
+        EmmaTech™
       </text>
 
       <text
