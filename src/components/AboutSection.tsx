@@ -213,15 +213,15 @@ export const AboutSection: React.FC = () => {
           viewport={{ once: true, margin: '-100px' }}
           transition={{ duration: 0.6 }}
         >
-          <SectionTitle>About EmmaTech</SectionTitle>
+          <SectionTitle>About EmmaTech™</SectionTitle>
           <Description>
-            Founded by cybersecurity experts, EmmaTech is pioneering the next
+            Founded by cybersecurity experts, EmmaTech™ is pioneering the next
             generation of autonomous cyber defense systems. Our mission is to
             create unbreachable digital fortresses through innovative
             decentralized security architecture.
           </Description>
           <Description>
-            RAPHA represents years of research in machine learning, blockchain
+            RAPHA™ represents years of research in machine learning, blockchain
             technology, and advanced threat detection. We're not just building
             another security tool – we're revolutionizing how organizations
             defend against cyber threats.
