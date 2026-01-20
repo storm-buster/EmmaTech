@@ -186,7 +186,7 @@ export const Footer: React.FC = () => {
       </FooterContent>
 
       <Tagline>DETECT. DECEIVE. DEFEND.</Tagline>
-      <Copyright>© 2025 EmmaTech. All rights reserved.</Copyright>
+      <Copyright>© 2026 Company Name. RAPHA™ is a trademark of EmmaTech. All rights reserved.</Copyright>
     </FooterContainer>
   );
 };
