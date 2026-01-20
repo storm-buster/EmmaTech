@@ -216,7 +216,7 @@ export const Navigation: React.FC<NavigationProps> = ({ onContactClick }) => {
         <NavContainer>
           <Logo onClick={handleLogoClick}>
             <LogoIcon />
-            EmmaTech
+            EmmaTech™
           </Logo>
           <NavLinks>
             <NavLink onClick={() => scrollToSection('home')}>Home</NavLink>
