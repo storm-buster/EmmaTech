@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { breakpoints } from '../styles/breakpoints';
+import { Logo } from './Logo';
 
 const SectionContainer = styled.section`
   padding: ${({ theme }) => theme.spacing['4xl']} ${({ theme }) => theme.spacing.lg};
@@ -127,14 +128,43 @@ const StatLabel = styled.div`
   }
 `;
 
+const WatermarkContainer = styled(motion.div)`
+  position: absolute;
+  top: 0;
+  left: 50%;
+  margin-left: -50vw;
+  width: 100vw;
+  height: 100%;
+  opacity: 0.01;
+  z-index: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  ${breakpoints.tablet} {
+    display: none;
+  }
+`;
+
+const LogoWrapper = styled.div`
+  width: 100%;
+  max-width: 650px;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
 const ImageContainer = styled(motion.div)`
   order: 1;
-  display: flex;
+  display: none;
   justify-content: center;
   align-items: center;
   position: relative;
 
   ${breakpoints.tablet} {
+    display: flex;
     order: 2;
   }
 `;
@@ -206,6 +236,16 @@ const stats = [
 export const AboutSection: React.FC = () => {
   return (
     <SectionContainer id="about">
+      <WatermarkContainer
+        initial={{ opacity: 0, scale: 0.9 }}
+        whileInView={{ opacity: 0.01, scale: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 1.2, ease: "easeOut" }}
+      >
+        <LogoWrapper>
+          <Logo />
+        </LogoWrapper>
+      </WatermarkContainer>
       <ContentGrid>
         <TextContent
           initial={{ opacity: 0, x: -50 }}

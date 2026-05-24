@@ -58,9 +58,13 @@ const LogoSVG = styled.svg`
   }
 `;
 
-export const Logo: React.FC = () => {
+interface LogoProps {
+  hideText?: boolean;
+}
+
+export const Logo: React.FC<LogoProps> = ({ hideText = false }) => {
   return (
-    <LogoSVG viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <LogoSVG viewBox={hideText ? "0 0 200 190" : "0 0 200 200"} xmlns="http://www.w3.org/2000/svg">
       {/* Particle Ring - scattered around the circle */}
       <g className="rotating-ring">
         {[...Array(80)].map((_, i) => {
@@ -102,32 +106,36 @@ export const Logo: React.FC = () => {
         d="M 100 76 L 110 82 L 110 94 L 100 100 L 90 94 L 90 82 Z"
       />
 
-      {/* Text */}
-      <text
-        x="100"
-        y="160"
-        textAnchor="middle"
-        fill="#FFFFFF"
-        fontSize="24"
-        fontWeight="700"
-        fontFamily="'Playfair Display', serif"
-        style={{ filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.3))' }}
-      >
-        EmmaTech™
-      </text>
+      {/* Text - hidden on mobile via hideText prop */}
+      {!hideText && (
+        <>
+          <text
+            x="100"
+            y="160"
+            textAnchor="middle"
+            fill="#FFFFFF"
+            fontSize="24"
+            fontWeight="700"
+            fontFamily="'Playfair Display', serif"
+            style={{ filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.3))' }}
+          >
+            EmmaTech™
+          </text>
 
-      <text
-        x="100"
-        y="175"
-        textAnchor="middle"
-        fill="#3FBF7F"
-        fontSize="8"
-        fontWeight="500"
-        fontFamily="'JetBrains Mono', monospace"
-        letterSpacing="2"
-      >
-        DETECT DECEIVE DEFEND
-      </text>
+          <text
+            x="100"
+            y="175"
+            textAnchor="middle"
+            fill="#3FBF7F"
+            fontSize="8"
+            fontWeight="500"
+            fontFamily="'JetBrains Mono', monospace"
+            letterSpacing="2"
+          >
+            DETECT DECEIVE DEFEND
+          </text>
+        </>
+      )}
     </LogoSVG>
   );
 };

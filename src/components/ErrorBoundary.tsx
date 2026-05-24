@@ -1,6 +1,7 @@
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import styled from 'styled-components';
+import { theme as defaultTheme } from '../styles/theme';
 
 interface Props {
   children: ReactNode;
@@ -17,34 +18,34 @@ const ErrorContainer = styled.div`
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: ${({ theme }) => theme.spacing.xl};
+  padding: ${({ theme }) => (theme?.spacing || defaultTheme.spacing).xl};
   text-align: center;
-  background-color: ${({ theme }) => theme.colors.neutral.lightGray};
+  background-color: ${({ theme }) => (theme?.colors || defaultTheme.colors).neutral.lightGray};
 `;
 
 const ErrorTitle = styled.h1`
-  font-size: ${({ theme }) => theme.typography.fontSize.h1Mobile};
-  color: ${({ theme }) => theme.colors.neutral.darkGray};
-  margin-bottom: ${({ theme }) => theme.spacing.md};
+  font-size: ${({ theme }) => (theme?.typography || defaultTheme.typography).fontSize.h1Mobile};
+  color: ${({ theme }) => (theme?.colors || defaultTheme.colors).neutral.darkGray};
+  margin-bottom: ${({ theme }) => (theme?.spacing || defaultTheme.spacing).md};
 `;
 
 const ErrorMessage = styled.p`
-  font-size: ${({ theme }) => theme.typography.fontSize.bodyLarge};
-  color: ${({ theme }) => theme.colors.neutral.mediumGray};
-  margin-bottom: ${({ theme }) => theme.spacing.xl};
+  font-size: ${({ theme }) => (theme?.typography || defaultTheme.typography).fontSize.bodyLarge};
+  color: ${({ theme }) => (theme?.colors || defaultTheme.colors).neutral.mediumGray};
+  margin-bottom: ${({ theme }) => (theme?.spacing || defaultTheme.spacing).xl};
   max-width: 600px;
 `;
 
 const ReloadButton = styled.button`
   padding: 12px 32px;
-  font-size: ${({ theme }) => theme.typography.fontSize.body};
-  font-weight: ${({ theme }) => theme.typography.fontWeight.semibold};
-  background-color: ${({ theme }) => theme.colors.primary.main};
-  color: ${({ theme }) => theme.colors.neutral.white};
+  font-size: ${({ theme }) => (theme?.typography || defaultTheme.typography).fontSize.body};
+  font-weight: ${({ theme }) => (theme?.typography || defaultTheme.typography).fontWeight.semibold};
+  background-color: ${({ theme }) => (theme?.colors || defaultTheme.colors).primary.main};
+  color: ${({ theme }) => (theme?.colors || defaultTheme.colors).neutral.white};
   border: none;
-  border-radius: ${({ theme }) => theme.borderRadius.small};
+  border-radius: ${({ theme }) => (theme?.borderRadius || defaultTheme.borderRadius).small};
   cursor: pointer;
-  transition: ${({ theme }) => theme.transitions.default};
+  transition: ${({ theme }) => (theme?.transitions || defaultTheme.transitions).default};
 
   &:hover {
     background-color: #0052a3;

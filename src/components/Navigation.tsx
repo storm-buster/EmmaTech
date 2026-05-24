@@ -97,6 +97,7 @@ const NavLink = styled.a`
 `;
 
 const ContactButton = styled.button`
+  display: none;
   background: ${({ theme }) => theme.gradients.primary};
   color: white;
   border: none;
@@ -107,6 +108,10 @@ const ContactButton = styled.button`
   cursor: pointer;
   transition: ${({ theme }) => theme.transitions.default};
   box-shadow: 0 0 10px ${({ theme }) => theme.colors.primary.glow};
+
+  ${breakpoints.tablet} {
+    display: block;
+  }
 
   &:hover {
     transform: translateY(-2px);
@@ -170,6 +175,27 @@ const MobileNavLink = styled.a`
   &:hover {
     color: ${({ theme }) => theme.colors.primary.main};
     padding-left: ${({ theme }) => theme.spacing.md};
+  }
+`;
+
+const MobileContactButton = styled.button`
+  display: block;
+  width: 100%;
+  background: ${({ theme }) => theme.gradients.primary};
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: center;
+  margin-top: ${({ theme }) => theme.spacing.sm};
+  box-shadow: 0 0 10px ${({ theme }) => theme.colors.primary.glow};
+  transition: ${({ theme }) => theme.transitions.default};
+
+  &:hover {
+    box-shadow: 0 0 20px ${({ theme }) => theme.colors.primary.glow};
   }
 `;
 
@@ -239,6 +265,14 @@ export const Navigation: React.FC<NavigationProps> = ({ onContactClick }) => {
         <MobileNavLink onClick={() => scrollToSection('solution')}>RAPHA</MobileNavLink>
         <MobileNavLink onClick={() => scrollToSection('team')}>Team</MobileNavLink>
         <MobileNavLink onClick={() => scrollToSection('contact')}>Contact</MobileNavLink>
+        <MobileContactButton
+          onClick={() => {
+            setIsMobileMenuOpen(false);
+            onContactClick();
+          }}
+        >
+          Get In Touch
+        </MobileContactButton>
       </MobileMenu>
     </>
   );

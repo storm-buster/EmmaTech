@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { Button } from './Button';
@@ -13,18 +14,20 @@ interface HeroSectionProps {
 }
 
 const HeroContainer = styled.section`
-  min-height: 100vh;
+  min-height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: ${({ theme }) => theme.spacing['2xl']} ${({ theme }) =>
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) =>
     theme.spacing.md};
-  padding-top: calc(${({ theme }) => theme.spacing['3xl']} + 60px);
+  padding-top: calc(70px + 40px + ${({ theme }) => theme.spacing.sm});
+  padding-bottom: ${({ theme }) => theme.spacing.lg};
   background: ${({ theme }) => theme.colors.background.primary};
   position: relative;
   overflow: hidden;
 
   ${breakpoints.tablet} {
+    min-height: 100vh;
     padding: ${({ theme }) => theme.spacing['4xl']} ${({ theme }) =>
     theme.spacing['2xl']};
     padding-top: calc(${({ theme }) => theme.spacing['4xl']} + 60px);
@@ -36,13 +39,16 @@ const ContentWrapper = styled.div`
   width: 100%;
   position: relative;
   z-index: 10;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: ${({ theme }) => theme.spacing['2xl']};
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.md};
+  align-items: flex-start;
 
   ${breakpoints.desktop} {
+    display: grid;
     grid-template-columns: 1.2fr 0.8fr;
+    gap: ${({ theme }) => theme.spacing['2xl']};
+    align-items: center;
   }
 `;
 
@@ -50,19 +56,24 @@ const TextContent = styled(motion.div)`
   text-align: left;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  min-height: 60vh;
+  justify-content: center;
+  min-height: auto;
   position: relative;
   z-index: 2;
+
+  ${breakpoints.desktop} {
+    justify-content: flex-end;
+    min-height: 60vh;
+  }
 `;
 
 const Headline = styled.h1`
   font-family: ${({ theme }) => theme.typography.fontFamily.display};
-  font-size: 32px;
-  line-height: 1.1;
+  font-size: 28px;
+  line-height: 1.15;
   font-weight: 500;
   color: ${({ theme }) => theme.colors.neutral.white};
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.sm};
   letter-spacing: -0.02em;
   word-wrap: break-word;
 
@@ -73,6 +84,7 @@ const Headline = styled.h1`
 
   ${breakpoints.tablet} {
     font-size: 96px;
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
   }
 
   ${breakpoints.desktop} {
@@ -81,90 +93,138 @@ const Headline = styled.h1`
 `;
 
 const SubHeadline = styled.h2`
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.4;
   font-weight: 500;
   color: ${({ theme }) => theme.colors.neutral.mediumGray};
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.sm};
   font-family: ${({ theme }) => theme.typography.fontFamily.monospace};
   letter-spacing: 0.2em;
   text-transform: uppercase;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 
   &::before {
     content: '';
     display: block;
-    width: 40px;
+    width: 30px;
     height: 1px;
     background: ${({ theme }) => theme.colors.neutral.mediumGray};
+  }
+
+  ${breakpoints.tablet} {
+    font-size: 12px;
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
+    gap: 16px;
+
+    &::before {
+      width: 40px;
+    }
   }
 `;
 
 const Description = styled.p`
-  font-size: 16px;
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.5;
   color: ${({ theme }) => theme.colors.neutral.lightGray};
-  margin-bottom: ${({ theme }) => theme.spacing.xl};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
   max-width: 500px;
   font-family: ${({ theme }) => theme.typography.fontFamily.primary};
   font-weight: 300;
   
   ${breakpoints.tablet} {
     font-size: 22px;
+    line-height: 1.6;
     margin-bottom: ${({ theme }) => theme.spacing['3xl']};
   }
 `;
 
 const CTAButtons = styled.div`
   display: flex;
-  gap: ${({ theme }) => theme.spacing.md};
-  flex-wrap: wrap;
+  gap: ${({ theme }) => theme.spacing.sm};
+  flex-direction: column;
+
+  & > * {
+    display: block;
+    width: 100%;
+    max-width: 300px;
+  }
+
+  & > * > div,
+  & > * button {
+    width: 100%;
+  }
+
+  ${breakpoints.tablet} {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: ${({ theme }) => theme.spacing.md};
+
+    & > * {
+      display: inline-block;
+      width: auto;
+      max-width: none;
+    }
+
+    & > * > div,
+    & > * button {
+      width: auto;
+    }
+  }
 `;
 
 const VisualContent = styled(motion.div)`
-  position: absolute;
-  top: 0;
-  left: 50%;
-  margin-left: -50vw;
-  width: 100vw;
-  height: 100%;
-  opacity: 0.01;
-  z-index: 0;
+  display: none;
   pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   
   ${breakpoints.desktop} {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     position: relative;
-    top: auto;
-    left: auto;
-    margin-left: 0;
     width: auto;
     height: auto;
     opacity: 1;
     z-index: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
   }
 `;
 
 const LogoWrapper = styled.div`
-  width: 100%;
-  max-width: 650px;
-  aspect-ratio: 1;
+  width: 220px;
+  height: 220px;
   display: flex;
   align-items: center;
   justify-content: center;
+
+  ${breakpoints.tablet} {
+    width: 280px;
+    height: 280px;
+  }
+
+  ${breakpoints.desktop} {
+    width: 100%;
+    max-width: 650px;
+    height: auto;
+    aspect-ratio: 1;
+  }
 `;
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
   onWaitlistClick,
   onInvestorClick,
 }) => {
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const check = () => setIsMobile(window.innerWidth < 1024);
+      check();
+      window.addEventListener('resize', check);
+      return () => window.removeEventListener('resize', check);
+    }
+  }, []);
+
   return (
     <HeroContainer>
       <FluidBackground />
@@ -206,7 +266,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           transition={{ duration: 1.2, delay: 0.4, ease: "easeOut" }}
         >
           <LogoWrapper>
-            <Logo />
+            <Logo hideText={isMobile} />
           </LogoWrapper>
         </VisualContent>
       </ContentWrapper>
