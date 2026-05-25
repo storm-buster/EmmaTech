@@ -112,7 +112,7 @@ export const SolutionSection: React.FC = () => {
     <SectionContainer>
       <SectionTitle>Our Solution: A New Paradigm in Security</SectionTitle>
       <SectionSubtitle>
-        RAPHA is not an incremental improvement—it's a fundamentally different
+        RAPHA is not an incremental improvement it's a fundamentally different
         approach. We are the first to unify four breakthrough innovations into
         one platform.
       </SectionSubtitle>

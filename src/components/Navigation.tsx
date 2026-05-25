@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { breakpoints } from '../styles/breakpoints';
+import { LogoIcon } from './LogoIcon';
 
 const Nav = styled.nav<{ $isScrolled: boolean }>`
   position: fixed;
@@ -32,10 +33,6 @@ const NavContainer = styled.div`
   margin: 0 auto;
 `;
 
-import { LogoIcon } from './LogoIcon';
-
-// ... existing imports ...
-
 const Logo = styled.div`
   font-family: ${({ theme }) => theme.typography.fontFamily.display};
   font-size: 24px;
@@ -52,10 +49,6 @@ const Logo = styled.div`
     transform: scale(1.05);
   }
 `;
-
-// ... existing code ...
-
-
 
 const NavLinks = styled.div`
   display: none;
@@ -101,52 +94,49 @@ const ContactButton = styled.button`
   background: ${({ theme }) => theme.gradients.primary};
   color: white;
   border: none;
-  padding: 10px 24px;
+  padding: 10px 20px;
   border-radius: 6px;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
-  transition: ${({ theme }) => theme.transitions.default};
   box-shadow: 0 0 10px ${({ theme }) => theme.colors.primary.glow};
+  transition: ${({ theme }) => theme.transitions.default};
+
+  &:hover {
+    box-shadow: 0 0 20px ${({ theme }) => theme.colors.primary.glow};
+    transform: translateY(-2px);
+  }
 
   ${breakpoints.tablet} {
     display: block;
   }
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 20px ${({ theme }) => theme.colors.primary.glow};
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
 `;
 
 const MobileMenuButton = styled.button`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: block;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
+  padding: 4px;
+  z-index: 1000;
+
+  span {
+    display: block;
+    width: 24px;
+    height: 2px;
+    background: ${({ theme }) => theme.colors.neutral.white};
+    margin: 5px 0;
+    transition: all 0.3s ease;
+  }
 
   ${breakpoints.tablet} {
     display: none;
-  }
-
-  span {
-    width: 24px;
-    height: 2px;
-    background: ${({ theme }) => theme.colors.primary.main};
-    transition: all 0.3s ease;
   }
 `;
 
 const MobileMenu = styled.div<{ $isOpen: boolean }>`
   position: fixed;
-  top: 70px;
+  top: 73px;
   left: 0;
   right: 0;
   background: rgba(10, 14, 39, 0.98);
@@ -242,16 +232,16 @@ export const Navigation: React.FC<NavigationProps> = ({ onContactClick }) => {
         <NavContainer>
           <Logo onClick={handleLogoClick}>
             <LogoIcon />
-            EmmaTech™
+            RAPHA
           </Logo>
           <NavLinks>
-            <NavLink onClick={() => scrollToSection('home')}>Home</NavLink>
-            <NavLink onClick={() => scrollToSection('about')}>About</NavLink>
-            <NavLink onClick={() => scrollToSection('solution')}>RAPHA</NavLink>
+            <NavLink onClick={() => scrollToSection('why-rapha')}>Why RAPHA</NavLink>
+            <NavLink onClick={() => scrollToSection('compliance')}>Compliance</NavLink>
+            <NavLink onClick={() => scrollToSection('pricing')}>Pricing</NavLink>
             <NavLink onClick={() => scrollToSection('team')}>Team</NavLink>
             <NavLink onClick={() => scrollToSection('contact')}>Contact</NavLink>
           </NavLinks>
-          <ContactButton onClick={onContactClick}>Get In Touch</ContactButton>
+          <ContactButton onClick={onContactClick}>Live Demo</ContactButton>
           <MobileMenuButton onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             <span />
             <span />
@@ -260,9 +250,9 @@ export const Navigation: React.FC<NavigationProps> = ({ onContactClick }) => {
         </NavContainer>
       </Nav>
       <MobileMenu $isOpen={isMobileMenuOpen}>
-        <MobileNavLink onClick={() => scrollToSection('home')}>Home</MobileNavLink>
-        <MobileNavLink onClick={() => scrollToSection('about')}>About</MobileNavLink>
-        <MobileNavLink onClick={() => scrollToSection('solution')}>RAPHA</MobileNavLink>
+        <MobileNavLink onClick={() => scrollToSection('why-rapha')}>Why RAPHA</MobileNavLink>
+        <MobileNavLink onClick={() => scrollToSection('compliance')}>Compliance</MobileNavLink>
+        <MobileNavLink onClick={() => scrollToSection('pricing')}>Pricing</MobileNavLink>
         <MobileNavLink onClick={() => scrollToSection('team')}>Team</MobileNavLink>
         <MobileNavLink onClick={() => scrollToSection('contact')}>Contact</MobileNavLink>
         <MobileContactButton
@@ -271,7 +261,7 @@ export const Navigation: React.FC<NavigationProps> = ({ onContactClick }) => {
             onContactClick();
           }}
         >
-          Get In Touch
+          Live Demo
         </MobileContactButton>
       </MobileMenu>
     </>

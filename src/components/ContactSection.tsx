@@ -2,19 +2,33 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
-import { Card } from './Card';
 import { Button } from './Button';
 import { breakpoints } from '../styles/breakpoints';
-import { sendContactEmail, type ContactFormData } from '../services/email';
+import { sendContactEmail } from '../services/email';
+import type { ContactFormData } from '../services/email';
 
 const SectionContainer = styled.section`
-  padding: ${({ theme }) => theme.spacing['4xl']} ${({ theme }) => theme.spacing.lg};
+  padding: ${({ theme }) => theme.spacing['4xl']} ${({ theme }) =>
+    theme.spacing.lg};
   background: ${({ theme }) => theme.colors.background.primary};
   position: relative;
 
   ${breakpoints.tablet} {
-    padding: ${({ theme }) => theme.spacing['4xl']} ${({ theme }) => theme.spacing['2xl']};
+    padding: ${({ theme }) => theme.spacing['4xl']} ${({ theme }) =>
+    theme.spacing['2xl']};
   }
+`;
+
+const SectionPrefix = styled.span`
+  font-family: ${({ theme }) => theme.typography.fontFamily.monospace};
+  font-size: 11px;
+  font-weight: 700;
+  color: #3FBF7F;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: ${({ theme }) => theme.spacing.xs};
+  display: block;
+  text-align: center;
 `;
 
 const SectionTitle = styled.h2`
@@ -24,7 +38,6 @@ const SectionTitle = styled.h2`
   color: ${({ theme }) => theme.colors.neutral.white};
   text-align: center;
   margin-bottom: ${({ theme }) => theme.spacing.md};
-  font-family: ${({ theme }) => theme.typography.fontFamily.display};
 
   &::after {
     content: '';
@@ -60,89 +73,68 @@ const SectionSubtitle = styled.p`
 const ContactGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${({ theme }) => theme.spacing.xl};
+  gap: ${({ theme }) => theme.spacing['2xl']};
   max-width: 1200px;
   margin: 0 auto;
 
   ${breakpoints.tablet} {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1.2fr;
+    gap: ${({ theme }) => theme.spacing['3xl']};
   }
 `;
 
-const ContactInfo = styled(Card)`
-  padding: ${({ theme }) => theme.spacing['2xl']};
-  background: ${({ theme }) => theme.gradients.card};
-  border: 1px solid ${({ theme }) => theme.colors.neutral.border};
-  height: 100%;
+const ContactInfo = styled.div`
   display: flex;
   flex-direction: column;
-`;
-
-const ContactForm = styled(Card)`
-  padding: ${({ theme }) => theme.spacing['2xl']};
-  background: ${({ theme }) => theme.gradients.card};
-  border: 1px solid ${({ theme }) => theme.colors.neutral.border};
-  height: 100%;
+  gap: ${({ theme }) => theme.spacing.xl};
 `;
 
 const InfoTitle = styled.h3`
   font-size: 24px;
   font-weight: 600;
-  color: ${({ theme }) => theme.colors.primary.main};
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
-  text-shadow: 0 0 10px ${({ theme }) => theme.colors.primary.glow};
+  color: ${({ theme }) => theme.colors.neutral.white};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
 `;
 
 const ContactItem = styled.div`
   display: flex;
-  align-items: flex-start;
   gap: ${({ theme }) => theme.spacing.md};
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
-  padding: ${({ theme }) => theme.spacing.md};
-  background: ${({ theme }) => theme.colors.background.tertiary};
-  border-radius: 8px;
-  border: 1px solid ${({ theme }) => theme.colors.neutral.border};
-  transition: ${({ theme }) => theme.transitions.default};
-
-  &:hover {
-    border-color: ${({ theme }) => theme.colors.primary.main};
-    box-shadow: 0 4px 16px rgba(0, 240, 255, 0.1);
-  }
+  align-items: flex-start;
 `;
 
 const ContactIcon = styled.div`
+  font-size: 24px;
+  color: ${({ theme }) => theme.colors.primary.main};
+  background: rgba(0, 240, 255, 0.1);
   width: 48px;
   height: 48px;
-  border-radius: 50%;
-  background: ${({ theme }) => theme.gradients.primary};
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  color: white;
+  border: 1px solid rgba(0, 240, 255, 0.2);
   flex-shrink: 0;
-  box-shadow: 0 0 10px ${({ theme }) => theme.colors.primary.glow};
 `;
 
 const ContactDetails = styled.div`
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 `;
 
-const ContactLabel = styled.div`
-  font-size: 14px;
-  color: ${({ theme }) => theme.colors.neutral.mediumGray};
+const ContactLabel = styled.span`
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  margin-bottom: 4px;
+  color: ${({ theme }) => theme.colors.neutral.mediumGray};
 `;
 
-const ContactValue = styled.div`
+const ContactValue = styled.span`
   font-size: 16px;
-  color: ${({ theme }) => theme.colors.neutral.white};
-  font-weight: 500;
+  color: ${({ theme }) => theme.colors.neutral.lightGray};
 
   a {
-    color: ${({ theme }) => theme.colors.neutral.white};
+    color: ${({ theme }) => theme.colors.neutral.lightGray};
     text-decoration: none;
     transition: ${({ theme }) => theme.transitions.default};
 
@@ -152,18 +144,29 @@ const ContactValue = styled.div`
   }
 `;
 
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing.md};
+const ContactForm = styled.div`
+  background: ${({ theme }) => theme.gradients.card};
+  border: 1px solid ${({ theme }) => theme.colors.neutral.border};
+  border-radius: 16px;
+  padding: ${({ theme }) => theme.spacing.xl};
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+
+  ${breakpoints.tablet} {
+    padding: ${({ theme }) => theme.spacing['2xl']};
+  }
 `;
 
 const FormTitle = styled.h3`
   font-size: 24px;
   font-weight: 600;
-  color: ${({ theme }) => theme.colors.primary.main};
+  color: ${({ theme }) => theme.colors.neutral.white};
   margin-bottom: ${({ theme }) => theme.spacing.lg};
-  text-shadow: 0 0 10px ${({ theme }) => theme.colors.primary.glow};
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.md};
 `;
 
 const FormGroup = styled.div`
@@ -176,81 +179,71 @@ const Label = styled.label`
   font-size: 14px;
   font-weight: 500;
   color: ${({ theme }) => theme.colors.neutral.lightGray};
-  text-transform: uppercase;
-  letter-spacing: 1px;
 `;
 
 const Input = styled.input`
-  padding: 12px 16px;
-  font-size: 16px;
   background: ${({ theme }) => theme.colors.background.tertiary};
   border: 1px solid ${({ theme }) => theme.colors.neutral.border};
   border-radius: 8px;
+  padding: 12px 16px;
   color: ${({ theme }) => theme.colors.neutral.white};
+  font-size: 15px;
   transition: ${({ theme }) => theme.transitions.default};
 
   &:focus {
     outline: none;
     border-color: ${({ theme }) => theme.colors.primary.main};
     box-shadow: 0 0 10px ${({ theme }) => theme.colors.primary.glow};
-  }
-
-  &::placeholder {
-    color: ${({ theme }) => theme.colors.neutral.mediumGray};
   }
 `;
 
 const TextArea = styled.textarea`
-  padding: 12px 16px;
-  font-size: 16px;
   background: ${({ theme }) => theme.colors.background.tertiary};
   border: 1px solid ${({ theme }) => theme.colors.neutral.border};
   border-radius: 8px;
+  padding: 12px 16px;
   color: ${({ theme }) => theme.colors.neutral.white};
-  transition: ${({ theme }) => theme.transitions.default};
+  font-size: 15px;
   min-height: 120px;
   resize: vertical;
-  font-family: inherit;
+  transition: ${({ theme }) => theme.transitions.default};
 
   &:focus {
     outline: none;
     border-color: ${({ theme }) => theme.colors.primary.main};
     box-shadow: 0 0 10px ${({ theme }) => theme.colors.primary.glow};
   }
-
-  &::placeholder {
-    color: ${({ theme }) => theme.colors.neutral.mediumGray};
-  }
 `;
 
 const ErrorMessage = styled.span`
-  font-size: 12px;
   color: ${({ theme }) => theme.colors.semantic.error};
-  margin-top: 4px;
+  font-size: 12px;
+  margin-top: 2px;
 `;
 
 const SuccessMessage = styled.div`
-  padding: ${({ theme }) => theme.spacing.md};
-  background: rgba(0, 245, 160, 0.1);
-  border: 1px solid ${({ theme }) => theme.colors.semantic.success};
+  color: #3FBF7F;
+  background: rgba(63, 191, 127, 0.1);
+  border: 1px solid rgba(63, 191, 127, 0.2);
+  padding: 16px;
   border-radius: 8px;
-  color: ${({ theme }) => theme.colors.semantic.success};
-  text-align: center;
   margin-top: ${({ theme }) => theme.spacing.md};
+  font-weight: 500;
+  text-align: center;
 `;
 
 interface ContactSectionProps {
-  onWaitlistClick: () => void;
+  onWaitlistClick?: () => void;
 }
 
 export const ContactSection: React.FC<ContactSectionProps> = ({ onWaitlistClick }) => {
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const {
     register,
     handleSubmit,
-    formState: { errors },
     reset,
+    formState: { errors },
   } = useForm<ContactFormData>();
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const onSubmit = async (data: ContactFormData) => {
     try {
@@ -259,18 +252,20 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onWaitlistClick 
       reset();
       setTimeout(() => setIsSubmitted(false), 5000);
     } catch (error) {
-      console.error('Failed to submit contact form:', error);
-      // Optionally handle error state here
+      console.error(error);
     }
   };
 
   return (
     <SectionContainer id="contact">
-      <SectionTitle>Get In Touch</SectionTitle>
+      <SectionPrefix>§06 / CONTACT</SectionPrefix>
+      <SectionTitle>Contact</SectionTitle>
       <SectionSubtitle>
-        Ready to revolutionize your cybersecurity? Contact us to learn more
-        about RAPHA or discuss partnership opportunities.
+        Run a pilot. No PoC fees.
       </SectionSubtitle>
+      <div style={{ textAlign: 'center', marginBottom: '40px', color: '#c9d1d9', fontSize: '18px', maxWidth: '800px', margin: '0 auto 40px auto' }}>
+        We're onboarding 2-3 fintechs / NBFCs for free pilots. You get the agent, the dashboard, and a real audit-trail in under a week.
+      </div>
 
       <ContactGrid>
         <motion.div
@@ -293,22 +288,22 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onWaitlistClick 
             </ContactItem>
 
             <ContactItem>
-              <ContactIcon>📞</ContactIcon>
+              <ContactIcon>🌐</ContactIcon>
               <ContactDetails>
-                <ContactLabel>Phone</ContactLabel>
+                <ContactLabel>Web</ContactLabel>
                 <ContactValue>
-                  <a href="tel:+918860263015">+91 88602 63015</a>
+                  <a href="https://emmatech.xyz" target="_blank" rel="noopener noreferrer">emmatech.xyz</a>
                 </ContactValue>
               </ContactDetails>
             </ContactItem>
 
             <ContactItem>
-              <ContactIcon>📍</ContactIcon>
+              <ContactIcon>👤</ContactIcon>
               <ContactDetails>
-                <ContactLabel>Headquarters</ContactLabel>
+                <ContactLabel>Founder</ContactLabel>
                 <ContactValue>
-                  Global Operations<br />
-                  Digital First
+                  Avinash Yaduvanshi<br />
+                  Delhi NCR
                 </ContactValue>
               </ContactDetails>
             </ContactItem>
@@ -342,11 +337,11 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onWaitlistClick 
               </FormGroup>
 
               <FormGroup>
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email">Work Email *</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="your@email.com"
+                  placeholder="your@company.com"
                   {...register('email', {
                     required: 'Email is required',
                     pattern: {
@@ -372,14 +367,14 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onWaitlistClick 
                 <Label htmlFor="message">Message *</Label>
                 <TextArea
                   id="message"
-                  placeholder="Tell us about your cybersecurity needs..."
+                  placeholder="Tell us what you're protecting — fleet size, stack, compliance needs."
                   {...register('message', { required: 'Message is required' })}
                 />
                 {errors.message && <ErrorMessage>{errors.message.message}</ErrorMessage>}
               </FormGroup>
 
               <Button type="submit" variant="primary">
-                Send Message
+                Request a pilot
               </Button>
 
               {isSubmitted && (

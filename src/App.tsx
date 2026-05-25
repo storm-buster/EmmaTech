@@ -6,10 +6,9 @@ import { SkipToContent } from './components/SkipToContent';
 import { Navigation } from './components/Navigation';
 import { ComingSoonBanner } from './components/ComingSoonBanner';
 import { HeroSection } from './components/HeroSection';
-import { AboutSection } from './components/AboutSection';
 import { ProblemSection } from './components/ProblemSection';
 import { SolutionSection } from './components/SolutionSection';
-import { WorkflowSection } from './components/WorkflowSection';
+import { WhyRaphaSection } from './components/WhyRaphaSection';
 import { CustomerSection } from './components/CustomerSection';
 import { TeamSection } from './components/TeamSection';
 import { ContactSection } from './components/ContactSection';
@@ -21,21 +20,12 @@ const WaitlistModal = lazy(() =>
     default: module.WaitlistModal,
   }))
 );
-const InvestorModal = lazy(() =>
-  import('./components/InvestorModal').then((module) => ({
-    default: module.InvestorModal,
-  }))
-);
 
 function App() {
   const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
-  const [isInvestorModalOpen, setIsInvestorModalOpen] = useState(false);
 
   const handleWaitlistOpen = () => setIsWaitlistModalOpen(true);
   const handleWaitlistClose = () => setIsWaitlistModalOpen(false);
-
-  const handleInvestorOpen = () => setIsInvestorModalOpen(true);
-  const handleInvestorClose = () => setIsInvestorModalOpen(false);
 
   const handleContactClick = () => {
     const contactSection = document.getElementById('contact');
@@ -54,16 +44,14 @@ function App() {
         <div id="home">
           <HeroSection
             onWaitlistClick={handleWaitlistOpen}
-            onInvestorClick={handleInvestorOpen}
           />
         </div>
-        <AboutSection />
-        <ProblemSection />
         <div id="solution">
           <SolutionSection />
+          <WhyRaphaSection />
         </div>
-        <WorkflowSection />
-        <CustomerSection />
+        <ProblemSection />
+        <CustomerSection onWaitlistClick={handleWaitlistOpen} />
         <TeamSection />
         <ContactSection onWaitlistClick={handleWaitlistOpen} />
       </main>
@@ -72,10 +60,6 @@ function App() {
         <WaitlistModal
           isOpen={isWaitlistModalOpen}
           onClose={handleWaitlistClose}
-        />
-        <InvestorModal
-          isOpen={isInvestorModalOpen}
-          onClose={handleInvestorClose}
         />
       </Suspense>
     </ThemeProvider>

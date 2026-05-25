@@ -72,38 +72,6 @@ const FooterLink = styled.a`
   }
 `;
 
-const SocialLinks = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing.md};
-  justify-content: center;
-
-  ${breakpoints.tablet} {
-    justify-content: flex-start;
-  }
-`;
-
-const SocialLink = styled.a`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: ${({ theme }) => theme.colors.background.tertiary};
-  border: 1px solid ${({ theme }) => theme.colors.neutral.border};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${({ theme }) => theme.colors.neutral.lightGray};
-  text-decoration: none;
-  transition: ${({ theme }) => theme.transitions.default};
-  font-size: 20px;
-
-  &:hover {
-    background: ${({ theme }) => theme.colors.primary.main};
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 0 10px ${({ theme }) => theme.colors.primary.glow};
-  }
-`;
-
 const ContactInfo = styled.div`
   font-size: 14px;
   color: ${({ theme }) => theme.colors.neutral.mediumGray};
@@ -145,13 +113,11 @@ export const Footer: React.FC = () => {
     <FooterContainer>
       <FooterContent>
         <FooterSection>
-          <FooterTitle>Company</FooterTitle>
+          <FooterTitle>Product</FooterTitle>
           <FooterLinks>
-            <FooterLink href="#about">About Us</FooterLink>
+            <FooterLink href="#pricing">Pricing</FooterLink>
+            <FooterLink href="#compliance">Compliance</FooterLink>
             <FooterLink href="#team">Team</FooterLink>
-            <FooterLink href="#contact">Contact</FooterLink>
-            <FooterLink href="#privacy">Privacy Policy</FooterLink>
-            <FooterLink href="#terms">Terms of Service</FooterLink>
           </FooterLinks>
         </FooterSection>
 
@@ -160,33 +126,26 @@ export const Footer: React.FC = () => {
           <ContactInfo>
             <a href="mailto:adamas.avinash@gmail.com">adamas.avinash@gmail.com</a>
             <br />
-            <a href="tel:+918860263015">+91 88602 63015</a>
+            <a href="https://emmatech.in" target="_blank" rel="noopener noreferrer">emmatech.in</a>
             <br />
             <br />
-            Global Operations
+            Avinash Yaduvanshi
             <br />
-            Digital First
+            Delhi NCR, India
           </ContactInfo>
         </FooterSection>
 
         <FooterSection>
-          <FooterTitle>Follow Us</FooterTitle>
-          <SocialLinks>
-            <SocialLink href="https://www.linkedin.com/company/emma-tech/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-              💼
-            </SocialLink>
-            <SocialLink href="#" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
-              🐦
-            </SocialLink>
-            <SocialLink href="#" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
-              💻
-            </SocialLink>
-          </SocialLinks>
+          <FooterTitle>Legal</FooterTitle>
+          <FooterLinks>
+            <FooterLink href="#privacy">Privacy Policy</FooterLink>
+            <FooterLink href="#terms">Terms of Service</FooterLink>
+          </FooterLinks>
         </FooterSection>
       </FooterContent>
 
       <Tagline>DETECT. DECEIVE. DEFEND.</Tagline>
-      <Copyright>© 2026 Company Name. RAPHA™ is a trademark of EmmaTech. All rights reserved.</Copyright>
+      <Copyright>© 2026 EmmaTech. RAPHA by emmatech. All rights reserved.</Copyright>
     </FooterContainer>
   );
 };

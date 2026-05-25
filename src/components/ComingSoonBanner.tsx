@@ -6,67 +6,71 @@ const pulse = keyframes`
     opacity: 1;
   }
   50% {
-    opacity: 0.7;
+    opacity: 0.75;
   }
 `;
 
 const BannerContainer = styled.div`
   position: fixed;
-  top: 70px;
+  top: 64px; /* Sits perfectly below navbar on mobile */
   left: 0;
   right: 0;
   background: linear-gradient(
     90deg,
-    rgba(59, 130, 246, 0.15) 0%,
-    rgba(6, 182, 212, 0.15) 100%
+    rgba(63, 191, 127, 0.12) 0%,
+    rgba(0, 240, 255, 0.08) 100%
   );
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(59, 130, 246, 0.3);
-  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+  border-bottom: 1px solid rgba(63, 191, 127, 0.25);
+  padding: 8px 12px;
   z-index: 999;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: ${({ theme }) => theme.spacing.sm};
+  gap: 8px;
 
   ${breakpoints.tablet} {
-    padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
+    top: 70px; /* Sits perfectly below navbar on desktop */
+    padding: 10px 24px;
+    gap: 12px;
   }
 `;
 
 const Badge = styled.span`
-  background: ${({ theme }) => theme.gradients.primary};
+  background: linear-gradient(135deg, #3FBF7F 0%, #10B981 100%);
   color: white;
-  padding: 4px 12px;
+  padding: 4px 10px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   animation: ${pulse} 2s ease-in-out infinite;
+  flex-shrink: 0;
 
   ${breakpoints.tablet} {
-    font-size: 13px;
-    padding: 6px 16px;
+    font-size: 12px;
+    padding: 6px 14px;
   }
 `;
 
 const Message = styled.p`
   color: ${({ theme }) => theme.colors.neutral.white};
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   margin: 0;
   text-align: center;
+  line-height: 1.4;
 
   ${breakpoints.tablet} {
-    font-size: 15px;
+    font-size: 14px;
   }
 `;
 
 const Highlight = styled.span`
-  color: ${({ theme }) => theme.colors.primary.main};
+  color: #3FBF7F;
   font-weight: 700;
-  text-shadow: 0 0 10px ${({ theme }) => theme.colors.primary.glow};
+  text-shadow: 0 0 10px rgba(63, 191, 127, 0.3);
 `;
 
 export const ComingSoonBanner: React.FC = () => {
