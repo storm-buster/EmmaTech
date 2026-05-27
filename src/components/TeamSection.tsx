@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Card } from './Card';
 import { Button } from './Button';
 import { breakpoints } from '../styles/breakpoints';
+import raphaProfile from '../assets/Rapha_profile.png';
 
 const SectionContainer = styled.section`
   padding: ${({ theme }) => theme.spacing['4xl']} ${({ theme }) => theme.spacing.lg};
@@ -92,18 +93,14 @@ const FounderCard = styled(Card)`
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 `;
 
-const Avatar = styled.div`
+const Avatar = styled.img`
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  background: ${({ theme }) => theme.gradients.primary};
+  object-fit: cover;
   margin-bottom: ${({ theme }) => theme.spacing.lg};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 48px;
-  color: white;
-  box-shadow: 0 0 20px ${({ theme }) => theme.colors.primary.glow};
+  border: 2px solid #3FBF7F;
+  box-shadow: 0 0 15px rgba(63, 191, 127, 0.3);
 `;
 
 const FounderName = styled.h3`
@@ -165,7 +162,7 @@ export const TeamSection: React.FC = () => {
           style={{ display: 'flex' }}
         >
           <FounderCard>
-            <Avatar>👨‍💻</Avatar>
+            <Avatar src={raphaProfile} alt="Avinash Yaduvanshi" />
             <FounderName>Avinash Yaduvanshi</FounderName>
             <FounderTitle>Founder · CEO</FounderTitle>
             <Button
