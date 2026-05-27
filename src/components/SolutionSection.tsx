@@ -246,7 +246,7 @@ const innovations = [
     title: 'Sensors',
     subtitle: 'COLLECTION',
     description:
-      'Lightweight agents stream 50+ system features every second from each protected node — CPU, memory, network, process tree, disk.',
+      'Lightweight agents stream 50+ system features every second from each protected node CPU, memory, network, process tree, disk.',
     icon: <SensorIcon />,
   },
   {
@@ -254,7 +254,7 @@ const innovations = [
     title: 'Orchestrator',
     subtitle: 'DECISION',
     description:
-      'Per-device Isolation Forest scores each window. Risk policy is applied locally — no cloud round-trip.',
+      'Per-device Isolation Forest scores each window. Risk policy is applied locally no cloud round-trip.',
     icon: <ChipIcon />,
   },
   {
@@ -262,7 +262,7 @@ const innovations = [
     title: 'Response',
     subtitle: 'ACTION',
     description:
-      'iptables rules redirect the attacker into Cowrie. Decoys deploy. Target system isolated — all in milliseconds.',
+      'iptables rules redirect the attacker into Cowrie. Decoys deploy. Target system isolated all in milliseconds.',
     icon: <LightningIcon />,
   },
   {

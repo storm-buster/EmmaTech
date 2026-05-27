@@ -189,7 +189,7 @@ export const TeamSection: React.FC = () => {
               The Windows sensor agent is live, behavioral telemetry is being collected, and the Isolation Forest baseline is being calibrated. Next: honeypot redirection and the first pilot in a regulated fintech.
             </BioText>
             <HighlightBox>
-              Currently hiring a technical co-founder (ML / data engineering) on equity. If you've built anomaly detection at scale — let's talk.
+              Currently hiring a technical co-founder (ML / data engineering) on equity. If you've built anomaly detection at scale let's talk.
             </HighlightBox>
           </BioContainer>
         </motion.div>

@@ -200,7 +200,7 @@ const complianceItems = [
   {
     id: 'DPDP',
     badge: 'Privacy Act 2023',
-    description: 'Per-device baseline + federated training (V3) means personal data never leaves the data fiduciary\'s machine. Privacy by design.',
+    description: 'Per-device baseline + federated training means personal data never leaves the data fiduciary\'s machine. Privacy by design.',
   },
   {
     id: 'SEBI',
