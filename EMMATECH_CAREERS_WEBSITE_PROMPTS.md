@@ -16,7 +16,7 @@ WordPress). Fill every `[FILL IN]` before using — those are decisions only you
 - **Location model:** `[FILL IN — e.g. Remote (India) / Hybrid Bengaluru / On-site]`
 - **Work auth / timezone overlap:** `[FILL IN — e.g. IST ±3h]`
 - **Comp philosophy:** `[FILL IN — e.g. "below-market cash + meaningful founding equity (0.5%–3%)"]`
-- **How to apply:** `[FILL IN — email careers@emmatech.in / Google Form / Ashby / Lever]`
+- **How to apply:** `[FILL IN — email avinash@emmatech.in / Google Form / Ashby / Lever]`
 - **Start date / urgency:** `[FILL IN]`
 
 ---
@@ -234,7 +234,7 @@ WordPress). Fill every `[FILL IN]` before using — those are decisions only you
 
 **Application flow** (pick per §0)
 > Add an application section on each role and a general one. `[FILL IN one:]`
-> - Simple: a "mailto:careers@emmatech.in" button with the role name in the subject.
+> - Simple: a "mailto:avinash@emmatech.in" button with the role name in the subject.
 > - Form: name, email, role (prefilled), links (LinkedIn/GitHub/portfolio), short "why
 >   EmmaTech" text, resume upload → submit to `[FILL IN backend / Google Form / Ashby]`.
 > Include a confirmation state and a note on expected response time.

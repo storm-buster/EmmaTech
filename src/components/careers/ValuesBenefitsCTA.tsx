@@ -273,7 +273,7 @@ export const GeneralApplicationCTA: React.FC = () => (
         Don't see the perfect role? If you're passionate about autonomous cyber-defense
         and want to build something that matters, we want to hear from you.
       </CTASubtext>
-      <CTAButton href="mailto:careers@emmatech.in?subject=General Application — EmmaTech">
+      <CTAButton href="mailto:avinash@emmatech.in?subject=General Application — EmmaTech">
         Send a General Application
       </CTAButton>
       <EqualOpp>
