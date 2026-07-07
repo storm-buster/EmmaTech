@@ -268,7 +268,7 @@ const RoleCard: React.FC<{ role: Role }> = ({ role }) => {
               </DetailBlock>
             )}
             <ApplyButton
-              href={`mailto:careers@emmatech.in?subject=Application: ${encodeURIComponent(role.title)}`}
+              href={`mailto:avinash@emmatech.in?subject=Application: ${encodeURIComponent(role.title)}`}
               onClick={(e) => e.stopPropagation()}
             >
               Apply for this role
