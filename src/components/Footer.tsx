@@ -108,30 +108,51 @@ const Copyright = styled.p`
   margin-top: ${({ theme }) => theme.spacing.md};
 `;
 
-export const Footer: React.FC = () => {
+type Route = 'home' | 'product' | 'compliance' | 'pricing' | 'careers' | 'contact';
+
+interface FooterProps {
+  onNavigate?: (to: Route) => void;
+}
+
+const PRODUCT_LINKS: { label: string; route: Route }[] = [
+  { label: 'Product', route: 'product' },
+  { label: 'Pricing', route: 'pricing' },
+  { label: 'Compliance', route: 'compliance' },
+  { label: 'Careers', route: 'careers' },
+];
+
+export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
+  const handleNav = (route: Route) => (e: React.MouseEvent) => {
+    if (onNavigate) {
+      e.preventDefault();
+      onNavigate(route);
+    }
+  };
+
   return (
     <FooterContainer>
       <FooterContent>
         <FooterSection>
           <FooterTitle>Product</FooterTitle>
           <FooterLinks>
-            <FooterLink href="#pricing">Pricing</FooterLink>
-            <FooterLink href="#compliance">Compliance</FooterLink>
-            <FooterLink href="#team">Team</FooterLink>
+            {PRODUCT_LINKS.map((link) => (
+              <FooterLink
+                key={link.route}
+                href={`#/${link.route}`}
+                onClick={handleNav(link.route)}
+              >
+                {link.label}
+              </FooterLink>
+            ))}
           </FooterLinks>
         </FooterSection>
 
         <FooterSection>
           <FooterTitle>Contact</FooterTitle>
           <ContactInfo>
-            <a href="mailto:adamas.avinash@gmail.com">adamas.avinash@gmail.com</a>
+            <a href="mailto:avinash@emmatech.in">avinash@emmatech.in</a>
             <br />
             <a href="https://emmatech.in" target="_blank" rel="noopener noreferrer">emmatech.in</a>
-            <br />
-            <br />
-            Avinash Yaduvanshi
-            <br />
-            Delhi NCR, India
           </ContactInfo>
         </FooterSection>
 

@@ -1,0 +1,201 @@
+export interface Role {
+  id: string;
+  title: string;
+  department: string;
+  type: string;
+  location: string;
+  summary: string;
+  whatYoullDo: string;
+  lookingFor: string;
+  bonus?: string;
+  whyItMatters?: string;
+}
+
+export const departments = [
+  'Engineering & ML',
+  'Security Research',
+  'Product & Design',
+  'Go-to-Market',
+  'Founding / Operations',
+] as const;
+
+export const roles: Role[] = [
+  {
+    id: 'founding-engineer',
+    title: 'Founding Engineer (Full-Stack / Platform)',
+    department: 'Engineering & ML',
+    type: 'Full-time · Founding',
+    location: 'Remote (India)',
+    summary: 'Own large parts of the RAPHA platform end-to-end, from API to infra.',
+    whatYoullDo: 'Build and scale the multi-tenant control plane (Python/FastAPI), data pipelines, and the customer-facing console; make architecture decisions that stick; ship to real design partners weekly.',
+    lookingFor: '4+ yrs building production backend/full-stack systems; strong Python; comfort with APIs, databases, Docker, and cloud; thrive with ambiguity and ownership.',
+    bonus: 'SaaS multi-tenancy, security products, FastAPI, React/Next, distributed systems.',
+    whyItMatters: "You'll be among the first engineers — your code and decisions define the product.",
+  },
+  {
+    id: 'senior-ml-engineer',
+    title: 'Senior ML Engineer — Threat Detection',
+    department: 'Engineering & ML',
+    type: 'Full-time',
+    location: 'Remote (India)',
+    summary: 'Own the detection models at the heart of RAPHA.',
+    whatYoullDo: 'Design, train, and productionize models for network/host anomaly and attack detection; build the feature pipeline (flow/telemetry → features); set up evaluation, drift monitoring, and retraining; push the boundary beyond today\'s RF/XGB ensemble.',
+    lookingFor: '4+ yrs applied ML in production; strong feature engineering and model evaluation; Python/scikit-learn/XGBoost or deep learning; ability to reason about false-positive/false-negative trade-offs in an adversarial setting.',
+    bonus: 'Cybersecurity/anomaly detection, streaming/online learning, MLOps, imbalanced data, sequence models.',
+    whyItMatters: 'Detection quality is the product. You own it.',
+  },
+  {
+    id: 'security-detection-engineer',
+    title: 'Security Detection Engineer / Threat Researcher',
+    department: 'Security Research',
+    type: 'Full-time',
+    location: 'Remote (India)',
+    summary: 'Turn attacker behavior into detections RAPHA can act on.',
+    whatYoullDo: 'Research attack techniques (MITRE ATT&CK), author and tune detection logic and rules, build attack simulations to red-team our own models, and reduce false positives from the field.',
+    lookingFor: 'Hands-on offensive or detection-engineering experience; deep networking/host telemetry knowledge; scripting (Python); an adversarial, break-it mindset.',
+    bonus: 'Zeek/Suricata, threat intel, malware/traffic analysis, CTF background.',
+  },
+  {
+    id: 'backend-platform-engineer',
+    title: 'Backend / Platform Engineer (Scale)',
+    department: 'Engineering & ML',
+    type: 'Full-time',
+    location: 'Remote (India)',
+    summary: 'Take the control plane from single-instance pilot to scalable multi-tenant SaaS.',
+    whatYoullDo: 'Introduce Postgres/Redis, harden multi-tenancy and auth, add observability, and design for horizontal scale and reliability.',
+    lookingFor: 'Strong backend fundamentals; APIs, relational DBs, caching, queues; security-conscious engineering; Python.',
+    bonus: 'K8s, event streaming (Kafka), zero-trust/mTLS, SOC2 experience.',
+  },
+  {
+    id: 'data-engineer',
+    title: 'Data Engineer — Telemetry & ML Data',
+    department: 'Engineering & ML',
+    type: 'Full-time',
+    location: 'Remote (India)',
+    summary: 'Build the pipelines that turn raw telemetry into training-ready data.',
+    whatYoullDo: 'Own ingestion, the Parquet/lakehouse dataset, labeling workflows, and feature stores; ensure data quality and lineage for model training.',
+    lookingFor: 'Data pipeline experience; Python, pandas/PyArrow, SQL; batch + streaming.',
+    bonus: 'Feature stores, dbt/Spark, security/network data.',
+  },
+  {
+    id: 'devsecops-sre',
+    title: 'DevSecOps / SRE / Cloud Infrastructure Engineer',
+    department: 'Engineering & ML',
+    type: 'Full-time',
+    location: 'Remote (India)',
+    summary: 'Own how RAPHA is deployed, observed, and secured.',
+    whatYoullDo: 'Build CI/CD, containerized deploys, monitoring/alerting, secrets management, and the security posture of our own infrastructure.',
+    lookingFor: 'Docker + one major cloud; IaC (Terraform); CI/CD; a security-first instinct.',
+    bonus: 'K8s, SOC2/ISO groundwork, hardening, on-call design.',
+  },
+  {
+    id: 'frontend-engineer',
+    title: 'Frontend Engineer — Product Console',
+    department: 'Product & Design',
+    type: 'Full-time',
+    location: 'Remote (India)',
+    summary: 'Build the dashboard security teams live in.',
+    whatYoullDo: 'Create the tenant console — alerts, forensic timelines, policy and key management — with clarity and speed.',
+    lookingFor: 'Strong React/Next + TypeScript; data-dense UI; taste for clean UX.',
+    bonus: 'Data viz, real-time UIs, design-system work.',
+  },
+  {
+    id: 'founding-product-manager',
+    title: 'Founding Product Manager / Product Lead',
+    department: 'Product & Design',
+    type: 'Full-time · Founding',
+    location: 'Remote (India)',
+    summary: 'Own what we build and why, working directly with design partners.',
+    whatYoullDo: 'Run discovery with pilot customers, shape the roadmap, write crisp specs, and close the loop between detection quality and customer value.',
+    lookingFor: 'PM experience in technical/B2B/security or dev-tools products; strong written communication; comfort talking to engineers and CISOs alike.',
+  },
+  {
+    id: 'founding-designer',
+    title: 'Founding Designer (Product + Brand)',
+    department: 'Product & Design',
+    type: 'Full-time · Founding',
+    location: 'Remote (India)',
+    summary: 'Define how EmmaTech looks and how RAPHA feels to use.',
+    whatYoullDo: 'Own product UX and the brand/marketing surface (site, decks, docs).',
+    lookingFor: 'Strong product design portfolio; systems thinking; can go zero-to-one.',
+    bonus: 'Dev-tool/security product design, motion, front-end literacy.',
+  },
+  {
+    id: 'founding-gtm',
+    title: 'Founding GTM — Sales & Business Development',
+    department: 'Go-to-Market',
+    type: 'Full-time · Founding',
+    location: 'Remote (India)',
+    summary: 'Land design partners and turn pilots into paying customers.',
+    whatYoullDo: 'Own outbound, pilot conversations, and early deals; build the sales motion from scratch; feed customer signal back to product.',
+    lookingFor: "B2B/security/SaaS sales or founding-GTM experience; technical enough to earn a security team's trust; hunter mentality.",
+  },
+  {
+    id: 'solutions-engineer',
+    title: 'Solutions / Sales Engineer / DevRel',
+    department: 'Go-to-Market',
+    type: 'Full-time',
+    location: 'Remote (India)',
+    summary: 'Get customers integrated and successful, fast.',
+    whatYoullDo: 'Run technical onboarding, help customers wire telemetry into RAPHA and alerts into their SIEM/Slack, write docs and sample integrations, be the bridge between customers and engineering.',
+    lookingFor: 'Technical customer-facing experience; APIs/scripting; clear communicator.',
+    bonus: 'SIEM/SOAR ecosystems, log pipelines (Vector/Fluent Bit), security background.',
+  },
+  {
+    id: 'growth-marketing-lead',
+    title: 'Growth & Marketing Lead',
+    department: 'Go-to-Market',
+    type: 'Full-time',
+    location: 'Remote (India)',
+    summary: 'Tell the EmmaTech story and build the top of the funnel.',
+    whatYoullDo: 'Positioning, content, launches, and demand gen for a technical security audience.',
+    lookingFor: 'B2B/dev-tool/security marketing; strong writing; data-driven.',
+  },
+  {
+    id: 'founding-operations',
+    title: 'Founding Operations / Chief of Staff',
+    department: 'Founding / Operations',
+    type: 'Full-time · Founding',
+    location: 'Remote (India)',
+    summary: 'Make the company run so the team can build.',
+    whatYoullDo: 'Operations, hiring ops, finance/legal coordination, and whatever else unblocks the founder.',
+    lookingFor: 'High agency, generalist, extreme organization; startup/ops experience.',
+  },
+  {
+    id: 'internships',
+    title: 'Early-Career / Internships (ML & Security)',
+    department: 'Founding / Operations',
+    type: 'Internship / New-grad',
+    location: 'Remote (India)',
+    summary: 'Learn fast, ship real work in ML or security research.',
+    whatYoullDo: 'Contribute to detection models, data pipelines, attack simulation, or the platform under senior mentorship.',
+    lookingFor: 'Strong CS/ML/security fundamentals; a portfolio, projects, or CTF/Kaggle track record; hunger to learn.',
+  },
+  {
+    id: 'advisors',
+    title: 'Advisors — Security & GTM (part-time)',
+    department: 'Founding / Operations',
+    type: 'Advisory',
+    location: 'Remote',
+    summary: 'Seasoned CISOs, security founders, and GTM leaders to steer us.',
+    whatYoullDo: 'Periodic guidance, intros, and pressure-testing — for equity.',
+    lookingFor: 'Track record in cybersecurity, enterprise security buying, or scaling deep-tech startups.',
+  },
+];
+
+export const values = [
+  { title: 'Rigor', description: 'We sweat the details because security demands it.' },
+  { title: 'Ownership', description: 'You own your domain end-to-end. No hand-offs, no excuses.' },
+  { title: 'Speed', description: 'Ship fast, iterate faster. Pilots don\'t wait for perfection.' },
+  { title: 'Defensive Integrity', description: 'We build what we\'d trust to defend our own systems.' },
+  { title: 'Low Ego', description: 'Best idea wins. We challenge, listen, and move forward together.' },
+];
+
+export const benefits = [
+  { icon: '📈', title: 'Founding Equity', description: 'Meaningful ownership (0.5%–3%) in a company built to matter.' },
+  { icon: '🌍', title: 'Remote-First', description: 'Work from anywhere in India. IST-friendly overlap.' },
+  { icon: '💻', title: 'Top-Tier Hardware', description: 'Best-in-class dev machine and tooling — no compromises.' },
+  { icon: '📚', title: 'Learning Budget', description: 'Conferences, courses, and books. We invest in your growth.' },
+  { icon: '🚀', title: 'Direct Impact', description: 'Your work ships to real customers, not a backlog.' },
+  { icon: '🤝', title: 'Founder Access', description: 'Work directly with the founder. No layers, no politics.' },
+];

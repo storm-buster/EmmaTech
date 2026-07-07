@@ -31,6 +31,7 @@ const NavContainer = styled.div`
   align-items: center;
   max-width: 1400px;
   margin: 0 auto;
+  position: relative;
 `;
 
 const Logo = styled.div`
@@ -56,17 +57,25 @@ const NavLinks = styled.div`
 
   ${breakpoints.tablet} {
     display: flex;
+    /* Center the links in the bar independent of the logo's width, so they
+       stay visually centered now that the right-hand CTA button is gone. */
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
   }
 `;
 
-const NavLink = styled.a`
-  color: ${({ theme }) => theme.colors.neutral.lightGray};
+const NavLink = styled.a<{ $active?: boolean }>`
+  color: ${({ $active, theme }) =>
+    $active ? theme.colors.primary.main : theme.colors.neutral.lightGray};
   text-decoration: none;
   font-weight: 500;
   font-size: 15px;
   transition: ${({ theme }) => theme.transitions.default};
   position: relative;
   cursor: pointer;
+  text-shadow: ${({ $active, theme }) =>
+    $active ? `0 0 8px ${theme.colors.primary.glow}` : 'none'};
 
   &:hover {
     color: ${({ theme }) => theme.colors.primary.main};
@@ -78,7 +87,7 @@ const NavLink = styled.a`
     position: absolute;
     bottom: -4px;
     left: 0;
-    width: 0;
+    width: ${({ $active }) => ($active ? '100%' : '0')};
     height: 2px;
     background: ${({ theme }) => theme.gradients.primary};
     transition: width 0.3s ease;
@@ -86,29 +95,6 @@ const NavLink = styled.a`
 
   &:hover::after {
     width: 100%;
-  }
-`;
-
-const ContactButton = styled.button`
-  display: none;
-  background: ${({ theme }) => theme.gradients.primary};
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  box-shadow: 0 0 10px ${({ theme }) => theme.colors.primary.glow};
-  transition: ${({ theme }) => theme.transitions.default};
-
-  &:hover {
-    box-shadow: 0 0 20px ${({ theme }) => theme.colors.primary.glow};
-    transform: translateY(-2px);
-  }
-
-  ${breakpoints.tablet} {
-    display: block;
   }
 `;
 
@@ -168,32 +154,26 @@ const MobileNavLink = styled.a`
   }
 `;
 
-const MobileContactButton = styled.button`
-  display: block;
-  width: 100%;
-  background: ${({ theme }) => theme.gradients.primary};
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  text-align: center;
-  margin-top: ${({ theme }) => theme.spacing.sm};
-  box-shadow: 0 0 10px ${({ theme }) => theme.colors.primary.glow};
-  transition: ${({ theme }) => theme.transitions.default};
-
-  &:hover {
-    box-shadow: 0 0 20px ${({ theme }) => theme.colors.primary.glow};
-  }
-`;
+type Route = 'home' | 'product' | 'compliance' | 'pricing' | 'careers' | 'contact';
 
 interface NavigationProps {
-  onContactClick: () => void;
+  currentRoute: Route;
+  onNavigate: (to: Route) => void;
 }
 
-export const Navigation: React.FC<NavigationProps> = ({ onContactClick }) => {
+const NAV_ITEMS: { label: string; route: Route }[] = [
+  { label: 'Home', route: 'home' },
+  { label: 'Product', route: 'product' },
+  { label: 'Compliance', route: 'compliance' },
+  { label: 'Pricing', route: 'pricing' },
+  { label: 'Careers', route: 'careers' },
+  { label: 'Contact', route: 'contact' },
+];
+
+export const Navigation: React.FC<NavigationProps> = ({
+  currentRoute,
+  onNavigate,
+}) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -206,24 +186,13 @@ export const Navigation: React.FC<NavigationProps> = ({ onContactClick }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      const offset = 80; // Account for fixed nav height
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - offset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth',
-      });
-    }
+  const go = (to: Route) => {
+    onNavigate(to);
     setIsMobileMenuOpen(false);
   };
 
   const handleLogoClick = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setIsMobileMenuOpen(false);
+    go('home');
   };
 
   return (
@@ -235,13 +204,16 @@ export const Navigation: React.FC<NavigationProps> = ({ onContactClick }) => {
             RAPHA
           </Logo>
           <NavLinks>
-            <NavLink onClick={() => scrollToSection('why-rapha')}>Why RAPHA</NavLink>
-            <NavLink onClick={() => scrollToSection('compliance')}>Compliance</NavLink>
-            <NavLink onClick={() => scrollToSection('pricing')}>Pricing</NavLink>
-            <NavLink onClick={() => scrollToSection('team')}>Team</NavLink>
-            <NavLink onClick={() => scrollToSection('contact')}>Contact</NavLink>
+            {NAV_ITEMS.map((item) => (
+              <NavLink
+                key={item.route}
+                $active={currentRoute === item.route}
+                onClick={() => go(item.route)}
+              >
+                {item.label}
+              </NavLink>
+            ))}
           </NavLinks>
-          <ContactButton onClick={onContactClick}>Live Demo</ContactButton>
           <MobileMenuButton onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             <span />
             <span />
@@ -250,19 +222,11 @@ export const Navigation: React.FC<NavigationProps> = ({ onContactClick }) => {
         </NavContainer>
       </Nav>
       <MobileMenu $isOpen={isMobileMenuOpen}>
-        <MobileNavLink onClick={() => scrollToSection('why-rapha')}>Why RAPHA</MobileNavLink>
-        <MobileNavLink onClick={() => scrollToSection('compliance')}>Compliance</MobileNavLink>
-        <MobileNavLink onClick={() => scrollToSection('pricing')}>Pricing</MobileNavLink>
-        <MobileNavLink onClick={() => scrollToSection('team')}>Team</MobileNavLink>
-        <MobileNavLink onClick={() => scrollToSection('contact')}>Contact</MobileNavLink>
-        <MobileContactButton
-          onClick={() => {
-            setIsMobileMenuOpen(false);
-            onContactClick();
-          }}
-        >
-          Live Demo
-        </MobileContactButton>
+        {NAV_ITEMS.map((item) => (
+          <MobileNavLink key={item.route} onClick={() => go(item.route)}>
+            {item.label}
+          </MobileNavLink>
+        ))}
       </MobileMenu>
     </>
   );

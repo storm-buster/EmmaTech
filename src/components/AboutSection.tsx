@@ -227,10 +227,10 @@ const CenterIcon = styled.div`
 `;
 
 const stats = [
-  { number: 'Alpha', label: 'Current Status' },
+  { number: 'Live', label: 'Product Status' },
   { number: 'P2P', label: 'Network Architecture' },
   { number: 'High', label: 'Assurance Level' },
-  { number: 'Open', label: 'Waitlist Access' },
+  { number: '24/7', label: 'Autonomous Defense' },
 ];
 
 export const AboutSection: React.FC = () => {

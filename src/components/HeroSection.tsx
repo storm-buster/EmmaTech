@@ -8,7 +8,7 @@ import { Logo } from './Logo';
 import { breakpoints } from '../styles/breakpoints';
 
 interface HeroSectionProps {
-  onWaitlistClick: () => void;
+  onDemoClick: () => void;
 }
 
 const HeroContainer = styled.section`
@@ -226,7 +226,7 @@ const BadgeTicker = styled.div`
 `;
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
-  onWaitlistClick,
+  onDemoClick,
 }) => {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
 
@@ -273,8 +273,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </Description>
           <CTAButtons>
             <Magnet>
-              <Button variant="primary" onClick={onWaitlistClick}>
-                View Live SOC Demo
+              <Button variant="primary" onClick={onDemoClick}>
+                Request a Demo
               </Button>
             </Magnet>
             <Magnet>

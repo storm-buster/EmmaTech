@@ -7,6 +7,9 @@ import { breakpoints } from '../styles/breakpoints';
 import { sendContactEmail } from '../services/email';
 import type { ContactFormData } from '../services/email';
 
+const CONTACT_EMAIL = 'avinash@emmatech.in';
+const CONTACT_MOBILE = '+91 76784 06830';
+
 const SectionContainer = styled.section`
   padding: ${({ theme }) => theme.spacing['4xl']} ${({ theme }) =>
     theme.spacing.lg};
@@ -232,11 +235,7 @@ const SuccessMessage = styled.div`
   text-align: center;
 `;
 
-interface ContactSectionProps {
-  onWaitlistClick?: () => void;
-}
-
-export const ContactSection: React.FC<ContactSectionProps> = ({ onWaitlistClick }) => {
+export const ContactSection: React.FC = () => {
   const {
     register,
     handleSubmit,
@@ -278,21 +277,21 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onWaitlistClick 
             <InfoTitle>Contact Information</InfoTitle>
 
             <ContactItem>
-              <ContactIcon>📧</ContactIcon>
+              <ContactIcon>📱</ContactIcon>
               <ContactDetails>
-                <ContactLabel>Email</ContactLabel>
+                <ContactLabel>Mobile</ContactLabel>
                 <ContactValue>
-                  <a href="mailto:adamas.avinash@gmail.com">adamas.avinash@gmail.com</a>
+                  <a href={`tel:${CONTACT_MOBILE.replace(/\s+/g, '')}`}>{CONTACT_MOBILE}</a>
                 </ContactValue>
               </ContactDetails>
             </ContactItem>
 
             <ContactItem>
-              <ContactIcon>🌐</ContactIcon>
+              <ContactIcon>📧</ContactIcon>
               <ContactDetails>
-                <ContactLabel>Web</ContactLabel>
+                <ContactLabel>Email</ContactLabel>
                 <ContactValue>
-                  <a href="https://emmatech.xyz" target="_blank" rel="noopener noreferrer">emmatech.xyz</a>
+                  <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
                 </ContactValue>
               </ContactDetails>
             </ContactItem>
@@ -301,16 +300,20 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onWaitlistClick 
               <ContactIcon>👤</ContactIcon>
               <ContactDetails>
                 <ContactLabel>Founder</ContactLabel>
-                <ContactValue>
-                  Avinash Yaduvanshi<br />
-                  Delhi NCR
-                </ContactValue>
+                <ContactValue>Avinash Yaduvanshi</ContactValue>
               </ContactDetails>
             </ContactItem>
 
             <div style={{ marginTop: '24px', textAlign: 'center' }}>
-              <Button variant="primary" onClick={onWaitlistClick}>
-                Join Waitlist
+              <Button
+                variant="primary"
+                onClick={() =>
+                  (window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(
+                    'Pilot request — RAPHA'
+                  )}`)
+                }
+              >
+                Start a Pilot
               </Button>
             </div>
           </ContactInfo>

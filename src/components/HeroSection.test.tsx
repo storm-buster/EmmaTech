@@ -10,65 +10,35 @@ const renderWithTheme = (component: React.ReactElement) => {
 };
 
 describe('HeroSection', () => {
-  it('renders headline and sub-headline', () => {
-    renderWithTheme(
-      <HeroSection onWaitlistClick={vi.fn()} onInvestorClick={vi.fn()} />
-    );
+  it('renders the headline', () => {
+    renderWithTheme(<HeroSection onDemoClick={vi.fn()} />);
 
-    expect(screen.getByText('EmmaTech')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Introducing RAPHA: The Future of Autonomous Cyber Defense'
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByText('Silence the Noise.')).toBeInTheDocument();
+    expect(screen.getByText('Secure the Future.')).toBeInTheDocument();
   });
 
-  it('renders description text', () => {
-    renderWithTheme(
-      <HeroSection onWaitlistClick={vi.fn()} onInvestorClick={vi.fn()} />
-    );
+  it('renders the RAPHA sub-headline', () => {
+    renderWithTheme(<HeroSection onDemoClick={vi.fn()} />);
 
     expect(
-      screen.getByText(/Real-time Autonomous Proactive Honeypot Architecture/i)
+      screen.getByText(/Realtime Autonomous Protection & Honeypot Architecture/i)
     ).toBeInTheDocument();
   });
 
   it('renders both CTA buttons', () => {
-    renderWithTheme(
-      <HeroSection onWaitlistClick={vi.fn()} onInvestorClick={vi.fn()} />
-    );
+    renderWithTheme(<HeroSection onDemoClick={vi.fn()} />);
 
-    expect(screen.getByText('Join Our Waitlist')).toBeInTheDocument();
-    expect(screen.getByText('Become an Investor')).toBeInTheDocument();
+    expect(screen.getByText('Request a Demo')).toBeInTheDocument();
+    expect(screen.getByText('Explore RAPHA')).toBeInTheDocument();
   });
 
-  it('calls onWaitlistClick when waitlist button is clicked', async () => {
-    const handleWaitlistClick = vi.fn();
+  it('calls onDemoClick when the demo button is clicked', async () => {
+    const handleDemoClick = vi.fn();
     const user = userEvent.setup();
 
-    renderWithTheme(
-      <HeroSection
-        onWaitlistClick={handleWaitlistClick}
-        onInvestorClick={vi.fn()}
-      />
-    );
+    renderWithTheme(<HeroSection onDemoClick={handleDemoClick} />);
 
-    await user.click(screen.getByText('Join Our Waitlist'));
-    expect(handleWaitlistClick).toHaveBeenCalledTimes(1);
-  });
-
-  it('calls onInvestorClick when investor button is clicked', async () => {
-    const handleInvestorClick = vi.fn();
-    const user = userEvent.setup();
-
-    renderWithTheme(
-      <HeroSection
-        onWaitlistClick={vi.fn()}
-        onInvestorClick={handleInvestorClick}
-      />
-    );
-
-    await user.click(screen.getByText('Become an Investor'));
-    expect(handleInvestorClick).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByText('Request a Demo'));
+    expect(handleDemoClick).toHaveBeenCalledTimes(1);
   });
 });

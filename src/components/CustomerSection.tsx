@@ -271,10 +271,10 @@ const metrics = [
 ];
 
 interface CustomerSectionProps {
-  onWaitlistClick?: () => void;
+  onCtaClick?: () => void;
 }
 
-export const CustomerSection: React.FC<CustomerSectionProps> = ({ onWaitlistClick }) => {
+export const CustomerSection: React.FC<CustomerSectionProps> = ({ onCtaClick }) => {
   return (
     <SectionContainer id="pricing">
       <SectionPrefix>§04 / PRICING</SectionPrefix>
@@ -312,7 +312,7 @@ export const CustomerSection: React.FC<CustomerSectionProps> = ({ onWaitlistClic
             </div>
             <Button
               variant={tier.popular ? 'primary' : 'secondary'}
-              onClick={onWaitlistClick}
+              onClick={onCtaClick}
               style={{ width: '100%' }}
             >
               {tier.buttonText}

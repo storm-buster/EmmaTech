@@ -1,67 +1,109 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { ThemeProvider } from 'styled-components';
 import { GlobalStyles } from './styles/GlobalStyles';
 import { theme } from './styles/theme';
 import { SkipToContent } from './components/SkipToContent';
 import { Navigation } from './components/Navigation';
-import { ComingSoonBanner } from './components/ComingSoonBanner';
 import { HeroSection } from './components/HeroSection';
 import { ProblemSection } from './components/ProblemSection';
 import { SolutionSection } from './components/SolutionSection';
 import { WhyRaphaSection } from './components/WhyRaphaSection';
 import { CustomerSection } from './components/CustomerSection';
-import { TeamSection } from './components/TeamSection';
 import { ContactSection } from './components/ContactSection';
+import { HiringBanner } from './components/HiringBanner';
 import { Footer } from './components/Footer';
+import { CareersPage } from './components/careers/CareersPage';
 
-// Lazy load modals since they're not needed on initial page load
-const WaitlistModal = lazy(() =>
-  import('./components/WaitlistModal').then((module) => ({
-    default: module.WaitlistModal,
-  }))
-);
+// ── Hash-based multi-page router ──
+// Each page is its own route. The site used to be a single scroll page; it is
+// now split so every nav item is a distinct page.
+export type Route =
+  | 'home'
+  | 'product'
+  | 'compliance'
+  | 'pricing'
+  | 'careers'
+  | 'contact';
+
+export function parseRoute(hash: string): Route {
+  const path = hash.replace(/^#\/?/, '').split(/[/?#]/)[0].toLowerCase();
+  switch (path) {
+    case 'product':
+      return 'product';
+    case 'compliance':
+      return 'compliance';
+    case 'pricing':
+      return 'pricing';
+    case 'careers':
+      return 'careers';
+    case 'contact':
+      return 'contact';
+    default:
+      return 'home';
+  }
+}
+
+function useRoute(): Route {
+  const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
+
+  useEffect(() => {
+    const onHashChange = () => {
+      setRoute(parseRoute(window.location.hash));
+      // Every navigation lands at the top of the new page.
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  return route;
+}
 
 function App() {
-  const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
+  const route = useRoute();
 
-  const handleWaitlistOpen = () => setIsWaitlistModalOpen(true);
-  const handleWaitlistClose = () => setIsWaitlistModalOpen(false);
-
-  const handleContactClick = () => {
-    const contactSection = document.getElementById('contact');
-    if (contactSection) {
-      contactSection.scrollIntoView({ behavior: 'smooth' });
-    }
+  const navigate = (to: Route) => {
+    window.location.hash = to === 'home' ? '#/' : `#/${to}`;
   };
+
+  // Primary product CTAs (demo / pilot / pricing) route to the contact page.
+  const handleCtaClick = () => navigate('contact');
 
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyles />
       <SkipToContent />
-      <Navigation onContactClick={handleContactClick} />
-      <ComingSoonBanner />
+      <Navigation currentRoute={route} onNavigate={navigate} />
+
       <main id="main-content">
-        <div id="home">
-          <HeroSection
-            onWaitlistClick={handleWaitlistOpen}
-          />
-        </div>
-        <div id="solution">
-          <SolutionSection />
-          <WhyRaphaSection />
-        </div>
-        <ProblemSection />
-        <CustomerSection onWaitlistClick={handleWaitlistOpen} />
-        <TeamSection />
-        <ContactSection onWaitlistClick={handleWaitlistOpen} />
+        {route === 'home' && (
+          <>
+            <div id="home">
+              <HeroSection onDemoClick={handleCtaClick} />
+            </div>
+            <HiringBanner />
+          </>
+        )}
+
+        {route === 'product' && (
+          <div id="solution">
+            <SolutionSection />
+            <WhyRaphaSection />
+          </div>
+        )}
+
+        {route === 'compliance' && <ProblemSection />}
+
+        {route === 'pricing' && (
+          <CustomerSection onCtaClick={handleCtaClick} />
+        )}
+
+        {route === 'careers' && <CareersPage />}
+
+        {route === 'contact' && <ContactSection />}
       </main>
-      <Footer />
-      <Suspense fallback={null}>
-        <WaitlistModal
-          isOpen={isWaitlistModalOpen}
-          onClose={handleWaitlistClose}
-        />
-      </Suspense>
+
+      <Footer onNavigate={navigate} />
     </ThemeProvider>
   );
 }
