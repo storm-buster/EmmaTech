@@ -186,7 +186,7 @@ export const TeamSection: React.FC = () => {
               I'm building RAPHA because Indian SMEs especially fintechs and NBFCs are forced to choose between paying for enterprise tooling they can't afford or going undefended.
             </BioText>
             <BioText>
-              The Windows sensor agent is live, behavioral telemetry is being collected, and the Isolation Forest baseline is being calibrated. Next: honeypot redirection and the first pilot in a regulated fintech.
+              The Windows sensor agent is live, behavioral telemetry is being collected, and the Isolation Forest baseline is being calibrated. Next: honeypot redirection and the first pilot.
             </BioText>
             <HighlightBox>
               Currently hiring a technical co-founder (ML / data engineering) on equity. If you've built anomaly detection at scale let's talk.

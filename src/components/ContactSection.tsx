@@ -263,7 +263,7 @@ export const ContactSection: React.FC = () => {
         Run a pilot. No PoC fees.
       </SectionSubtitle>
       <div style={{ textAlign: 'center', marginBottom: '40px', color: '#c9d1d9', fontSize: '18px', maxWidth: '800px', margin: '0 auto 40px auto' }}>
-        We're onboarding 2-3 fintechs / NBFCs for free pilots. You get the agent, the dashboard, and a real audit-trail in under a week.
+        We're onboarding Startups and SMEs for free pilots. You get the agent, the dashboard, and a real audit-trail in under a week.
       </div>
 
       <ContactGrid>

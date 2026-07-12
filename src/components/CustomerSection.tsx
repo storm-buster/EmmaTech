@@ -217,7 +217,7 @@ const pricingTiers: PricingTier[] = [
   {
     title: 'Starter',
     subtitle: 'SMEs & Teams',
-    price: '₹12,000',
+    price: '₹18,000',
     period: '/node/year',
     features: [
       'Up to 20 sensors',
@@ -232,7 +232,7 @@ const pricingTiers: PricingTier[] = [
   {
     title: 'Growth',
     subtitle: 'Enterprises & MSSPs',
-    price: '₹25,000',
+    price: '₹35,000',
     period: '/node/year',
     popular: true,
     features: [

@@ -269,7 +269,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <SplitText text="Secure the Future." delay={0.6} />
           </Headline>
           <Description>
-            Autonomous cyber defense for Indian fintechs and NBFCs. RAPHA detects threats, decides without a human in the loop, and redirects attackers into honeypots all in real time. Trained only on normal behavior, so it catches zero-days the others miss.
+            Autonomous cyber defense for SMEs and MSSPs. RAPHA detects threats, decides without a human in the loop, and redirects attackers into honeypots all in real time. Trained only on normal behavior, so it catches zero-days the others miss.
           </Description>
           <CTAButtons>
             <Magnet>
