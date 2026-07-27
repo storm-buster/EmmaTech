@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import { breakpoints } from '../styles/breakpoints';
 import type { Route } from '../App';
-import inceptionBadge from '../../Inception Badges/for-screen/nvidia-inception-program-badge-rgb-for-screen.png';
+import inceptionBadge from '../assets/nvidia-inception-badge.png';
 
 const FooterContainer = styled.footer`
   background: ${({ theme }) => theme.colors.background.secondary};
