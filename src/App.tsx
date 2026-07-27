@@ -13,6 +13,8 @@ import { ContactSection } from './components/ContactSection';
 import { HiringBanner } from './components/HiringBanner';
 import { Footer } from './components/Footer';
 import { CareersPage } from './components/careers/CareersPage';
+import { PrivacyPolicy } from './components/PrivacyPolicy';
+import { TermsOfService } from './components/TermsOfService';
 
 // ── Hash-based multi-page router ──
 // Each page is its own route. The site used to be a single scroll page; it is
@@ -23,7 +25,9 @@ export type Route =
   | 'compliance'
   | 'pricing'
   | 'careers'
-  | 'contact';
+  | 'contact'
+  | 'privacy'
+  | 'terms';
 
 export function parseRoute(hash: string): Route {
   const path = hash.replace(/^#\/?/, '').split(/[/?#]/)[0].toLowerCase();
@@ -38,6 +42,10 @@ export function parseRoute(hash: string): Route {
       return 'careers';
     case 'contact':
       return 'contact';
+    case 'privacy':
+      return 'privacy';
+    case 'terms':
+      return 'terms';
     default:
       return 'home';
   }
@@ -101,6 +109,10 @@ function App() {
         {route === 'careers' && <CareersPage />}
 
         {route === 'contact' && <ContactSection />}
+
+        {route === 'privacy' && <PrivacyPolicy />}
+
+        {route === 'terms' && <TermsOfService />}
       </main>
 
       <Footer onNavigate={navigate} />

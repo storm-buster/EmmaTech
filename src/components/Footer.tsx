@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 import { breakpoints } from '../styles/breakpoints';
+import type { Route } from '../App';
+import inceptionBadge from '../../Inception Badges/for-screen/nvidia-inception-program-badge-rgb-for-screen.png';
 
 const FooterContainer = styled.footer`
   background: ${({ theme }) => theme.colors.background.secondary};
@@ -72,6 +74,17 @@ const FooterLink = styled.a`
   }
 `;
 
+const InceptionBadge = styled.img`
+  max-width: 160px;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+
+  ${breakpoints.tablet} {
+    margin: 0;
+  }
+`;
+
 const ContactInfo = styled.div`
   font-size: 14px;
   color: ${({ theme }) => theme.colors.neutral.mediumGray};
@@ -108,8 +121,6 @@ const Copyright = styled.p`
   margin-top: ${({ theme }) => theme.spacing.md};
 `;
 
-type Route = 'home' | 'product' | 'compliance' | 'pricing' | 'careers' | 'contact';
-
 interface FooterProps {
   onNavigate?: (to: Route) => void;
 }
@@ -119,6 +130,11 @@ const PRODUCT_LINKS: { label: string; route: Route }[] = [
   { label: 'Pricing', route: 'pricing' },
   { label: 'Compliance', route: 'compliance' },
   { label: 'Careers', route: 'careers' },
+];
+
+const LEGAL_LINKS: { label: string; route: Route }[] = [
+  { label: 'Privacy Policy', route: 'privacy' },
+  { label: 'Terms of Service', route: 'terms' },
 ];
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
@@ -157,10 +173,25 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         </FooterSection>
 
         <FooterSection>
+          <FooterTitle>Inception Program</FooterTitle>
+          <InceptionBadge
+            src={inceptionBadge}
+            alt="NVIDIA Inception Program Badge"
+          />
+        </FooterSection>
+
+        <FooterSection>
           <FooterTitle>Legal</FooterTitle>
           <FooterLinks>
-            <FooterLink href="#privacy">Privacy Policy</FooterLink>
-            <FooterLink href="#terms">Terms of Service</FooterLink>
+            {LEGAL_LINKS.map((link) => (
+              <FooterLink
+                key={link.route}
+                href={`#/${link.route}`}
+                onClick={handleNav(link.route)}
+              >
+                {link.label}
+              </FooterLink>
+            ))}
           </FooterLinks>
         </FooterSection>
       </FooterContent>

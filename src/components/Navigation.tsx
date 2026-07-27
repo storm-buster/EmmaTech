@@ -154,8 +154,7 @@ const MobileNavLink = styled.a`
   }
 `;
 
-type Route = 'home' | 'product' | 'compliance' | 'pricing' | 'careers' | 'contact';
-
+import type { Route } from '../App';
 interface NavigationProps {
   currentRoute: Route;
   onNavigate: (to: Route) => void;
