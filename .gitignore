@@ -28,3 +28,4 @@ nul
 
 # Original badge source assets (imported copy lives in src/assets)
 Inception Badges/
+.vercel
