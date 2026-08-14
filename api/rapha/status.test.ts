@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import handler from './status';
+import handler from './status.js';
 
 // --- Minimal Vercel req/res doubles ---------------------------------------
 
@@ -73,7 +73,7 @@ describe('GET /api/rapha/status handler', () => {
   });
 
   it('calls the RAPHA /api/v1/health path over HTTPS with no auth header', async () => {
-    const fetchMock = vi.fn(async () => ({
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => ({
       ok: true,
       status: 200,
       json: async () => ({ status: 'ok' }),
@@ -84,7 +84,7 @@ describe('GET /api/rapha/status handler', () => {
     await handler(makeReq('GET'), res);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe(`${HTTPS_BASE}/api/v1/health`);
     expect(init.method).toBe('GET');
     // No credential of any kind must be attached.
