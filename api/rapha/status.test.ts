@@ -87,6 +87,8 @@ describe('GET /api/rapha/status handler', () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe(`${HTTPS_BASE}/api/v1/health`);
     expect(init.method).toBe('GET');
+    // Redirects must never be followed (stay bound to the HTTPS origin).
+    expect(init.redirect).toBe('error');
     // No credential of any kind must be attached.
     const headerKeys = Object.keys((init.headers ?? {}) as Record<string, string>).map((k) =>
       k.toLowerCase(),
@@ -160,6 +162,23 @@ describe('GET /api/rapha/status handler', () => {
       'fetch',
       vi.fn(async () => {
         throw new TypeError('fetch failed');
+      }),
+    );
+
+    const { res, state } = makeRes();
+    await handler(makeReq('GET'), res);
+
+    expect(state.statusCode).toBe(200);
+    expect(state.body).toMatchObject({ status: 'down', healthy: false });
+  });
+
+  it('returns down when the upstream attempts a redirect (redirect: "error" rejects)', async () => {
+    // With redirect: 'error', the runtime fetch rejects (TypeError) instead of
+    // following a 3xx to another host / non-HTTPS destination. Must fail closed.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('unexpected redirect');
       }),
     );
 

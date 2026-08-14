@@ -52,6 +52,10 @@ async function probeRaphaHealthy(): Promise<boolean> {
     const upstream = await fetch(target, {
       method: 'GET',
       headers: { Accept: 'application/json' },
+      // Security invariant: the probe must stay bound to the validated HTTPS
+      // origin. Do NOT follow redirects — a redirect to another host or to a
+      // non-HTTPS destination must fail closed instead of being followed.
+      redirect: 'error',
       signal: controller.signal,
     });
 
