@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Button } from './Button';
 import { breakpoints } from '../styles/breakpoints';
 import { PUBLIC_PLANS, PERPETUAL_NOTICE } from '../shared/plans';
+import type { PlanCtaAction } from '../shared/plans';
 
 const SectionContainer = styled.section`
   padding: ${({ theme }) => theme.spacing['4xl']} ${({ theme }) => theme.spacing.lg};
@@ -155,20 +156,38 @@ const FeatureList = styled.ul`
   flex: 1;
 `;
 
-const FeatureItem = styled.li`
+const FeatureItem = styled.li<{ $included: boolean }>`
   font-size: 14px;
-  color: ${({ theme }) => theme.colors.neutral.lightGray};
+  color: ${({ $included, theme }) =>
+    $included ? theme.colors.neutral.lightGray : theme.colors.neutral.mediumGray};
   margin-bottom: 12px;
   display: flex;
   align-items: flex-start;
   gap: 8px;
   text-align: left;
+  ${({ $included }) =>
+    $included
+      ? ''
+      : 'text-decoration: line-through; text-decoration-color: rgba(255, 255, 255, 0.25);'}
+`;
 
-  &::before {
-    content: '✓';
-    color: #3FBF7F;
-    font-weight: bold;
-  }
+const FeatureMark = styled.span<{ $included: boolean }>`
+  color: ${({ $included }) => ($included ? '#3FBF7F' : '#F87171')};
+  font-weight: bold;
+  flex-shrink: 0;
+  line-height: 1.4;
+`;
+
+const SrOnly = styled.span`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 `;
 
 const MarginMetricsGrid = styled.div`
@@ -236,10 +255,12 @@ const NoticeBody = styled.p`
 `;
 
 interface CustomerSectionProps {
-  onCtaClick?: () => void;
+  /** Routes a pricing CTA into the authenticated flow ('signup') or contact
+   *  flow ('contact'). No CTA performs a purchase. */
+  onCtaAction?: (action: PlanCtaAction) => void;
 }
 
-export const CustomerSection: React.FC<CustomerSectionProps> = ({ onCtaClick }) => {
+export const CustomerSection: React.FC<CustomerSectionProps> = ({ onCtaAction }) => {
   return (
     <SectionContainer id="pricing">
       <SectionPrefix>§04 / PRICING</SectionPrefix>
@@ -270,15 +291,27 @@ export const CustomerSection: React.FC<CustomerSectionProps> = ({ onCtaClick }) 
                 <Period>{plan.period}</Period>
               </PriceWrapper>
               <FeatureList>
-                {plan.features.map((feature, idx) => (
-                  <FeatureItem key={idx}>{feature}</FeatureItem>
-                ))}
+                {plan.features.map((feature, idx) => {
+                  const included = feature.included !== false;
+                  return (
+                    <FeatureItem key={idx} $included={included}>
+                      <FeatureMark $included={included} aria-hidden="true">
+                        {included ? '✓' : '✗'}
+                      </FeatureMark>
+                      <span>
+                        {feature.text}
+                        <SrOnly>{included ? ' included' : ' not included'}</SrOnly>
+                      </span>
+                    </FeatureItem>
+                  );
+                })}
               </FeatureList>
             </div>
             <Button
               variant={plan.popular ? 'primary' : 'secondary'}
-              onClick={onCtaClick}
+              onClick={() => onCtaAction?.(plan.ctaAction)}
               style={{ width: '100%' }}
+              aria-label={`${plan.ctaText} — ${plan.displayName} plan`}
             >
               {plan.ctaText}
             </Button>
@@ -289,7 +322,11 @@ export const CustomerSection: React.FC<CustomerSectionProps> = ({ onCtaClick }) 
       <PerpetualNotice>
         <NoticeHeading>{PERPETUAL_NOTICE.heading}</NoticeHeading>
         <NoticeBody>{PERPETUAL_NOTICE.body}</NoticeBody>
-        <Button variant="secondary" onClick={onCtaClick}>
+        <Button
+          variant="secondary"
+          onClick={() => onCtaAction?.(PERPETUAL_NOTICE.ctaAction)}
+          aria-label="Contact EmmaTech about a perpetual or custom deployment"
+        >
           {PERPETUAL_NOTICE.ctaText}
         </Button>
       </PerpetualNotice>

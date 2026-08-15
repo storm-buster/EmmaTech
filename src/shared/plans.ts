@@ -17,6 +17,18 @@ export type PlanId = 'free' | 'starter' | 'growth' | 'perpetual';
 
 export const DEFAULT_PLAN_ID: PlanId = 'free';
 
+/** A pricing-card capability line. `included: false` renders as an explicit
+ *  exclusion (e.g. FREE has no decoys) rather than a checkmark. */
+export interface PlanFeature {
+  text: string;
+  /** Whether the capability is included in the plan. Defaults to true. */
+  included?: boolean;
+}
+
+/** What a pricing-card CTA does: enter the authenticated flow, or contact us.
+ *  NO CTA performs a purchase (there is no billing in this phase). */
+export type PlanCtaAction = 'signup' | 'contact';
+
 export interface Plan {
   /** Stable machine-readable identifier. */
   id: PlanId;
@@ -37,30 +49,38 @@ export interface Plan {
   /** Highlighted as the recommended public card. */
   popular: boolean;
   /** Marketing feature bullets for the pricing card. */
-  features: string[];
+  features: PlanFeature[];
   /** Pricing-card call-to-action label. */
   ctaText: string;
+  /** Where the CTA leads (never a purchase). */
+  ctaAction: PlanCtaAction;
 }
 
 export const PLANS: Record<PlanId, Plan> = {
   free: {
     id: 'free',
     displayName: 'Free',
-    subtitle: 'Solo & evaluation',
+    subtitle: 'Evaluate RAPHA',
     price: '₹0',
-    period: '',
+    period: '/year',
     sensorLimit: 1,
     decoysEnabled: false,
     publiclyVisible: true,
     contactOnly: false,
     popular: false,
     features: [
-      'Exactly 1 sensor',
-      'Decoys not included',
-      'Real-time behavioral detection',
-      'Community support',
+      { text: '1 sensor' },
+      { text: 'RAPHA detection engine' },
+      { text: 'Basic telemetry' },
+      { text: 'Basic detection' },
+      { text: 'Web console access' },
+      { text: 'Basic alerts' },
+      { text: 'Limited forensic retention' },
+      // FREE explicitly excludes decoys (product decision).
+      { text: 'Decoys', included: false },
     ],
-    ctaText: 'Get started',
+    ctaText: 'Start free',
+    ctaAction: 'signup',
   },
   // STARTER — preserved verbatim from the pre-Phase-2 pricing page.
   starter: {
@@ -75,14 +95,15 @@ export const PLANS: Record<PlanId, Plan> = {
     contactOnly: false,
     popular: false,
     features: [
-      'Up to 20 sensors',
-      'Lightweight Cowrie decoys',
-      'Real-time SOC dashboard',
-      'Email + Slack alert push',
-      'Behavioral baseline ML',
-      '30-day forensic retention',
+      { text: 'Up to 20 sensors' },
+      { text: 'Lightweight Cowrie decoys' },
+      { text: 'Real-time SOC dashboard' },
+      { text: 'Email + Slack alert push' },
+      { text: 'Behavioral baseline ML' },
+      { text: '30-day forensic retention' },
     ],
     ctaText: 'Start a pilot',
+    ctaAction: 'signup',
   },
   // GROWTH — preserved verbatim from the pre-Phase-2 pricing page.
   growth: {
@@ -100,15 +121,16 @@ export const PLANS: Record<PlanId, Plan> = {
     contactOnly: false,
     popular: true,
     features: [
-      'Unlimited sensors',
-      'Advanced response policies',
-      'SLA-backed support (8h)',
-      'Full forensic hash chain',
-      'REST + WebSocket APIs',
-      'SIEM / XDR integration',
-      'MSSP white-label option',
+      { text: 'Unlimited sensors' },
+      { text: 'Advanced response policies' },
+      { text: 'SLA-backed support (8h)' },
+      { text: 'Full forensic hash chain' },
+      { text: 'REST + WebSocket APIs' },
+      { text: 'SIEM / XDR integration' },
+      { text: 'MSSP white-label option' },
     ],
     ctaText: 'Talk to founder',
+    ctaAction: 'contact',
   },
   // PERPETUAL — internal entitlement state only. NOT a public pricing card;
   // handled by contacting EmmaTech. Values retained from the former
@@ -125,14 +147,15 @@ export const PLANS: Record<PlanId, Plan> = {
     contactOnly: true,
     popular: false,
     features: [
-      'Isolated / air-gapped deploy',
-      'DPDP / RBI / SEBI ready',
-      'Forensic export & legal hold',
-      'On-prem federated training',
-      'Custom policy authoring',
-      'Dedicated engineering',
+      { text: 'Isolated / air-gapped deploy' },
+      { text: 'DPDP / RBI / SEBI ready' },
+      { text: 'Forensic export & legal hold' },
+      { text: 'On-prem federated training' },
+      { text: 'Custom policy authoring' },
+      { text: 'Dedicated engineering' },
     ],
     ctaText: 'Contact EmmaTech',
+    ctaAction: 'contact',
   },
 };
 
@@ -151,9 +174,10 @@ export function isValidPlanId(value: unknown): value is PlanId {
 
 /** Bottom-of-pricing notice for perpetual/custom licensing (contact path). */
 export const PERPETUAL_NOTICE = {
-  heading: 'Need a perpetual or air-gapped license?',
-  body: 'Perpetual and custom licensing (including isolated / air-gapped deployments for regulated and government environments) is handled directly by EmmaTech.',
+  heading: 'Need a perpetual or custom deployment?',
+  body: 'Perpetual licensing, air-gapped deployments, dedicated engineering, and custom enterprise requirements are available on request.',
   ctaText: 'Contact EmmaTech',
+  ctaAction: 'contact' as PlanCtaAction,
 };
 
 /** Human-readable sensor allowance for display. */

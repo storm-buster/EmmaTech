@@ -94,6 +94,12 @@ function App() {
   // Primary product CTAs (demo / pilot / pricing) route to the contact page.
   const handleCtaClick = () => navigate('contact');
 
+  // Pricing-card CTAs: FREE/STARTER enter the authenticated flow (signup),
+  // GROWTH and the perpetual/custom notice route to contact. No CTA performs a
+  // purchase — plan state stays server-authoritative.
+  const handlePlanCta = (action: 'signup' | 'contact') =>
+    navigate(action === 'signup' ? 'signup' : 'contact');
+
   const isAuthRoute =
     route === 'login' || route === 'signup' || route === 'account' || route === 'deploy';
 
@@ -131,7 +137,7 @@ function App() {
           {route === 'compliance' && <ProblemSection />}
 
           {route === 'pricing' && (
-            <CustomerSection onCtaClick={handleCtaClick} />
+            <CustomerSection onCtaAction={handlePlanCta} />
           )}
 
           {route === 'careers' && <CareersPage />}
