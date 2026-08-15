@@ -70,7 +70,7 @@ describe('Navigation — auth-aware, no admin exposure', () => {
     mockedFetchMe.mockResolvedValue(null);
     renderNav();
     await screen.findAllByText('Sign in');
-    for (const label of ['Home', 'Product', 'Compliance', 'Pricing', 'Careers', 'Contact']) {
+    for (const label of ['Home', 'Product', 'Compliance', 'Pricing', 'Docs', 'Careers', 'Contact']) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
   });

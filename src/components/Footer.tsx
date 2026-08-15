@@ -128,6 +128,7 @@ interface FooterProps {
 const PRODUCT_LINKS: { label: string; route: Route }[] = [
   { label: 'Product', route: 'product' },
   { label: 'Pricing', route: 'pricing' },
+  { label: 'Documentation', route: 'docs' },
   { label: 'Compliance', route: 'compliance' },
   { label: 'Careers', route: 'careers' },
 ];

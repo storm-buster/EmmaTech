@@ -188,6 +188,7 @@ const NAV_ITEMS: { label: string; route: Route }[] = [
   { label: 'Product', route: 'product' },
   { label: 'Compliance', route: 'compliance' },
   { label: 'Pricing', route: 'pricing' },
+  { label: 'Docs', route: 'docs' },
   { label: 'Careers', route: 'careers' },
   { label: 'Contact', route: 'contact' },
 ];

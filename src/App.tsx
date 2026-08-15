@@ -20,6 +20,7 @@ import { LoginPage } from './components/auth/LoginPage';
 import { SignupPage } from './components/auth/SignupPage';
 import { AccountPage } from './components/auth/AccountPage';
 import { DeploymentPage } from './components/auth/DeploymentPage';
+import { DocsPage } from './components/docs/DocsPage';
 
 // ── Hash-based multi-page router ──
 // Each page is its own route. The site used to be a single scroll page; it is
@@ -36,7 +37,8 @@ export type Route =
   | 'login'
   | 'signup'
   | 'account'
-  | 'deploy';
+  | 'deploy'
+  | 'docs';
 
 export function parseRoute(hash: string): Route {
   const path = hash.replace(/^#\/?/, '').split(/[/?#]/)[0].toLowerCase();
@@ -63,6 +65,8 @@ export function parseRoute(hash: string): Route {
       return 'account';
     case 'deploy':
       return 'deploy';
+    case 'docs':
+      return 'docs';
     default:
       return 'home';
   }
@@ -147,6 +151,8 @@ function App() {
           {route === 'privacy' && <PrivacyPolicy />}
 
           {route === 'terms' && <TermsOfService />}
+
+          {route === 'docs' && <DocsPage />}
         </main>
 
         {!isAuthRoute && <Footer onNavigate={navigate} />}
