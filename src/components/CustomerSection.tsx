@@ -2,6 +2,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { Button } from './Button';
 import { breakpoints } from '../styles/breakpoints';
+import { PUBLIC_PLANS, PERPETUAL_NOTICE } from '../shared/plans';
 
 const SectionContainer = styled.section`
   padding: ${({ theme }) => theme.spacing['4xl']} ${({ theme }) => theme.spacing.lg};
@@ -203,72 +204,36 @@ const MetricLabel = styled.div`
   letter-spacing: 0.05em;
 `;
 
-interface PricingTier {
-  title: string;
-  subtitle: string;
-  price: string;
-  period: string;
-  popular?: boolean;
-  features: string[];
-  buttonText: string;
-}
-
-const pricingTiers: PricingTier[] = [
-  {
-    title: 'Starter',
-    subtitle: 'SMEs & Teams',
-    price: '₹18,000',
-    period: '/node/year',
-    features: [
-      'Up to 20 sensors',
-      'Lightweight Cowrie decoys',
-      'Real-time SOC dashboard',
-      'Email + Slack alert push',
-      'Behavioral baseline ML',
-      '30-day forensic retention',
-    ],
-    buttonText: 'Start a pilot',
-  },
-  {
-    title: 'Growth',
-    subtitle: 'Enterprises & MSSPs',
-    price: '₹35,000',
-    period: '/node/year',
-    popular: true,
-    features: [
-      'Unlimited sensors',
-      'Advanced response policies',
-      'SLA-backed support (8h)',
-      'Full forensic hash chain',
-      'REST + WebSocket APIs',
-      'SIEM / XDR integration',
-      'MSSP white-label option',
-    ],
-    buttonText: 'Talk to founder',
-  },
-  {
-    title: 'Regulated',
-    subtitle: 'Government & PSU',
-    price: '₹30L+',
-    period: ' perpetual + 20% AMC',
-    features: [
-      'Isolated / air-gapped deploy',
-      'DPDP / RBI / SEBI ready',
-      'Forensic export & legal hold',
-      'On-prem federated training',
-      'Custom policy authoring',
-      'Dedicated engineering',
-    ],
-    buttonText: 'Request RFP',
-  },
-];
-
 const metrics = [
   { value: '50%', label: 'Starter margin' },
   { value: '68%', label: 'Growth margin' },
   { value: '98%+', label: 'Regulated margin' },
   { value: '5', label: 'Nodes to breakeven' },
 ];
+
+const PerpetualNotice = styled.div`
+  max-width: 800px;
+  margin: 48px auto 0;
+  padding: ${({ theme }) => theme.spacing.xl};
+  text-align: center;
+  border: 1px dashed ${({ theme }) => theme.colors.neutral.border};
+  border-radius: 16px;
+  background: ${({ theme }) => theme.gradients.card};
+`;
+
+const NoticeHeading = styled.h3`
+  font-size: 18px;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.neutral.white};
+  margin-bottom: ${({ theme }) => theme.spacing.sm};
+`;
+
+const NoticeBody = styled.p`
+  font-size: 14px;
+  line-height: 1.6;
+  color: ${({ theme }) => theme.colors.neutral.mediumGray};
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
+`;
 
 interface CustomerSectionProps {
   onCtaClick?: () => void;
@@ -287,39 +252,47 @@ export const CustomerSection: React.FC<CustomerSectionProps> = ({ onCtaClick }) 
       </SectionSubtitle>
 
       <PricingGrid>
-        {pricingTiers.map((tier, index) => (
+        {PUBLIC_PLANS.map((plan, index) => (
           <PricingCard
-            key={index}
-            $popular={tier.popular}
+            key={plan.id}
+            $popular={plan.popular}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-100px' }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
           >
-            {tier.popular && <PopularBadge>Most popular</PopularBadge>}
+            {plan.popular && <PopularBadge>Most popular</PopularBadge>}
             <div>
-              <CardTitle>{tier.title}</CardTitle>
-              <CardSubtitle>{tier.subtitle}</CardSubtitle>
+              <CardTitle>{plan.displayName}</CardTitle>
+              <CardSubtitle>{plan.subtitle}</CardSubtitle>
               <PriceWrapper>
-                <Price>{tier.price}</Price>
-                <Period>{tier.period}</Period>
+                <Price>{plan.price}</Price>
+                <Period>{plan.period}</Period>
               </PriceWrapper>
               <FeatureList>
-                {tier.features.map((feature, idx) => (
+                {plan.features.map((feature, idx) => (
                   <FeatureItem key={idx}>{feature}</FeatureItem>
                 ))}
               </FeatureList>
             </div>
             <Button
-              variant={tier.popular ? 'primary' : 'secondary'}
+              variant={plan.popular ? 'primary' : 'secondary'}
               onClick={onCtaClick}
               style={{ width: '100%' }}
             >
-              {tier.buttonText}
+              {plan.ctaText}
             </Button>
           </PricingCard>
         ))}
       </PricingGrid>
+
+      <PerpetualNotice>
+        <NoticeHeading>{PERPETUAL_NOTICE.heading}</NoticeHeading>
+        <NoticeBody>{PERPETUAL_NOTICE.body}</NoticeBody>
+        <Button variant="secondary" onClick={onCtaClick}>
+          {PERPETUAL_NOTICE.ctaText}
+        </Button>
+      </PerpetualNotice>
 
       <MarginMetricsGrid>
         {metrics.map((metric, index) => (

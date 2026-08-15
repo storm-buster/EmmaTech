@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { breakpoints } from '../styles/breakpoints';
 import { LogoIcon } from './LogoIcon';
+import { useAuth } from '../auth/AuthContext';
 
 const Nav = styled.nav<{ $isScrolled: boolean }>`
   position: fixed;
@@ -120,6 +121,28 @@ const MobileMenuButton = styled.button`
   }
 `;
 
+const AuthCta = styled.a`
+  display: none;
+  color: ${({ theme }) => theme.colors.primary.main};
+  border: 1px solid ${({ theme }) => theme.colors.neutral.border};
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: ${({ theme }) => theme.transitions.default};
+
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.primary.main};
+    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary.glow};
+  }
+
+  ${breakpoints.tablet} {
+    display: inline-block;
+  }
+`;
+
 const MobileMenu = styled.div<{ $isOpen: boolean }>`
   position: fixed;
   top: 73px;
@@ -175,6 +198,9 @@ export const Navigation: React.FC<NavigationProps> = ({
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { account } = useAuth();
+  const authRoute: Route = account ? 'account' : 'login';
+  const authLabel = account ? 'Account' : 'Sign in';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -213,6 +239,7 @@ export const Navigation: React.FC<NavigationProps> = ({
               </NavLink>
             ))}
           </NavLinks>
+          <AuthCta onClick={() => go(authRoute)}>{authLabel}</AuthCta>
           <MobileMenuButton onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             <span />
             <span />
@@ -226,6 +253,7 @@ export const Navigation: React.FC<NavigationProps> = ({
             {item.label}
           </MobileNavLink>
         ))}
+        <MobileNavLink onClick={() => go(authRoute)}>{authLabel}</MobileNavLink>
       </MobileMenu>
     </>
   );
