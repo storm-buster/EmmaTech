@@ -94,6 +94,29 @@ export interface RaphaCapabilityView {
   updated_at: string;
 }
 
+/**
+ * Phase 7B service-scoped customer READ responses. The proxy passes RAPHA's
+ * fields through unchanged (no invented fields). Rows are typed as unknown[] so
+ * EmmaTech never fabricates or drops a legitimate RAPHA field; the browser view
+ * layer reads the documented fields defensively.
+ */
+export interface TenantTelemetryResponse {
+  tenant_id: string;
+  telemetry: unknown[];
+}
+export interface TenantAlertsResponse {
+  tenant_id: string;
+  alerts: unknown[];
+}
+export interface TenantSensorsResponse {
+  tenant_id: string;
+  sensors: unknown[];
+}
+export interface TenantForensicsResponse {
+  tenant_id: string;
+  forensics: unknown[];
+}
+
 export class RaphaServiceClient {
   constructor(private readonly cfg: AppConfig) {}
 
@@ -322,5 +345,120 @@ export class RaphaServiceClient {
       throw new RaphaError('rate_limited', 'RAPHA rate limit exceeded');
     }
     throw new RaphaError('upstream', 'RAPHA service error');
+  }
+
+  /**
+   * Shared, trusted service-scoped GET (Phase 7B). Reads a customer-safe
+   * resource for a SERVER-DERIVED tenant. `subpath` is a fixed resource name
+   * ('telemetry'|'alerts'|'sensors'|'forensics') — never a caller-supplied URL.
+   * `tenantId` is placed in the path and MUST be resolved server-side from the
+   * authenticated session (never from the browser). X-Service-Token is sent as
+   * a header only, never logged, never in the query string.
+   */
+  private async serviceGet<T>(
+    tenantId: string,
+    subpath: 'telemetry' | 'alerts' | 'sensors' | 'forensics',
+    query: Record<string, number> = {},
+  ): Promise<T> {
+    const baseUrl = this.cfg.raphaBaseUrl;
+    const token = this.cfg.raphaServiceToken;
+
+    if (!baseUrl || !token || !tenantId) {
+      throw new RaphaError('config', 'RAPHA service is not configured');
+    }
+    if (this.cfg.isProduction && !/^https:\/\//i.test(baseUrl)) {
+      throw new RaphaError('config', 'RAPHA base URL must use HTTPS in production');
+    }
+
+    const qs = Object.entries(query)
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+      .join('&');
+    const target =
+      `${baseUrl.replace(/\/+$/, '')}/api/v1/service/tenants/${encodeURIComponent(tenantId)}/${subpath}` +
+      (qs ? `?${qs}` : '');
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), PROVISION_TIMEOUT_MS);
+
+    let res: Response;
+    try {
+      res = await fetch(target, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'X-Service-Token': token,
+        },
+        redirect: 'error',
+        signal: controller.signal,
+      });
+    } catch {
+      throw new RaphaError('unavailable', 'RAPHA service is unavailable');
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (res.status === 200) {
+      try {
+        return (await res.json()) as T;
+      } catch {
+        throw new RaphaError('upstream', 'RAPHA returned an invalid response');
+      }
+    }
+    if (res.status === 401 || res.status === 403) {
+      throw new RaphaError('auth', 'RAPHA rejected the service credentials');
+    }
+    if (res.status === 404) {
+      throw new RaphaError('not_found', 'RAPHA tenant not found');
+    }
+    if (res.status === 429) {
+      throw new RaphaError('rate_limited', 'RAPHA rate limit exceeded');
+    }
+    throw new RaphaError('upstream', 'RAPHA service error');
+  }
+
+  /** GET {base}/api/v1/service/tenants/{tenantId}/telemetry (server-derived tenant). */
+  async getTenantTelemetry(tenantId: string, opts: { limit?: number } = {}): Promise<TenantTelemetryResponse> {
+    const q: Record<string, number> = {};
+    if (typeof opts.limit === 'number') q.limit = opts.limit;
+    const body = await this.serviceGet<TenantTelemetryResponse>(tenantId, 'telemetry', q);
+    if (!body || !Array.isArray(body.telemetry)) {
+      throw new RaphaError('upstream', 'RAPHA returned an invalid response');
+    }
+    return body;
+  }
+
+  /** GET {base}/api/v1/service/tenants/{tenantId}/alerts (server-derived tenant). */
+  async getTenantAlerts(tenantId: string, opts: { limit?: number } = {}): Promise<TenantAlertsResponse> {
+    const q: Record<string, number> = {};
+    if (typeof opts.limit === 'number') q.limit = opts.limit;
+    const body = await this.serviceGet<TenantAlertsResponse>(tenantId, 'alerts', q);
+    if (!body || !Array.isArray(body.alerts)) {
+      throw new RaphaError('upstream', 'RAPHA returned an invalid response');
+    }
+    return body;
+  }
+
+  /** GET {base}/api/v1/service/tenants/{tenantId}/sensors (server-derived tenant). */
+  async getTenantSensors(tenantId: string): Promise<TenantSensorsResponse> {
+    const body = await this.serviceGet<TenantSensorsResponse>(tenantId, 'sensors');
+    if (!body || !Array.isArray(body.sensors)) {
+      throw new RaphaError('upstream', 'RAPHA returned an invalid response');
+    }
+    return body;
+  }
+
+  /** GET {base}/api/v1/service/tenants/{tenantId}/forensics (server-derived tenant). */
+  async getTenantForensics(
+    tenantId: string,
+    opts: { limit?: number; offset?: number } = {},
+  ): Promise<TenantForensicsResponse> {
+    const q: Record<string, number> = {};
+    if (typeof opts.limit === 'number') q.limit = opts.limit;
+    if (typeof opts.offset === 'number') q.offset = opts.offset;
+    const body = await this.serviceGet<TenantForensicsResponse>(tenantId, 'forensics', q);
+    if (!body || !Array.isArray(body.forensics)) {
+      throw new RaphaError('upstream', 'RAPHA returned an invalid response');
+    }
+    return body;
   }
 }

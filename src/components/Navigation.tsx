@@ -241,6 +241,11 @@ export const Navigation: React.FC<NavigationProps> = ({
             ))}
           </NavLinks>
           <AuthCta onClick={() => go(authRoute)}>{authLabel}</AuthCta>
+          {account && (
+            <AuthCta onClick={() => go('console')} aria-label="Open RAPHA console">
+              Console
+            </AuthCta>
+          )}
           <MobileMenuButton onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             <span />
             <span />
@@ -255,6 +260,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           </MobileNavLink>
         ))}
         <MobileNavLink onClick={() => go(authRoute)}>{authLabel}</MobileNavLink>
+        {account && <MobileNavLink onClick={() => go('console')}>Console</MobileNavLink>}
       </MobileMenu>
     </>
   );

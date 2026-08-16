@@ -21,6 +21,7 @@ import { SignupPage } from './components/auth/SignupPage';
 import { AccountPage } from './components/auth/AccountPage';
 import { DeploymentPage } from './components/auth/DeploymentPage';
 import { DocsPage } from './components/docs/DocsPage';
+import { ConsolePage } from './components/console/ConsolePage';
 
 // ── Hash-based multi-page router ──
 // Each page is its own route. The site used to be a single scroll page; it is
@@ -38,7 +39,8 @@ export type Route =
   | 'signup'
   | 'account'
   | 'deploy'
-  | 'docs';
+  | 'docs'
+  | 'console';
 
 export function parseRoute(hash: string): Route {
   const path = hash.replace(/^#\/?/, '').split(/[/?#]/)[0].toLowerCase();
@@ -67,6 +69,8 @@ export function parseRoute(hash: string): Route {
       return 'deploy';
     case 'docs':
       return 'docs';
+    case 'console':
+      return 'console';
     default:
       return 'home';
   }
@@ -105,7 +109,11 @@ function App() {
     navigate(action === 'signup' ? 'signup' : 'contact');
 
   const isAuthRoute =
-    route === 'login' || route === 'signup' || route === 'account' || route === 'deploy';
+    route === 'login' ||
+    route === 'signup' ||
+    route === 'account' ||
+    route === 'deploy' ||
+    route === 'console';
 
   return (
     <ThemeProvider theme={theme}>
@@ -153,6 +161,8 @@ function App() {
           {route === 'terms' && <TermsOfService />}
 
           {route === 'docs' && <DocsPage />}
+
+          {route === 'console' && <ConsolePage onNavigate={navigate} />}
         </main>
 
         {!isAuthRoute && <Footer onNavigate={navigate} />}

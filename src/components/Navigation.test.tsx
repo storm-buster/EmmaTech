@@ -43,6 +43,8 @@ describe('Navigation — auth-aware, no admin exposure', () => {
     renderNav();
     expect((await screen.findAllByText('Sign in')).length).toBeGreaterThan(0);
     expect(screen.queryByText('Account')).toBeNull();
+    // Console is authenticated-only.
+    expect(screen.queryByText('Console')).toBeNull();
   });
 
   it('shows "Account" for an authenticated user', async () => {
@@ -55,6 +57,8 @@ describe('Navigation — auth-aware, no admin exposure', () => {
     renderNav();
     expect((await screen.findAllByText('Account')).length).toBeGreaterThan(0);
     expect(screen.queryByText('Sign in')).toBeNull();
+    // Authenticated users get a Console entry.
+    expect((await screen.findAllByText('Console')).length).toBeGreaterThan(0);
   });
 
   it('never exposes admin/internal navigation items', async () => {
