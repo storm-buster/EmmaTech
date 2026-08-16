@@ -103,10 +103,14 @@ export interface RaphaCapabilityView {
 export interface TenantTelemetryResponse {
   tenant_id: string;
   telemetry: unknown[];
+  /** Phase 7C-1 incremental cursor (inclusive >= semantics). */
+  next_since?: number;
 }
 export interface TenantAlertsResponse {
   tenant_id: string;
   alerts: unknown[];
+  /** Phase 7C-1 incremental cursor (inclusive >= semantics). */
+  next_since?: number;
 }
 export interface TenantSensorsResponse {
   tenant_id: string;
@@ -417,9 +421,13 @@ export class RaphaServiceClient {
   }
 
   /** GET {base}/api/v1/service/tenants/{tenantId}/telemetry (server-derived tenant). */
-  async getTenantTelemetry(tenantId: string, opts: { limit?: number } = {}): Promise<TenantTelemetryResponse> {
+  async getTenantTelemetry(
+    tenantId: string,
+    opts: { limit?: number; since?: number } = {},
+  ): Promise<TenantTelemetryResponse> {
     const q: Record<string, number> = {};
     if (typeof opts.limit === 'number') q.limit = opts.limit;
+    if (typeof opts.since === 'number') q.since = opts.since;
     const body = await this.serviceGet<TenantTelemetryResponse>(tenantId, 'telemetry', q);
     if (!body || !Array.isArray(body.telemetry)) {
       throw new RaphaError('upstream', 'RAPHA returned an invalid response');
@@ -428,9 +436,13 @@ export class RaphaServiceClient {
   }
 
   /** GET {base}/api/v1/service/tenants/{tenantId}/alerts (server-derived tenant). */
-  async getTenantAlerts(tenantId: string, opts: { limit?: number } = {}): Promise<TenantAlertsResponse> {
+  async getTenantAlerts(
+    tenantId: string,
+    opts: { limit?: number; since?: number } = {},
+  ): Promise<TenantAlertsResponse> {
     const q: Record<string, number> = {};
     if (typeof opts.limit === 'number') q.limit = opts.limit;
+    if (typeof opts.since === 'number') q.since = opts.since;
     const body = await this.serviceGet<TenantAlertsResponse>(tenantId, 'alerts', q);
     if (!body || !Array.isArray(body.alerts)) {
       throw new RaphaError('upstream', 'RAPHA returned an invalid response');

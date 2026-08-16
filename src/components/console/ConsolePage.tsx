@@ -2,20 +2,15 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import {
   fetchRaphaStatus,
-  fetchConsoleAlerts,
   fetchConsoleForensics,
   fetchConsoleSensors,
-  fetchConsoleTelemetry,
 } from '../../auth/consoleClient';
-import type {
-  RaphaStatus,
-  AlertRow,
-  ForensicRow,
-  SensorRow,
-  TelemetryRow,
-} from '../../auth/consoleClient';
+import type { RaphaStatus, ForensicRow, SensorRow } from '../../auth/consoleClient';
 import { usePolling } from './usePolling';
 import type { PollState } from './usePolling';
+import { useConsoleLiveData } from './useConsoleLiveData';
+import type { ConsoleLiveData } from './useConsoleLiveData';
+import type { StreamStatus } from './useConsoleStream';
 import type { AccountResponse, OrgStatus } from '../../auth/authClient';
 import type { Route } from '../../App';
 import { Button } from '../Button';
@@ -59,6 +54,14 @@ const ORG_STATUS_LABEL: Record<OrgStatus, string> = {
   active: 'Active',
   pending: 'Provisioning',
   failed: 'Provisioning failed',
+};
+
+const STREAM_STATUS_LABEL: Record<StreamStatus, string> = {
+  connecting: 'Connecting…',
+  live: 'Live',
+  reconnecting: 'Reconnecting…',
+  polling: 'Polling fallback',
+  offline: 'Offline',
 };
 
 // ── RAPHA health (Overview card) ─────────────────────────────────────────────
@@ -320,17 +323,14 @@ function SensorsSection() {
   );
 }
 
-// ── Telemetry ────────────────────────────────────────────────────────────────
-function TelemetrySection() {
-  const { data, state, error } = usePolling<{ telemetry: TelemetryRow[] }>(
-    (signal) => fetchConsoleTelemetry({ limit: 100 }, signal),
-    POLL.telemetry,
-  );
-  const rows = data?.telemetry ?? [];
+// ── Telemetry (live via SSE, bounded-polling fallback) ───────────────────────
+function TelemetrySection({ live }: { live: ConsoleLiveData }) {
+  const rows = live.telemetry;
+  const state: PollState = live.loading ? 'loading' : live.error && rows.length === 0 ? 'error' : 'ok';
   return (
     <SectionStates
       state={state}
-      error={error}
+      error={live.error}
       empty={rows.length === 0}
       emptyText="No telemetry has been received yet. Once a sensor ingests events, its latest snapshot appears here."
     >
@@ -373,23 +373,20 @@ function TelemetrySection() {
   );
 }
 
-// ── Alerts ───────────────────────────────────────────────────────────────────
-function AlertsSection() {
-  const { data, state, error } = usePolling<{ alerts: AlertRow[] }>(
-    (signal) => fetchConsoleAlerts({ limit: 100 }, signal),
-    POLL.alerts,
-  );
-  const rows = data?.alerts ?? [];
+// ── Alerts (live via SSE, bounded-polling fallback) ──────────────────────────
+function AlertsSection({ live }: { live: ConsoleLiveData }) {
+  const rows = live.alerts;
+  const state: PollState = live.loading ? 'loading' : live.error && rows.length === 0 ? 'error' : 'ok';
   return (
     <SectionStates
       state={state}
-      error={error}
+      error={live.error}
       empty={rows.length === 0}
       emptyText="No alerts have been raised for your organization yet."
     >
       <CardGrid>
         {rows.map((a, i) => (
-          <ConsoleCard key={a.id || i}>
+          <ConsoleCard key={a.alert_id ?? a.id ?? i}>
             <CardHeading>{a.category ?? 'alert'}</CardHeading>
             <DefRow>
               <DefKey>When</DefKey>
@@ -475,14 +472,14 @@ function ForensicsSection() {
   );
 }
 
-function DataSection({ id }: { id: Exclude<ConsoleSectionId, 'overview'> }) {
+function DataSection({ id, live }: { id: Exclude<ConsoleSectionId, 'overview'>; live: ConsoleLiveData }) {
   switch (id) {
     case 'sensors':
       return <SensorsSection />;
     case 'telemetry':
-      return <TelemetrySection />;
+      return <TelemetrySection live={live} />;
     case 'alerts':
-      return <AlertsSection />;
+      return <AlertsSection live={live} />;
     case 'forensics':
       return <ForensicsSection />;
     default:
@@ -497,6 +494,12 @@ export function ConsolePage({ onNavigate }: Props) {
     sectionFromHash(window.location.hash),
   );
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Live data (SSE + polling fallback) is active only on the telemetry/alerts
+  // sections and only once authenticated. Called unconditionally (hook rules);
+  // no-ops when disabled.
+  const liveEnabled = (section === 'telemetry' || section === 'alerts') && Boolean(account);
+  const live = useConsoleLiveData({ enabled: liveEnabled });
 
   // Protected route: redirect unauthenticated users to login once auth resolves.
   useEffect(() => {
@@ -570,13 +573,29 @@ export function ConsolePage({ onNavigate }: Props) {
           <ConsoleTitle>{activeLabel}</ConsoleTitle>
           <ConsoleSubtitle>
             {account.organization ? account.organization.name : 'Your organization'}
+            {(section === 'telemetry' || section === 'alerts') && (
+              <>
+                {'  ·  '}
+                <StatusPill
+                  $state={
+                    live.status === 'live'
+                      ? 'operational'
+                      : live.status === 'connecting' || live.status === 'reconnecting'
+                        ? 'loading'
+                        : 'neutral'
+                  }
+                >
+                  {STREAM_STATUS_LABEL[live.status]}
+                </StatusPill>
+              </>
+            )}
           </ConsoleSubtitle>
         </ConsoleHeader>
 
         {section === 'overview' ? (
           <Overview account={account} onNavigate={onNavigate} />
         ) : (
-          <DataSection id={section} />
+          <DataSection id={section} live={live} />
         )}
       </ConsoleContent>
     </ConsoleLayout>

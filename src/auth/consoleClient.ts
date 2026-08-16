@@ -73,6 +73,8 @@ export interface TelemetryRow {
 
 export interface AlertRow {
   id?: string;
+  /** Present on SSE `alert.created` events (Phase 7C-2). */
+  alert_id?: string | number;
   ts?: number;
   category?: string;
   score?: number;

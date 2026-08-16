@@ -27,7 +27,9 @@ export const MIN_POLL_INTERVAL_MS = 10_000;
 export function usePolling<T>(
   fetcher: (signal: AbortSignal) => Promise<T>,
   intervalMs: number,
+  options: { enabled?: boolean } = {},
 ): PollResult<T> {
+  const enabled = options.enabled !== false;
   const [data, setData] = useState<T | null>(null);
   const [state, setState] = useState<PollState>('loading');
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +39,7 @@ export function usePolling<T>(
   fetcherRef.current = fetcher;
 
   useEffect(() => {
+    if (!enabled) return; // disabled (e.g. while an SSE stream is live)
     let active = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let controller: AbortController | undefined;
@@ -96,7 +99,7 @@ export function usePolling<T>(
         document.removeEventListener('visibilitychange', onVisibility);
       }
     };
-  }, [intervalMs]);
+  }, [intervalMs, enabled]);
 
   return { data, state, error };
 }
