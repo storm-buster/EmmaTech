@@ -35,10 +35,24 @@ async function getPool(connectionString: string): Promise<PoolLike> {
       // Lazy, optional dependency. Present in production only. The
       // @vite-ignore keeps the test/build bundler from trying to resolve it;
       // Node resolves it at runtime inside the Vercel function.
-      const pg = (await import(/* @vite-ignore */ 'pg')) as unknown as {
-        Pool: new (config: { connectionString: string; max?: number }) => PoolLike;
+      //
+      // `pg` is a CommonJS package. Under ESM (this repo is "type":"module")
+      // the CJS `module.exports` — which carries `Pool` — is exposed via the
+      // interop `default` export, while the named `Pool` export is NOT always
+      // statically detected by Node's cjs-module-lexer. In the Vercel Node
+      // runtime `Pool` is undefined, which is why `new pg.Pool(...)` failed
+      // with "pg.Pool is not a constructor". Accept either shape: prefer a
+      // named `Pool`, else fall back to `default.Pool`.
+      type PoolCtor = new (config: { connectionString: string; max?: number }) => PoolLike;
+      const mod = (await import(/* @vite-ignore */ 'pg')) as unknown as {
+        Pool?: PoolCtor;
+        default?: { Pool?: PoolCtor };
       };
-      return new pg.Pool({ connectionString, max: 5 });
+      const Pool = mod.Pool ?? mod.default?.Pool;
+      if (typeof Pool !== 'function') {
+        throw new Error('pg Pool constructor is unavailable');
+      }
+      return new Pool({ connectionString, max: 5 });
     })();
   }
   return poolPromise;
