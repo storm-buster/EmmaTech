@@ -1,9 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import telemetryHandler from './telemetry.js';
-import alertsHandler from './alerts.js';
-import sensorsHandler from './sensors.js';
-import forensicsHandler from './forensics.js';
+import consoleHandler from './[resource].js';
 import { __resetInMemoryStore, getStore } from '../_lib/store/index.js';
 import { getConfig } from '../_lib/config.js';
 import { createSessionToken, SESSION_COOKIE_NAME } from '../_lib/session.js';
@@ -93,39 +90,39 @@ afterEach(() => {
 });
 
 const HANDLERS = [
-  { name: 'telemetry', handler: telemetryHandler, key: 'telemetry' },
-  { name: 'alerts', handler: alertsHandler, key: 'alerts' },
-  { name: 'sensors', handler: sensorsHandler, key: 'sensors' },
-  { name: 'forensics', handler: forensicsHandler, key: 'forensics' },
+  { name: 'telemetry', key: 'telemetry' },
+  { name: 'alerts', key: 'alerts' },
+  { name: 'sensors', key: 'sensors' },
+  { name: 'forensics', key: 'forensics' },
 ] as const;
 
 describe('console proxies — authentication', () => {
-  for (const { name, handler } of HANDLERS) {
+  for (const { name, key } of HANDLERS) {
     it(`${name}: unauthenticated request → 401 (never calls RAPHA)`, async () => {
       const fetchMock = mockUpstream();
       vi.stubGlobal('fetch', fetchMock);
       const { res, state } = makeRes();
-      await handler(makeReq({ method: 'GET' }), res);
+      await consoleHandler(makeReq({ method: 'GET', query: { resource: key } }), res);
       expect(state.statusCode).toBe(401);
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
     it(`${name}: non-GET → 405`, async () => {
       const { res, state } = makeRes();
-      await handler(makeReq({ method: 'POST' }), res);
+      await consoleHandler(makeReq({ method: 'POST', query: { resource: key } }), res);
       expect(state.statusCode).toBe(405);
     });
   }
 });
 
 describe('console proxies — server-derived tenant + service token', () => {
-  for (const { name, handler, key } of HANDLERS) {
+  for (const { name, key } of HANDLERS) {
     it(`${name}: uses the SERVER tenant in the RAPHA path and sends X-Service-Token`, async () => {
       const cookie = await seedSessionCookie(SERVER_TENANT);
       const fetchMock = mockUpstream();
       vi.stubGlobal('fetch', fetchMock);
       const { res, state } = makeRes();
-      await handler(makeReq({ method: 'GET', cookie }), res);
+      await consoleHandler(makeReq({ method: 'GET', cookie, query: { resource: key } }), res);
 
       expect(state.statusCode).toBe(200);
       const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -141,12 +138,24 @@ describe('console proxies — server-derived tenant + service token', () => {
       const fetchMock = mockUpstream();
       vi.stubGlobal('fetch', fetchMock);
       const { res } = makeRes();
-      await handler(makeReq({ method: 'GET', cookie, query: { tenant_id: 'tnt-EVIL', limit: '10' } }), res);
+      await consoleHandler(makeReq({ method: 'GET', cookie, query: { resource: key, tenant_id: 'tnt-EVIL', limit: '10' } }), res);
       const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
       expect(url).toContain(`/tenants/${SERVER_TENANT}/`);
       expect(url).not.toContain('tnt-EVIL');
     });
   }
+});
+
+describe('console proxies — unknown resource', () => {
+  it('unknown resource → 404 (never calls RAPHA)', async () => {
+    const cookie = await seedSessionCookie(SERVER_TENANT);
+    const fetchMock = mockUpstream();
+    vi.stubGlobal('fetch', fetchMock);
+    const { res, state } = makeRes();
+    await consoleHandler(makeReq({ method: 'GET', cookie, query: { resource: 'bogus' } }), res);
+    expect(state.statusCode).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
 
 describe('console proxies — org/tenant + upstream error mapping (telemetry representative)', () => {
@@ -156,7 +165,7 @@ describe('console proxies — org/tenant + upstream error mapping (telemetry rep
     const cookie = `${SESSION_COOKIE_NAME}=${createSessionToken(user.id, SESSION_SECRET)}`;
     vi.stubGlobal('fetch', mockUpstream());
     const { res, state } = makeRes();
-    await telemetryHandler(makeReq({ method: 'GET', cookie }), res);
+    await consoleHandler(makeReq({ method: 'GET', cookie, query: { resource: 'telemetry' } }), res);
     expect(state.statusCode).toBe(404);
   });
 
@@ -164,7 +173,7 @@ describe('console proxies — org/tenant + upstream error mapping (telemetry rep
     const cookie = await seedSessionCookie(null);
     vi.stubGlobal('fetch', mockUpstream());
     const { res, state } = makeRes();
-    await telemetryHandler(makeReq({ method: 'GET', cookie }), res);
+    await consoleHandler(makeReq({ method: 'GET', cookie, query: { resource: 'telemetry' } }), res);
     expect(state.statusCode).toBe(409);
   });
 
@@ -172,7 +181,7 @@ describe('console proxies — org/tenant + upstream error mapping (telemetry rep
     const cookie = await seedSessionCookie();
     vi.stubGlobal('fetch', mockUpstream(403));
     const { res, state } = makeRes();
-    await telemetryHandler(makeReq({ method: 'GET', cookie }), res);
+    await consoleHandler(makeReq({ method: 'GET', cookie, query: { resource: 'telemetry' } }), res);
     expect(state.statusCode).toBe(502);
     expect(JSON.stringify(state.body)).not.toContain(SERVICE_TOKEN);
   });
@@ -181,7 +190,7 @@ describe('console proxies — org/tenant + upstream error mapping (telemetry rep
     const cookie = await seedSessionCookie();
     vi.stubGlobal('fetch', mockUpstream(404));
     const { res, state } = makeRes();
-    await telemetryHandler(makeReq({ method: 'GET', cookie }), res);
+    await consoleHandler(makeReq({ method: 'GET', cookie, query: { resource: 'telemetry' } }), res);
     expect(state.statusCode).toBe(409);
   });
 
@@ -189,7 +198,7 @@ describe('console proxies — org/tenant + upstream error mapping (telemetry rep
     const cookie = await seedSessionCookie();
     vi.stubGlobal('fetch', mockUpstream(503));
     const { res, state } = makeRes();
-    await telemetryHandler(makeReq({ method: 'GET', cookie }), res);
+    await consoleHandler(makeReq({ method: 'GET', cookie, query: { resource: 'telemetry' } }), res);
     expect(state.statusCode).toBe(502);
   });
 
@@ -197,7 +206,7 @@ describe('console proxies — org/tenant + upstream error mapping (telemetry rep
     const cookie = await seedSessionCookie();
     vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('network down'); }));
     const { res, state } = makeRes();
-    await telemetryHandler(makeReq({ method: 'GET', cookie }), res);
+    await consoleHandler(makeReq({ method: 'GET', cookie, query: { resource: 'telemetry' } }), res);
     expect(state.statusCode).toBe(502);
   });
 
@@ -205,7 +214,7 @@ describe('console proxies — org/tenant + upstream error mapping (telemetry rep
     const cookie = await seedSessionCookie();
     vi.stubGlobal('fetch', mockUpstream());
     const { res, state } = makeRes();
-    await telemetryHandler(makeReq({ method: 'GET', cookie, query: { limit: 'abc' } }), res);
+    await consoleHandler(makeReq({ method: 'GET', cookie, query: { resource: 'telemetry', limit: 'abc' } }), res);
     expect(state.statusCode).toBe(400);
   });
 
@@ -213,7 +222,7 @@ describe('console proxies — org/tenant + upstream error mapping (telemetry rep
     const cookie = await seedSessionCookie();
     vi.stubGlobal('fetch', mockUpstream(200, { tenant_id: SERVER_TENANT, telemetry: [{ sensor_id: 's1', tenant_id: SERVER_TENANT }] }));
     const { res, state } = makeRes();
-    await telemetryHandler(makeReq({ method: 'GET', cookie }), res);
+    await consoleHandler(makeReq({ method: 'GET', cookie, query: { resource: 'telemetry' } }), res);
     expect(state.statusCode).toBe(200);
     expect(state.body.tenant_id).toBe(SERVER_TENANT);
     expect(Array.isArray(state.body.telemetry)).toBe(true);
