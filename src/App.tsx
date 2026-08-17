@@ -15,7 +15,7 @@ import { Footer } from './components/Footer';
 import { CareersPage } from './components/careers/CareersPage';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
-import { AuthProvider } from './auth/AuthContext';
+import { useAuth } from './auth/AuthContext';
 import { LoginPage } from './components/auth/LoginPage';
 import { SignupPage } from './components/auth/SignupPage';
 import { AccountPage } from './components/auth/AccountPage';
@@ -96,6 +96,7 @@ function useRoute(): Route {
 
 function App() {
   const route = useRoute();
+  const { account } = useAuth();
 
   const navigate = (to: Route) => {
     window.location.hash = to === 'home' ? '#/' : `#/${to}`;
@@ -104,16 +105,24 @@ function App() {
   // Primary product CTAs (demo / pilot / pricing) route to the contact page.
   const handleCtaClick = () => navigate('contact');
 
-  // Pricing-card CTAs: FREE/STARTER/GROWTH enter the authenticated flow
-  // (signup) and the selected plan is recorded as a client UX intent (server
-  // stays authoritative); the perpetual/custom notice routes to contact. No CTA
-  // performs a purchase or grants entitlement.
+  // Pricing-card CTAs: FREE/STARTER/GROWTH enter the authenticated flow and the
+  // selected plan is recorded as a client UX intent (server stays
+  // authoritative); the perpetual/custom notice routes to contact. No CTA
+  // performs a purchase or grants entitlement. An already-authenticated user is
+  // sent straight to their account/portal (never back through account creation).
   const handlePlanCta = (action: 'signup' | 'contact', planId: PlanId) => {
-    if (action === 'signup') {
+    if (action === 'contact') {
+      navigate('contact');
+      return;
+    }
+    // action === 'signup'
+    if (account) {
+      // Already authenticated — skip signup; go to the account/portal. Server
+      // remains authoritative for plan/entitlement; nothing is activated here.
+      navigate('account');
+    } else {
       setIntendedPlan(planId);
       navigate('signup');
-    } else {
-      navigate('contact');
     }
   };
 
@@ -126,8 +135,7 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <AuthProvider>
-        <GlobalStyles />
+      <GlobalStyles />
         <SkipToContent />
         <Navigation currentRoute={route} onNavigate={navigate} />
 
@@ -175,7 +183,6 @@ function App() {
         </main>
 
         {!isAuthRoute && <Footer onNavigate={navigate} />}
-      </AuthProvider>
     </ThemeProvider>
   );
 }
