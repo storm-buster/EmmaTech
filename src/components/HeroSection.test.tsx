@@ -13,8 +13,14 @@ describe('HeroSection', () => {
   it('renders the headline', () => {
     renderWithTheme(<HeroSection onDemoClick={vi.fn()} />);
 
-    expect(screen.getByText('Silence the Noise.')).toBeInTheDocument();
-    expect(screen.getByText('Secure the Future.')).toBeInTheDocument();
+    // The headline is rendered via <SplitText>, which fragments each phrase
+    // into one <span> per character (and drops literal spaces in favour of CSS
+    // margins). Assert on the accessible <h1> heading's normalized text so we
+    // verify the actual intended content despite the character-level DOM split.
+    const heading = screen.getByRole('heading', { level: 1 });
+    const normalized = (heading.textContent ?? '').replace(/\s+/g, '');
+    expect(normalized).toContain('Silence the Noise.'.replace(/\s+/g, ''));
+    expect(normalized).toContain('Secure the Future.'.replace(/\s+/g, ''));
   });
 
   it('renders the RAPHA sub-headline', () => {

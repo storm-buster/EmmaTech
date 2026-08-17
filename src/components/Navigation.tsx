@@ -266,7 +266,12 @@ export const Navigation: React.FC<NavigationProps> = ({
                 Console
               </AuthCta>
             )}
-            <MobileMenuButton onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            <MobileMenuButton
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle navigation menu"
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-menu"
+            >
               <span />
               <span />
               <span />
@@ -274,7 +279,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           </RightCluster>
         </NavContainer>
       </Nav>
-      <MobileMenu $isOpen={isMobileMenuOpen}>
+      <MobileMenu id="mobile-menu" $isOpen={isMobileMenuOpen}>
         {NAV_ITEMS.map((item) => (
           <MobileNavLink key={item.route} onClick={() => go(item.route)}>
             {item.label}
