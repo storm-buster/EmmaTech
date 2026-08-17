@@ -32,7 +32,9 @@ const Inner = styled(motion.div)`
 
 const TextBlock = styled.div``;
 
-const Title = styled.h3`
+// Semantic level h2 (a top-level section under the page's h1). Visual styling
+// is explicit below, so the heading level is independent of the element tag.
+const Title = styled.h2`
   font-size: 20px;
   font-weight: 700;
   color: ${({ theme }) => theme.colors.neutral.white};

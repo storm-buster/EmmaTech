@@ -48,7 +48,10 @@ const FooterSection = styled.div`
   gap: ${({ theme }) => theme.spacing.md};
 `;
 
-const FooterTitle = styled.h4`
+// Semantic level h2 (top-level footer section groups). Visual styling is
+// explicit below, so the heading level is independent of the element tag and
+// the landing-page heading order increases sequentially (h1 → h2).
+const FooterTitle = styled.h2`
   font-size: 16px;
   font-weight: 600;
   color: ${({ theme }) => theme.colors.primary.main};
@@ -128,6 +131,7 @@ interface FooterProps {
 const PRODUCT_LINKS: { label: string; route: Route }[] = [
   { label: 'Product', route: 'product' },
   { label: 'Pricing', route: 'pricing' },
+  { label: 'Documentation', route: 'docs' },
   { label: 'Compliance', route: 'compliance' },
   { label: 'Careers', route: 'careers' },
 ];

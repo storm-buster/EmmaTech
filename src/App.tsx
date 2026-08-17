@@ -15,6 +15,15 @@ import { Footer } from './components/Footer';
 import { CareersPage } from './components/careers/CareersPage';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
+import { AuthProvider } from './auth/AuthContext';
+import { LoginPage } from './components/auth/LoginPage';
+import { SignupPage } from './components/auth/SignupPage';
+import { AccountPage } from './components/auth/AccountPage';
+import { DeploymentPage } from './components/auth/DeploymentPage';
+import { DocsPage } from './components/docs/DocsPage';
+import { ConsolePage } from './components/console/ConsolePage';
+import { setIntendedPlan } from './auth/planIntent';
+import type { PlanId } from './shared/plans';
 
 // ── Hash-based multi-page router ──
 // Each page is its own route. The site used to be a single scroll page; it is
@@ -27,7 +36,13 @@ export type Route =
   | 'careers'
   | 'contact'
   | 'privacy'
-  | 'terms';
+  | 'terms'
+  | 'login'
+  | 'signup'
+  | 'account'
+  | 'deploy'
+  | 'docs'
+  | 'console';
 
 export function parseRoute(hash: string): Route {
   const path = hash.replace(/^#\/?/, '').split(/[/?#]/)[0].toLowerCase();
@@ -46,6 +61,18 @@ export function parseRoute(hash: string): Route {
       return 'privacy';
     case 'terms':
       return 'terms';
+    case 'login':
+      return 'login';
+    case 'signup':
+      return 'signup';
+    case 'account':
+      return 'account';
+    case 'deploy':
+      return 'deploy';
+    case 'docs':
+      return 'docs';
+    case 'console':
+      return 'console';
     default:
       return 'home';
   }
@@ -77,45 +104,78 @@ function App() {
   // Primary product CTAs (demo / pilot / pricing) route to the contact page.
   const handleCtaClick = () => navigate('contact');
 
+  // Pricing-card CTAs: FREE/STARTER/GROWTH enter the authenticated flow
+  // (signup) and the selected plan is recorded as a client UX intent (server
+  // stays authoritative); the perpetual/custom notice routes to contact. No CTA
+  // performs a purchase or grants entitlement.
+  const handlePlanCta = (action: 'signup' | 'contact', planId: PlanId) => {
+    if (action === 'signup') {
+      setIntendedPlan(planId);
+      navigate('signup');
+    } else {
+      navigate('contact');
+    }
+  };
+
+  const isAuthRoute =
+    route === 'login' ||
+    route === 'signup' ||
+    route === 'account' ||
+    route === 'deploy' ||
+    route === 'console';
+
   return (
     <ThemeProvider theme={theme}>
-      <GlobalStyles />
-      <SkipToContent />
-      <Navigation currentRoute={route} onNavigate={navigate} />
+      <AuthProvider>
+        <GlobalStyles />
+        <SkipToContent />
+        <Navigation currentRoute={route} onNavigate={navigate} />
 
-      <main id="main-content">
-        {route === 'home' && (
-          <>
-            <div id="home">
-              <HeroSection onDemoClick={handleCtaClick} />
+        <main id="main-content">
+          {/* ── Identity foundation (Phase 1) ── */}
+          {route === 'login' && <LoginPage onNavigate={navigate} />}
+          {route === 'signup' && <SignupPage onNavigate={navigate} />}
+          {route === 'account' && <AccountPage onNavigate={navigate} />}
+          {route === 'deploy' && <DeploymentPage onNavigate={navigate} />}
+
+          {/* ── Public marketing site (unchanged) ── */}
+          {route === 'home' && (
+            <>
+              <div id="home">
+                <HeroSection onDemoClick={handleCtaClick} />
+              </div>
+              <HiringBanner />
+            </>
+          )}
+
+          {route === 'product' && (
+            <div id="solution">
+              <SolutionSection />
+              <WhyRaphaSection />
             </div>
-            <HiringBanner />
-          </>
-        )}
+          )}
 
-        {route === 'product' && (
-          <div id="solution">
-            <SolutionSection />
-            <WhyRaphaSection />
-          </div>
-        )}
+          {route === 'compliance' && <ProblemSection />}
 
-        {route === 'compliance' && <ProblemSection />}
+          {route === 'pricing' && (
+            <CustomerSection onCtaAction={handlePlanCta} />
+          )}
 
-        {route === 'pricing' && (
-          <CustomerSection onCtaClick={handleCtaClick} />
-        )}
+          {route === 'careers' && <CareersPage />}
 
-        {route === 'careers' && <CareersPage />}
+          {route === 'contact' && <ContactSection />}
 
-        {route === 'contact' && <ContactSection />}
+          {route === 'privacy' && <PrivacyPolicy />}
 
-        {route === 'privacy' && <PrivacyPolicy />}
+          {route === 'terms' && <TermsOfService />}
 
-        {route === 'terms' && <TermsOfService />}
-      </main>
+          {route === 'docs' && <DocsPage />}
 
-      <Footer onNavigate={navigate} />
+          {route === 'console' && <ConsolePage onNavigate={navigate} />}
+        </main>
+
+        {!isAuthRoute && <Footer onNavigate={navigate} />}
+      </AuthProvider>
     </ThemeProvider>
   );
 }

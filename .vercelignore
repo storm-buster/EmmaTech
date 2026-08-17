@@ -1,0 +1,5 @@
+# Vercel deployment ignore.
+# Exclude Vitest test files so they are not uploaded/discovered as
+# Serverless Functions (zero-config treats every api/**/*.ts as a function).
+# Test files are never needed at runtime; this does not affect the build.
+**/*.test.ts

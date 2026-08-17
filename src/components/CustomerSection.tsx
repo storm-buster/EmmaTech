@@ -2,6 +2,8 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { Button } from './Button';
 import { breakpoints } from '../styles/breakpoints';
+import { PUBLIC_PLANS, PERPETUAL_NOTICE } from '../shared/plans';
+import type { PlanCtaAction, PlanId } from '../shared/plans';
 
 const SectionContainer = styled.section`
   padding: ${({ theme }) => theme.spacing['4xl']} ${({ theme }) => theme.spacing.lg};
@@ -154,20 +156,38 @@ const FeatureList = styled.ul`
   flex: 1;
 `;
 
-const FeatureItem = styled.li`
+const FeatureItem = styled.li<{ $included: boolean }>`
   font-size: 14px;
-  color: ${({ theme }) => theme.colors.neutral.lightGray};
+  color: ${({ $included, theme }) =>
+    $included ? theme.colors.neutral.lightGray : theme.colors.neutral.mediumGray};
   margin-bottom: 12px;
   display: flex;
   align-items: flex-start;
   gap: 8px;
   text-align: left;
+  ${({ $included }) =>
+    $included
+      ? ''
+      : 'text-decoration: line-through; text-decoration-color: rgba(255, 255, 255, 0.25);'}
+`;
 
-  &::before {
-    content: '✓';
-    color: #3FBF7F;
-    font-weight: bold;
-  }
+const FeatureMark = styled.span<{ $included: boolean }>`
+  color: ${({ $included }) => ($included ? '#3FBF7F' : '#F87171')};
+  font-weight: bold;
+  flex-shrink: 0;
+  line-height: 1.4;
+`;
+
+const SrOnly = styled.span`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 `;
 
 const MarginMetricsGrid = styled.div`
@@ -203,66 +223,6 @@ const MetricLabel = styled.div`
   letter-spacing: 0.05em;
 `;
 
-interface PricingTier {
-  title: string;
-  subtitle: string;
-  price: string;
-  period: string;
-  popular?: boolean;
-  features: string[];
-  buttonText: string;
-}
-
-const pricingTiers: PricingTier[] = [
-  {
-    title: 'Starter',
-    subtitle: 'SMEs & Teams',
-    price: '₹18,000',
-    period: '/node/year',
-    features: [
-      'Up to 20 sensors',
-      'Lightweight Cowrie decoys',
-      'Real-time SOC dashboard',
-      'Email + Slack alert push',
-      'Behavioral baseline ML',
-      '30-day forensic retention',
-    ],
-    buttonText: 'Start a pilot',
-  },
-  {
-    title: 'Growth',
-    subtitle: 'Enterprises & MSSPs',
-    price: '₹35,000',
-    period: '/node/year',
-    popular: true,
-    features: [
-      'Unlimited sensors',
-      'Advanced response policies',
-      'SLA-backed support (8h)',
-      'Full forensic hash chain',
-      'REST + WebSocket APIs',
-      'SIEM / XDR integration',
-      'MSSP white-label option',
-    ],
-    buttonText: 'Talk to founder',
-  },
-  {
-    title: 'Regulated',
-    subtitle: 'Government & PSU',
-    price: '₹30L+',
-    period: ' perpetual + 20% AMC',
-    features: [
-      'Isolated / air-gapped deploy',
-      'DPDP / RBI / SEBI ready',
-      'Forensic export & legal hold',
-      'On-prem federated training',
-      'Custom policy authoring',
-      'Dedicated engineering',
-    ],
-    buttonText: 'Request RFP',
-  },
-];
-
 const metrics = [
   { value: '50%', label: 'Starter margin' },
   { value: '68%', label: 'Growth margin' },
@@ -270,11 +230,38 @@ const metrics = [
   { value: '5', label: 'Nodes to breakeven' },
 ];
 
+const PerpetualNotice = styled.div`
+  max-width: 800px;
+  margin: 48px auto 0;
+  padding: ${({ theme }) => theme.spacing.xl};
+  text-align: center;
+  border: 1px dashed ${({ theme }) => theme.colors.neutral.border};
+  border-radius: 16px;
+  background: ${({ theme }) => theme.gradients.card};
+`;
+
+const NoticeHeading = styled.h3`
+  font-size: 18px;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.neutral.white};
+  margin-bottom: ${({ theme }) => theme.spacing.sm};
+`;
+
+const NoticeBody = styled.p`
+  font-size: 14px;
+  line-height: 1.6;
+  color: ${({ theme }) => theme.colors.neutral.mediumGray};
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
+`;
+
 interface CustomerSectionProps {
-  onCtaClick?: () => void;
+  /** Routes a pricing CTA into the authenticated flow ('signup') or contact
+   *  flow ('contact'), carrying the selected plan id. No CTA performs a
+   *  purchase; the plan id is a UX intent only (server stays authoritative). */
+  onCtaAction?: (action: PlanCtaAction, planId: PlanId) => void;
 }
 
-export const CustomerSection: React.FC<CustomerSectionProps> = ({ onCtaClick }) => {
+export const CustomerSection: React.FC<CustomerSectionProps> = ({ onCtaAction }) => {
   return (
     <SectionContainer id="pricing">
       <SectionPrefix>§04 / PRICING</SectionPrefix>
@@ -287,39 +274,63 @@ export const CustomerSection: React.FC<CustomerSectionProps> = ({ onCtaClick }) 
       </SectionSubtitle>
 
       <PricingGrid>
-        {pricingTiers.map((tier, index) => (
+        {PUBLIC_PLANS.map((plan, index) => (
           <PricingCard
-            key={index}
-            $popular={tier.popular}
+            key={plan.id}
+            $popular={plan.popular}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-100px' }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
           >
-            {tier.popular && <PopularBadge>Most popular</PopularBadge>}
+            {plan.popular && <PopularBadge>Most popular</PopularBadge>}
             <div>
-              <CardTitle>{tier.title}</CardTitle>
-              <CardSubtitle>{tier.subtitle}</CardSubtitle>
+              <CardTitle>{plan.displayName}</CardTitle>
+              <CardSubtitle>{plan.subtitle}</CardSubtitle>
               <PriceWrapper>
-                <Price>{tier.price}</Price>
-                <Period>{tier.period}</Period>
+                <Price>{plan.price}</Price>
+                <Period>{plan.period}</Period>
               </PriceWrapper>
               <FeatureList>
-                {tier.features.map((feature, idx) => (
-                  <FeatureItem key={idx}>{feature}</FeatureItem>
-                ))}
+                {plan.features.map((feature, idx) => {
+                  const included = feature.included !== false;
+                  return (
+                    <FeatureItem key={idx} $included={included}>
+                      <FeatureMark $included={included} aria-hidden="true">
+                        {included ? '✓' : '✗'}
+                      </FeatureMark>
+                      <span>
+                        {feature.text}
+                        <SrOnly>{included ? ' included' : ' not included'}</SrOnly>
+                      </span>
+                    </FeatureItem>
+                  );
+                })}
               </FeatureList>
             </div>
             <Button
-              variant={tier.popular ? 'primary' : 'secondary'}
-              onClick={onCtaClick}
+              variant={plan.popular ? 'primary' : 'secondary'}
+              onClick={() => onCtaAction?.(plan.ctaAction, plan.id)}
               style={{ width: '100%' }}
+              aria-label={`${plan.ctaText} — ${plan.displayName} plan`}
             >
-              {tier.buttonText}
+              {plan.ctaText}
             </Button>
           </PricingCard>
         ))}
       </PricingGrid>
+
+      <PerpetualNotice>
+        <NoticeHeading>{PERPETUAL_NOTICE.heading}</NoticeHeading>
+        <NoticeBody>{PERPETUAL_NOTICE.body}</NoticeBody>
+        <Button
+          variant="secondary"
+          onClick={() => onCtaAction?.(PERPETUAL_NOTICE.ctaAction, 'perpetual')}
+          aria-label="Contact EmmaTech about a perpetual or custom deployment"
+        >
+          {PERPETUAL_NOTICE.ctaText}
+        </Button>
+      </PerpetualNotice>
 
       <MarginMetricsGrid>
         {metrics.map((metric, index) => (

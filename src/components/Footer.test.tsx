@@ -17,7 +17,7 @@ describe('Footer', () => {
   it('renders copyright text', () => {
     renderWithTheme(<Footer />);
     expect(
-      screen.getByText('© 2025 EmmaTech. All rights reserved.')
+      screen.getByText('© 2026 EmmaTech. RAPHA by emmatech. All rights reserved.')
     ).toBeInTheDocument();
   });
 });
