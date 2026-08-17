@@ -3,12 +3,17 @@ import { render } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import App from '../App';
+import { AuthProvider } from '../auth/AuthContext';
 import { theme } from '../styles/theme';
 
 expect.extend(toHaveNoViolations);
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={theme}>{component}</ThemeProvider>);
+  return render(
+    <ThemeProvider theme={theme}>
+      <AuthProvider>{component}</AuthProvider>
+    </ThemeProvider>,
+  );
 };
 
 describe('Accessibility Tests', () => {
