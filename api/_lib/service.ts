@@ -12,6 +12,7 @@ import { entitlementsForPlan } from './entitlements.js';
 import type { DataStore, Organization, OrgRole, User } from './store/types.js';
 import { DuplicateEmailError } from './store/types.js';
 import { DEFAULT_PLAN_ID, type PlanId } from '../../src/shared/plans.js';
+import { isConsumerEmailDomain, WORK_EMAIL_REQUIRED_MESSAGE } from '../../src/shared/businessEmail.js';
 
 // ---- Validation ----------------------------------------------------------
 
@@ -205,6 +206,9 @@ export interface SignupInput {
   password: unknown;
   name: unknown;
   organizationName: unknown;
+  /** Client UX intent from the pricing page. NEVER used as an entitlement:
+   *  the org is always created on the server-authoritative default plan. */
+  requestedPlan?: unknown;
 }
 
 export interface SignupResult {
@@ -230,6 +234,15 @@ export async function signup(
   const password = validatePassword(input.password);
   const name = validateName(input.name, 'name', 100);
   const organizationName = validateName(input.organizationName, 'organizationName', 200);
+
+  // Growth is a B2B plan → require a work (non-consumer) email. This validates
+  // the CLIENT-SUPPLIED intent for UX correctness; it does NOT grant Growth.
+  // The organization is always created on DEFAULT_PLAN_ID (server-authoritative);
+  // a tampered requested_plan can never elevate entitlement.
+  const requestedPlan = typeof input.requestedPlan === 'string' ? input.requestedPlan : undefined;
+  if (requestedPlan === 'growth' && isConsumerEmailDomain(email)) {
+    throw new ValidationError('email', WORK_EMAIL_REQUIRED_MESSAGE);
+  }
 
   // Idempotency: never create duplicate accounts.
   const existing = await store.getUserByEmail(email);
@@ -261,6 +274,45 @@ export async function signup(
   organization = provision.organization;
 
   return { user, organization, role: 'owner' };
+}
+
+/**
+ * Resolve an OAuth (Google/Microsoft) identity into the SAME account/org/session
+ * model as email/password users. Find-or-create by (provider-verified) email:
+ * existing users are linked (no duplicate account system); new users are created
+ * with a non-verifiable password sentinel (password login impossible) + org +
+ * owner membership + RAPHA provisioning. Entitlement stays server-authoritative
+ * (org.plan = DEFAULT_PLAN_ID); the OAuth `plan` intent never grants entitlement.
+ */
+export async function findOrCreateOAuthUser(
+  store: DataStore,
+  cfg: AppConfig,
+  input: { email: unknown; name?: unknown; provider: 'google' | 'microsoft' },
+  requestId?: string,
+): Promise<{ user: User; organization: Organization | null; created: boolean }> {
+  const email = normalizeEmail(input.email);
+  const rawName = typeof input.name === 'string' && input.name.trim() ? input.name : email.split('@')[0];
+  const name = validateName(rawName, 'name', 100);
+
+  const existing = await store.getUserByEmail(email);
+  if (existing) {
+    const membership = await store.getPrimaryMembershipForUser(existing.id);
+    const organization = membership ? await store.getOrganizationById(membership.organization_id) : null;
+    return { user: existing, organization, created: false };
+  }
+
+  const user = await store.createUser({ email, password_hash: `oauth:${input.provider}`, name });
+  let organization = await store.createOrganization({
+    name,
+    plan: DEFAULT_PLAN_ID,
+    status: 'pending',
+    rapha_tenant_id: null,
+  });
+  await store.createMembership({ user_id: user.id, organization_id: organization.id, role: 'owner' });
+  logInfo({ requestId, userId: user.id, organizationId: organization.id, operation: 'account.oauth_signup', status: 'success' });
+  const provision = await provisionOrganizationTenant(store, cfg, organization, requestId);
+  organization = provision.organization;
+  return { user, organization, created: true };
 }
 
 export interface LoginInput {

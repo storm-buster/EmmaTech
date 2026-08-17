@@ -18,6 +18,7 @@ interface AuthContextValue {
     email: string;
     password: string;
     organizationName: string;
+    requestedPlan?: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -58,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signup = useCallback(
-    async (input: { name: string; email: string; password: string; organizationName: string }) => {
+    async (input: { name: string; email: string; password: string; organizationName: string; requestedPlan?: string }) => {
       setAccount(await apiSignup(input));
     },
     [],

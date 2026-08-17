@@ -86,3 +86,68 @@ export const LinkButton = styled.button`
   padding: 0;
   text-decoration: underline;
 `;
+
+/** Full-width provider button (Continue with Google / Microsoft). */
+export const OAuthButton = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  background: ${({ theme }) => theme.colors.background.tertiary};
+  border: 1px solid ${({ theme }) => theme.colors.neutral.border};
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: ${({ theme }) => theme.colors.neutral.white};
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: ${({ theme }) => theme.transitions.default};
+
+  &:hover:not(:disabled) {
+    border-color: ${({ theme }) => theme.colors.primary.main};
+  }
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.primary.main};
+    outline-offset: 2px;
+  }
+`;
+
+export const OAuthList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.sm};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+`;
+
+/** Horizontal "OR" divider between OAuth and email/password. */
+export const OrDivider = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  color: ${({ theme }) => theme.colors.neutral.mediumGray};
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: ${({ theme }) => theme.spacing.md} 0;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: ${({ theme }) => theme.colors.neutral.border};
+  }
+`;
+
+/** Small badge showing the plan the user is signing up for. */
+export const PlanBadge = styled.span`
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 999px;
+  color: ${({ theme }) => theme.colors.primary.main};
+  background: rgba(0, 240, 255, 0.1);
+  margin-left: ${({ theme }) => theme.spacing.xs};
+`;

@@ -30,9 +30,17 @@ const NavContainer = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: ${({ theme }) => theme.spacing.md};
   max-width: 1400px;
   margin: 0 auto;
-  position: relative;
+
+  /* Desktop: three in-flow tracks — logo | centered links | right cluster.
+     Using a grid (not absolute positioning) guarantees the nav links and the
+     right-hand CTAs have independent, non-overlapping hit areas. */
+  ${breakpoints.desktop} {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+  }
 `;
 
 const Logo = styled.div`
@@ -54,15 +62,24 @@ const Logo = styled.div`
 
 const NavLinks = styled.div`
   display: none;
-  gap: ${({ theme }) => theme.spacing.xl};
 
-  ${breakpoints.tablet} {
+  ${breakpoints.desktop} {
     display: flex;
-    /* Center the links in the bar independent of the logo's width, so they
-       stay visually centered now that the right-hand CTA button is gone. */
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+    justify-content: center;
+    gap: ${({ theme }) => theme.spacing.xl};
+    min-width: 0;
+  }
+`;
+
+/** Right-hand cluster: auth/console CTAs (desktop) + mobile menu button.
+    Kept in normal flow so it never overlaps the centered nav links. */
+const RightCluster = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+
+  ${breakpoints.desktop} {
+    justify-self: end;
   }
 `;
 
@@ -75,6 +92,7 @@ const NavLink = styled.a<{ $active?: boolean }>`
   transition: ${({ theme }) => theme.transitions.default};
   position: relative;
   cursor: pointer;
+  white-space: nowrap;
   text-shadow: ${({ $active, theme }) =>
     $active ? `0 0 8px ${theme.colors.primary.glow}` : 'none'};
 
@@ -116,7 +134,7 @@ const MobileMenuButton = styled.button`
     transition: all 0.3s ease;
   }
 
-  ${breakpoints.tablet} {
+  ${breakpoints.desktop} {
     display: none;
   }
 `;
@@ -131,6 +149,7 @@ const AuthCta = styled.a`
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
+  white-space: nowrap;
   transition: ${({ theme }) => theme.transitions.default};
 
   &:hover {
@@ -138,7 +157,7 @@ const AuthCta = styled.a`
     text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary.glow};
   }
 
-  ${breakpoints.tablet} {
+  ${breakpoints.desktop} {
     display: inline-block;
   }
 `;
@@ -157,7 +176,7 @@ const MobileMenu = styled.div<{ $isOpen: boolean }>`
   gap: ${({ theme }) => theme.spacing.md};
   z-index: 999;
 
-  ${breakpoints.tablet} {
+  ${breakpoints.desktop} {
     display: none;
   }
 `;
@@ -240,17 +259,19 @@ export const Navigation: React.FC<NavigationProps> = ({
               </NavLink>
             ))}
           </NavLinks>
-          <AuthCta onClick={() => go(authRoute)}>{authLabel}</AuthCta>
-          {account && (
-            <AuthCta onClick={() => go('console')} aria-label="Open RAPHA console">
-              Console
-            </AuthCta>
-          )}
-          <MobileMenuButton onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-            <span />
-            <span />
-            <span />
-          </MobileMenuButton>
+          <RightCluster>
+            <AuthCta onClick={() => go(authRoute)}>{authLabel}</AuthCta>
+            {account && (
+              <AuthCta onClick={() => go('console')} aria-label="Open RAPHA console">
+                Console
+              </AuthCta>
+            )}
+            <MobileMenuButton onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+              <span />
+              <span />
+              <span />
+            </MobileMenuButton>
+          </RightCluster>
         </NavContainer>
       </Nav>
       <MobileMenu $isOpen={isMobileMenuOpen}>

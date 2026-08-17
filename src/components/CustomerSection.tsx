@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Button } from './Button';
 import { breakpoints } from '../styles/breakpoints';
 import { PUBLIC_PLANS, PERPETUAL_NOTICE } from '../shared/plans';
-import type { PlanCtaAction } from '../shared/plans';
+import type { PlanCtaAction, PlanId } from '../shared/plans';
 
 const SectionContainer = styled.section`
   padding: ${({ theme }) => theme.spacing['4xl']} ${({ theme }) => theme.spacing.lg};
@@ -256,8 +256,9 @@ const NoticeBody = styled.p`
 
 interface CustomerSectionProps {
   /** Routes a pricing CTA into the authenticated flow ('signup') or contact
-   *  flow ('contact'). No CTA performs a purchase. */
-  onCtaAction?: (action: PlanCtaAction) => void;
+   *  flow ('contact'), carrying the selected plan id. No CTA performs a
+   *  purchase; the plan id is a UX intent only (server stays authoritative). */
+  onCtaAction?: (action: PlanCtaAction, planId: PlanId) => void;
 }
 
 export const CustomerSection: React.FC<CustomerSectionProps> = ({ onCtaAction }) => {
@@ -309,7 +310,7 @@ export const CustomerSection: React.FC<CustomerSectionProps> = ({ onCtaAction })
             </div>
             <Button
               variant={plan.popular ? 'primary' : 'secondary'}
-              onClick={() => onCtaAction?.(plan.ctaAction)}
+              onClick={() => onCtaAction?.(plan.ctaAction, plan.id)}
               style={{ width: '100%' }}
               aria-label={`${plan.ctaText} — ${plan.displayName} plan`}
             >
@@ -324,7 +325,7 @@ export const CustomerSection: React.FC<CustomerSectionProps> = ({ onCtaAction })
         <NoticeBody>{PERPETUAL_NOTICE.body}</NoticeBody>
         <Button
           variant="secondary"
-          onClick={() => onCtaAction?.(PERPETUAL_NOTICE.ctaAction)}
+          onClick={() => onCtaAction?.(PERPETUAL_NOTICE.ctaAction, 'perpetual')}
           aria-label="Contact EmmaTech about a perpetual or custom deployment"
         >
           {PERPETUAL_NOTICE.ctaText}

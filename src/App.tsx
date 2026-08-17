@@ -22,6 +22,8 @@ import { AccountPage } from './components/auth/AccountPage';
 import { DeploymentPage } from './components/auth/DeploymentPage';
 import { DocsPage } from './components/docs/DocsPage';
 import { ConsolePage } from './components/console/ConsolePage';
+import { setIntendedPlan } from './auth/planIntent';
+import type { PlanId } from './shared/plans';
 
 // ── Hash-based multi-page router ──
 // Each page is its own route. The site used to be a single scroll page; it is
@@ -102,11 +104,18 @@ function App() {
   // Primary product CTAs (demo / pilot / pricing) route to the contact page.
   const handleCtaClick = () => navigate('contact');
 
-  // Pricing-card CTAs: FREE/STARTER enter the authenticated flow (signup),
-  // GROWTH and the perpetual/custom notice route to contact. No CTA performs a
-  // purchase — plan state stays server-authoritative.
-  const handlePlanCta = (action: 'signup' | 'contact') =>
-    navigate(action === 'signup' ? 'signup' : 'contact');
+  // Pricing-card CTAs: FREE/STARTER/GROWTH enter the authenticated flow
+  // (signup) and the selected plan is recorded as a client UX intent (server
+  // stays authoritative); the perpetual/custom notice routes to contact. No CTA
+  // performs a purchase or grants entitlement.
+  const handlePlanCta = (action: 'signup' | 'contact', planId: PlanId) => {
+    if (action === 'signup') {
+      setIntendedPlan(planId);
+      navigate('signup');
+    } else {
+      navigate('contact');
+    }
+  };
 
   const isAuthRoute =
     route === 'login' ||

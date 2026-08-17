@@ -57,6 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         password: body.password,
         name: body.name,
         organizationName: body.organizationName ?? body.organization,
+        requestedPlan: body.requested_plan,
       },
       hashPassword,
       requestId,

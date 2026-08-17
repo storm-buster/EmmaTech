@@ -129,8 +129,8 @@ export const PLANS: Record<PlanId, Plan> = {
       { text: 'SIEM / XDR integration' },
       { text: 'MSSP white-label option' },
     ],
-    ctaText: 'Talk to founder',
-    ctaAction: 'contact',
+    ctaText: 'Start growth',
+    ctaAction: 'signup',
   },
   // PERPETUAL — internal entitlement state only. NOT a public pricing card;
   // handled by contacting EmmaTech. Values retained from the former

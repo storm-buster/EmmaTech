@@ -41,8 +41,8 @@ describe('canonical plan catalog', () => {
     expect(g.decoysEnabled).toBe(true);
     expect(g.features.map((f) => f.text)).toContain('Unlimited sensors');
     expect(g.popular).toBe(true);
-    expect(g.ctaText).toBe('Talk to founder');
-    expect(g.ctaAction).toBe('contact'); // routes to contact, not a purchase
+    expect(g.ctaText).toBe('Start growth');
+    expect(g.ctaAction).toBe('signup'); // enters signup with Growth intent
   });
 
   it('keeps PERPETUAL as an internal, non-public, contact-only plan', () => {

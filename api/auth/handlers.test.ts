@@ -303,3 +303,54 @@ describe('Phase 2 — entitlements & plan security', () => {
     expect(after.entitlement?.decoysEnabled).toBe(true);
   });
 });
+
+
+describe('POST /api/auth/signup — plan intent (requested_plan) + Growth work-email', () => {
+  it('Free signup: 201, JSON body, HttpOnly session cookie, org.plan=free, /me succeeds', async () => {
+    const s = makeRes();
+    await signupHandler(
+      makeReq({ method: 'POST', body: { ...SIGNUP_BODY, requested_plan: 'free' } }),
+      s.res,
+    );
+    expect(s.state.statusCode).toBe(201);
+    const setCookie = s.state.headers['set-cookie'];
+    expect(setCookie).toContain(`${SESSION_COOKIE_NAME}=`);
+    expect(setCookie).toContain('HttpOnly');
+    const body = s.state.body as ResponseBody;
+    expect(body.organization?.plan).toBe('free');
+    // Session established → /me resolves the account (fetchMe equivalent).
+    const me = makeRes();
+    await meHandler(makeReq({ method: 'GET', cookie: cookieFrom(s.state) }), me.res);
+    expect(me.state.statusCode).toBe(200);
+  });
+
+  it('Starter intent is accepted but org stays FREE (server-authoritative, no elevation)', async () => {
+    const s = makeRes();
+    await signupHandler(
+      makeReq({ method: 'POST', body: { ...SIGNUP_BODY, requested_plan: 'starter' } }),
+      s.res,
+    );
+    expect(s.state.statusCode).toBe(201);
+    expect((s.state.body as ResponseBody).organization?.plan).toBe('free');
+  });
+
+  it('Growth + consumer email → 400 "Work email required for Growth"', async () => {
+    const s = makeRes();
+    await signupHandler(
+      makeReq({ method: 'POST', body: { ...SIGNUP_BODY, email: 'owner@gmail.com', requested_plan: 'growth' } }),
+      s.res,
+    );
+    expect(s.state.statusCode).toBe(400);
+    expect((s.state.body as Record<string, string>).error).toBe('Work email required for Growth');
+  });
+
+  it('Growth + business email → 201, but org.plan stays FREE (no query-param elevation)', async () => {
+    const s = makeRes();
+    await signupHandler(
+      makeReq({ method: 'POST', body: { ...SIGNUP_BODY, email: 'owner@acme.com', requested_plan: 'growth' } }),
+      s.res,
+    );
+    expect(s.state.statusCode).toBe(201);
+    expect((s.state.body as ResponseBody).organization?.plan).toBe('free');
+  });
+});

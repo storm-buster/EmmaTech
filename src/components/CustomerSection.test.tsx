@@ -83,30 +83,30 @@ describe('CustomerSection pricing UI', () => {
     renderPricing();
     expect(screen.getByRole('button', { name: /Start free — Free plan/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Start a pilot — Starter plan/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Talk to founder — Growth plan/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Start growth — Growth plan/i })).toBeInTheDocument();
   });
 });
 
 describe('CustomerSection CTA routing (no purchase performed)', () => {
-  it('START FREE routes into the authenticated (signup) flow', async () => {
+  it('START FREE routes into the authenticated (signup) flow with the free plan', async () => {
     const onCtaAction = vi.fn();
     renderPricing(onCtaAction);
     await userEvent.click(screen.getByRole('button', { name: /Start free — Free plan/i }));
-    expect(onCtaAction).toHaveBeenCalledWith('signup');
+    expect(onCtaAction).toHaveBeenCalledWith('signup', 'free');
   });
 
-  it('START A PILOT (STARTER) routes into the authenticated (signup) flow', async () => {
+  it('START A PILOT (STARTER) routes into signup with the starter plan', async () => {
     const onCtaAction = vi.fn();
     renderPricing(onCtaAction);
     await userEvent.click(screen.getByRole('button', { name: /Start a pilot — Starter plan/i }));
-    expect(onCtaAction).toHaveBeenCalledWith('signup');
+    expect(onCtaAction).toHaveBeenCalledWith('signup', 'starter');
   });
 
-  it('TALK TO FOUNDER (GROWTH) routes to contact', async () => {
+  it('START GROWTH routes into signup with the growth plan', async () => {
     const onCtaAction = vi.fn();
     renderPricing(onCtaAction);
-    await userEvent.click(screen.getByRole('button', { name: /Talk to founder — Growth plan/i }));
-    expect(onCtaAction).toHaveBeenCalledWith('contact');
+    await userEvent.click(screen.getByRole('button', { name: /Start growth — Growth plan/i }));
+    expect(onCtaAction).toHaveBeenCalledWith('signup', 'growth');
   });
 
   it('the perpetual/custom notice CTA routes to contact', async () => {
@@ -115,6 +115,6 @@ describe('CustomerSection CTA routing (no purchase performed)', () => {
     await userEvent.click(
       screen.getByRole('button', { name: /Contact EmmaTech about a perpetual or custom deployment/i }),
     );
-    expect(onCtaAction).toHaveBeenCalledWith('contact');
+    expect(onCtaAction).toHaveBeenCalledWith('contact', 'perpetual');
   });
 });

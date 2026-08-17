@@ -78,8 +78,33 @@ export async function signup(input: {
   email: string;
   password: string;
   organizationName: string;
+  /** UX intent only — server sets the authoritative plan (default FREE). */
+  requestedPlan?: string;
 }): Promise<AccountResponse> {
-  return post('/api/auth/signup', input) as unknown as Promise<AccountResponse>;
+  const body = {
+    name: input.name,
+    email: input.email,
+    password: input.password,
+    organizationName: input.organizationName,
+    requested_plan: input.requestedPlan,
+  };
+  return post('/api/auth/signup', body) as unknown as Promise<AccountResponse>;
+}
+
+export type OAuthProvider = 'google' | 'microsoft';
+
+/** Same-origin EmmaTech server route that begins the provider redirect flow.
+ *  The browser never talks to Google/Microsoft or RAPHA directly. `plan` is a
+ *  UX intent carried into the OAuth `state` server-side (never an entitlement). */
+export function oauthStartUrl(provider: OAuthProvider, opts: { plan?: string } = {}): string {
+  const params = new URLSearchParams({ provider });
+  if (opts.plan) params.set('plan', opts.plan);
+  return `/api/auth/oauth/start?${params.toString()}`;
+}
+
+/** Begin OAuth by navigating to the same-origin server start route. */
+export function startOAuth(provider: OAuthProvider, opts: { plan?: string } = {}): void {
+  window.location.assign(oauthStartUrl(provider, opts));
 }
 
 export async function login(input: { email: string; password: string }): Promise<AccountResponse> {
@@ -94,7 +119,16 @@ export async function fetchMe(): Promise<AccountResponse | null> {
   const res = await fetch('/api/me', { method: 'GET', credentials: 'include' });
   if (res.status === 401) return null;
   if (!res.ok) throw new AuthApiError(res.status, 'Failed to load account');
-  return (await parseJson(res)) as unknown as AccountResponse;
+  const data = await parseJson(res);
+  // A valid authenticated response ALWAYS includes a `user`. Anything else —
+  // e.g. a non-JSON body (parseJson returns {}) when the /api layer isn't being
+  // executed, or a malformed payload — must be treated as unauthenticated
+  // rather than a truthy-but-empty account. This keeps auth-gated UI (Console
+  // CTA, Account page) correct and never fabricates a session.
+  if (!data || typeof data !== 'object' || !data.user || typeof data.user !== 'object') {
+    return null;
+  }
+  return data as unknown as AccountResponse;
 }
 
 export async function retryProvisioning(): Promise<AccountResponse | null> {
