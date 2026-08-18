@@ -121,6 +121,32 @@ export interface TenantForensicsResponse {
   forensics: unknown[];
 }
 
+/**
+ * Customer API-key lifecycle (RAPHA service contract). RAPHA returns metadata
+ * only on list; the raw key is returned EXACTLY ONCE on create/rotate. RAPHA
+ * stores only a SHA-256 key_hash and NEVER returns it. These types deliberately
+ * exclude key_hash so it can never be surfaced by EmmaTech.
+ */
+export interface RaphaApiKeyMetadata {
+  id: string;
+  name: string;
+  scopes: string[];
+  created_at: string;
+  revoked_at: string | null;
+}
+export interface RaphaApiKeyListResponse {
+  api_keys: RaphaApiKeyMetadata[];
+}
+/** Raw key returned exactly once by RAPHA on create/rotate (never persisted). */
+export interface RaphaApiKeyCreated {
+  api_key: RaphaApiKeyMetadata;
+  raw_key: string;
+}
+export interface CreateApiKeyInput {
+  name: string;
+  scopes?: string[];
+}
+
 export class RaphaServiceClient {
   constructor(private readonly cfg: AppConfig) {}
 
@@ -472,5 +498,110 @@ export class RaphaServiceClient {
       throw new RaphaError('upstream', 'RAPHA returned an invalid response');
     }
     return body;
+  }
+
+  // ── Customer API-key lifecycle ───────────────────────────────────────────
+  // GET/POST {base}/api/v1/service/tenants/{tid}/api-keys [ /{id}/rotate|revoke ]
+  // X-Service-Token (server-only, never logged/returned). tenantId is always
+  // server-derived (never from the browser). RAPHA returns raw_key ONLY on
+  // create/rotate and never returns key_hash. Errors flow through RaphaError so
+  // the existing mapping (mapRaphaError) applies (e.g. cross-tenant/unknown →
+  // 404 → not_found).
+  private async serviceKeyRequest(
+    tenantId: string,
+    subpath: string,
+    method: 'GET' | 'POST',
+    body?: unknown,
+  ): Promise<unknown> {
+    const baseUrl = this.cfg.raphaBaseUrl;
+    const token = this.cfg.raphaServiceToken;
+    if (!baseUrl || !token || !tenantId) {
+      throw new RaphaError('config', 'RAPHA service is not configured');
+    }
+    if (this.cfg.isProduction && !/^https:\/\//i.test(baseUrl)) {
+      throw new RaphaError('config', 'RAPHA base URL must use HTTPS in production');
+    }
+    const target = `${baseUrl.replace(/\/+$/, '')}/api/v1/service/tenants/${encodeURIComponent(
+      tenantId,
+    )}/${subpath}`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), PROVISION_TIMEOUT_MS);
+    let res: Response;
+    try {
+      res = await fetch(target, {
+        method,
+        headers: {
+          Accept: 'application/json',
+          'X-Service-Token': token,
+          ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        },
+        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        redirect: 'error',
+        signal: controller.signal,
+      });
+    } catch {
+      throw new RaphaError('unavailable', 'RAPHA service is unavailable');
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (res.status === 200 || res.status === 201) {
+      try {
+        return await res.json();
+      } catch {
+        throw new RaphaError('upstream', 'RAPHA returned an invalid response');
+      }
+    }
+    if (res.status === 401 || res.status === 403) {
+      throw new RaphaError('auth', 'RAPHA rejected the service credentials');
+    }
+    if (res.status === 404) {
+      throw new RaphaError('not_found', 'RAPHA API key not found');
+    }
+    if (res.status === 422) {
+      throw new RaphaError('validation', 'RAPHA rejected the API-key request');
+    }
+    if (res.status === 429) {
+      throw new RaphaError('rate_limited', 'RAPHA rate limit exceeded');
+    }
+    throw new RaphaError('upstream', 'RAPHA service error');
+  }
+
+  /** GET api-keys — metadata only (never raw key or key_hash). */
+  async listTenantApiKeys(tenantId: string): Promise<RaphaApiKeyListResponse> {
+    const body = (await this.serviceKeyRequest(tenantId, 'api-keys', 'GET')) as RaphaApiKeyListResponse;
+    if (!body || !Array.isArray(body.api_keys)) {
+      throw new RaphaError('upstream', 'RAPHA returned an invalid response');
+    }
+    return body;
+  }
+
+  /** POST api-keys — returns the raw key EXACTLY ONCE. */
+  async createTenantApiKey(tenantId: string, input: CreateApiKeyInput): Promise<RaphaApiKeyCreated> {
+    const payload: { name: string; scopes?: string[] } = { name: input.name };
+    if (input.scopes) payload.scopes = input.scopes;
+    const body = (await this.serviceKeyRequest(tenantId, 'api-keys', 'POST', payload)) as RaphaApiKeyCreated;
+    if (!body || typeof body.raw_key !== 'string' || !body.raw_key || !body.api_key) {
+      throw new RaphaError('upstream', 'RAPHA returned an invalid response');
+    }
+    return body;
+  }
+
+  /** POST api-keys/{id}/rotate — returns the NEW raw key EXACTLY ONCE. */
+  async rotateTenantApiKey(tenantId: string, keyId: string): Promise<RaphaApiKeyCreated> {
+    const body = (await this.serviceKeyRequest(
+      tenantId,
+      `api-keys/${encodeURIComponent(keyId)}/rotate`,
+      'POST',
+    )) as RaphaApiKeyCreated;
+    if (!body || typeof body.raw_key !== 'string' || !body.raw_key || !body.api_key) {
+      throw new RaphaError('upstream', 'RAPHA returned an invalid response');
+    }
+    return body;
+  }
+
+  /** POST api-keys/{id}/revoke — no secret returned. */
+  async revokeTenantApiKey(tenantId: string, keyId: string): Promise<void> {
+    await this.serviceKeyRequest(tenantId, `api-keys/${encodeURIComponent(keyId)}/revoke`, 'POST');
   }
 }
