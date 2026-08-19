@@ -11,7 +11,7 @@ import { RaphaError, RaphaServiceClient } from './rapha.js';
 import { entitlementsForPlan } from './entitlements.js';
 import type { DataStore, Organization, OrgRole, User } from './store/types.js';
 import { DuplicateEmailError } from './store/types.js';
-import { DEFAULT_PLAN_ID, type PlanId } from '../../src/shared/plans.js';
+import { DEFAULT_PLAN_ID, getPlan, isValidPlanId, type PlanId } from '../../src/shared/plans.js';
 import { isConsumerEmailDomain, WORK_EMAIL_REQUIRED_MESSAGE } from '../../src/shared/businessEmail.js';
 
 // ---- Validation ----------------------------------------------------------
@@ -223,6 +223,21 @@ export interface SignupResult {
  * reflected by organization.status (active | pending | failed) so success is
  * never reported when the tenant was not created.
  */
+/**
+ * Resolve the organization plan for a NEW signup from the client-supplied
+ * `requested_plan`. Server-authoritative and validated:
+ *   - missing / non-string / unknown id → FREE (default)
+ *   - only PUBLICLY-selectable plans (free/starter/growth) may be self-selected
+ *   - `perpetual` (publiclyVisible: false) is never granted via public signup → FREE
+ * Pre-billing: the selected public plan is granted immediately. A future billing
+ * gate can wrap this without changing the plan/entitlement/provisioning model.
+ */
+function resolveSignupPlan(requested: unknown): PlanId {
+  if (typeof requested !== 'string' || !isValidPlanId(requested)) return DEFAULT_PLAN_ID;
+  const plan = getPlan(requested);
+  return plan.publiclyVisible ? plan.id : DEFAULT_PLAN_ID;
+}
+
 export async function signup(
   store: DataStore,
   cfg: AppConfig,
@@ -236,13 +251,18 @@ export async function signup(
   const organizationName = validateName(input.organizationName, 'organizationName', 200);
 
   // Growth is a B2B plan → require a work (non-consumer) email. This validates
-  // the CLIENT-SUPPLIED intent for UX correctness; it does NOT grant Growth.
-  // The organization is always created on DEFAULT_PLAN_ID (server-authoritative);
-  // a tampered requested_plan can never elevate entitlement.
+  // the CLIENT-SUPPLIED intent for UX correctness.
   const requestedPlan = typeof input.requestedPlan === 'string' ? input.requestedPlan : undefined;
   if (requestedPlan === 'growth' && isConsumerEmailDomain(email)) {
     throw new ValidationError('email', WORK_EMAIL_REQUIRED_MESSAGE);
   }
+
+  // Pre-billing: a NEW organization is granted the selected PUBLIC plan
+  // immediately (validated server-side; never trust client state blindly).
+  // Unknown/invalid → FREE; `perpetual` is not publicly selectable → FREE.
+  // A future billing gate will be inserted here before activating paid plans;
+  // the organization.plan → entitlementsForPlan → provisioning path is unchanged.
+  const plan = resolveSignupPlan(input.requestedPlan);
 
   // Idempotency: never create duplicate accounts.
   const existing = await store.getUserByEmail(email);
@@ -252,8 +272,8 @@ export async function signup(
   const user = await store.createUser({ email, password_hash, name });
   let organization = await store.createOrganization({
     name: organizationName,
-    // Server-authoritative default entitlement for every new organization.
-    plan: DEFAULT_PLAN_ID,
+    // Server-authoritative, validated plan for the new organization.
+    plan,
     status: 'pending',
     rapha_tenant_id: null,
   });

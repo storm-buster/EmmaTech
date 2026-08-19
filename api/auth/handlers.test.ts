@@ -324,10 +324,34 @@ describe('POST /api/auth/signup — plan intent (requested_plan) + Growth work-e
     expect(me.state.statusCode).toBe(200);
   });
 
-  it('Starter intent is accepted but org stays FREE (server-authoritative, no elevation)', async () => {
+  it('Starter intent grants Starter (pre-billing: public plan granted at signup)', async () => {
     const s = makeRes();
     await signupHandler(
       makeReq({ method: 'POST', body: { ...SIGNUP_BODY, requested_plan: 'starter' } }),
+      s.res,
+    );
+    expect(s.state.statusCode).toBe(201);
+    const body = s.state.body as ResponseBody;
+    expect(body.organization?.plan).toBe('starter');
+    expect(body.entitlement?.plan).toBe('starter');
+    expect(body.entitlement?.sensorLimit).toBe(20);
+    expect(body.entitlement?.decoysEnabled).toBe(true);
+  });
+
+  it('invalid requested_plan → falls back to FREE (validated server-side)', async () => {
+    const s = makeRes();
+    await signupHandler(
+      makeReq({ method: 'POST', body: { ...SIGNUP_BODY, requested_plan: 'enterprise' } }),
+      s.res,
+    );
+    expect(s.state.statusCode).toBe(201);
+    expect((s.state.body as ResponseBody).organization?.plan).toBe('free');
+  });
+
+  it('perpetual is NOT publicly selectable → falls back to FREE', async () => {
+    const s = makeRes();
+    await signupHandler(
+      makeReq({ method: 'POST', body: { ...SIGNUP_BODY, requested_plan: 'perpetual' } }),
       s.res,
     );
     expect(s.state.statusCode).toBe(201);
@@ -344,13 +368,17 @@ describe('POST /api/auth/signup — plan intent (requested_plan) + Growth work-e
     expect((s.state.body as Record<string, string>).error).toBe('Work email required for Growth');
   });
 
-  it('Growth + business email → 201, but org.plan stays FREE (no query-param elevation)', async () => {
+  it('Growth + business email → 201, org.plan=growth with Growth entitlement (pre-billing grant)', async () => {
     const s = makeRes();
     await signupHandler(
       makeReq({ method: 'POST', body: { ...SIGNUP_BODY, email: 'owner@acme.com', requested_plan: 'growth' } }),
       s.res,
     );
     expect(s.state.statusCode).toBe(201);
-    expect((s.state.body as ResponseBody).organization?.plan).toBe('free');
+    const body = s.state.body as ResponseBody;
+    expect(body.organization?.plan).toBe('growth');
+    expect(body.entitlement?.plan).toBe('growth');
+    expect(body.entitlement?.sensorLimit).toBeNull(); // unlimited
+    expect(body.entitlement?.decoysEnabled).toBe(true);
   });
 });

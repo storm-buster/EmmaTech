@@ -350,3 +350,37 @@ describe('ConsolePage — API Keys section', () => {
     ).toBeInTheDocument();
   });
 });
+
+
+
+describe('ConsolePage — plan-aware Overview (entitlement from backend, not hardcoded)', () => {
+  const withEntitlement = (e: { plan: string; planName: string; sensorLimit: number | null; decoysEnabled: boolean }) => ({
+    ...ACCOUNT,
+    organization: { ...ACCOUNT.organization, plan: e.plan },
+    entitlement: e,
+  });
+
+  it('Free → 1 sensor, decoys not included', () => {
+    authValue = { account: withEntitlement({ plan: 'free', planName: 'Free', sensorLimit: 1, decoysEnabled: false }), loading: false };
+    renderConsole('#/console');
+    expect(screen.getByText('Free')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getByText('Not included')).toBeInTheDocument();
+  });
+
+  it('Starter → 20 sensors, decoys included', () => {
+    authValue = { account: withEntitlement({ plan: 'starter', planName: 'Starter', sensorLimit: 20, decoysEnabled: true }), loading: false };
+    renderConsole('#/console');
+    expect(screen.getByText('Starter')).toBeInTheDocument();
+    expect(screen.getByText('20')).toBeInTheDocument();
+    expect(screen.getByText('Included')).toBeInTheDocument();
+  });
+
+  it('Growth → unlimited sensors, decoys included', () => {
+    authValue = { account: withEntitlement({ plan: 'growth', planName: 'Growth', sensorLimit: null, decoysEnabled: true }), loading: false };
+    renderConsole('#/console');
+    expect(screen.getByText('Growth')).toBeInTheDocument();
+    expect(screen.getByText('Unlimited')).toBeInTheDocument();
+    expect(screen.getByText('Included')).toBeInTheDocument();
+  });
+});
