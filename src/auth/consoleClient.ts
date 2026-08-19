@@ -89,7 +89,7 @@ export interface AlertRow {
 
 export interface ForensicRow {
   idx?: number;
-  timestamp?: number;
+  timestamp?: number | string;
   tenant_id?: string;
   orchestrator_id?: string;
   policy_version?: string;
