@@ -15,6 +15,7 @@ import type { AccountResponse, OrgStatus } from '../../auth/authClient';
 import type { Route } from '../../App';
 import { Button } from '../Button';
 import { ApiKeysSection } from '../auth/ApiKeysSection';
+import { fmtTime } from './formatTime';
 import { LoadingSpinner } from '../LoadingSpinner';
 import {
   CONSOLE_NAV,
@@ -223,17 +224,6 @@ function Overview({
 }
 
 // ── Shared helpers + state renderer for the data sections ────────────────────
-function fmtTime(v?: number | string | null): string {
-  if (v === null || v === undefined || v === '') return '—';
-  const n = typeof v === 'number' ? v : Number(v);
-  if (!Number.isNaN(n) && n > 0) {
-    const ms = n < 1e12 ? n * 1000 : n; // RAPHA uses float unix seconds
-    const d = new Date(ms);
-    if (!Number.isNaN(d.getTime())) return d.toLocaleString();
-  }
-  return String(v);
-}
-
 function shortHash(h?: string): string {
   if (!h) return '—';
   return h.length > 18 ? `${h.slice(0, 10)}…${h.slice(-6)}` : h;
