@@ -6,6 +6,7 @@ import { signState, verifyState, getProviderCreds } from '../../_lib/oauth.js';
 import { getConfig } from '../../_lib/config.js';
 import { __resetInMemoryStore, getStore } from '../../_lib/store/index.js';
 import { findOrCreateOAuthUser, signup, ValidationError } from '../../_lib/service.js';
+import { entitlementsForPlan } from '../../_lib/entitlements.js';
 import { hashPassword } from '../../_lib/password.js';
 
 const SERVICE_TOKEN = 'super-secret-service-token-value';
@@ -96,7 +97,7 @@ describe('findOrCreateOAuthUser (unified account model)', () => {
     const first = await findOrCreateOAuthUser(store, cfg, { email: 'Jane@Acme.com', name: 'Jane', provider: 'google' });
     expect(first.created).toBe(true);
     expect(first.user.email).toBe('jane@acme.com');
-    expect(first.organization?.plan).toBe('free'); // server-authoritative
+    expect(first.organization?.plan).toBe('free'); // no plan requested → FREE (server default)
     expect(first.user.password_hash.startsWith('scrypt$')).toBe(false); // no password login
 
     const second = await findOrCreateOAuthUser(store, cfg, { email: 'jane@acme.com', name: 'Jane', provider: 'microsoft' });
@@ -129,5 +130,100 @@ describe('signup — Growth work-email enforcement (server-authoritative)', () =
     expect(perpetual.organization.plan).toBe('free');
     const bogus = await signup(store, getConfig(), { ...base, email: 'b@acme.com', requestedPlan: 'enterprise' }, hashPassword);
     expect(bogus.organization.plan).toBe('free');
+  });
+});
+
+
+// ── Plan preservation through the REAL OAuth callback (Google/Microsoft) ─────
+// Drives the actual callback handler end-to-end, mocking ONLY the external IdP
+// token/userinfo exchange (and RAPHA provisioning). Proves the pricing→OAuth
+// selected plan survives to organization.plan and never silently becomes Free.
+function configureProviders() {
+  process.env.GOOGLE_OAUTH_CLIENT_ID = 'test-google-id';
+  process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'test-google-secret';
+  process.env.MICROSOFT_OAUTH_CLIENT_ID = 'test-ms-id';
+  process.env.MICROSOFT_OAUTH_CLIENT_SECRET = 'test-ms-secret';
+  process.env.OAUTH_REDIRECT_BASE_URL = 'https://emmatech.in';
+}
+
+/** Mocks the IdP token endpoint, IdP userinfo, and RAPHA provisioning. */
+function fetchOAuthCallbackOk(email: string, name: string) {
+  return vi.fn(async (url: string) => {
+    const u = String(url);
+    if (u.includes('rapha.test')) {
+      if (u.endsWith('/capabilities')) return { status: 200, ok: true, json: async () => ({}) } as unknown as Response;
+      return { status: 201, ok: true, json: async () => ({ tenant_id: 'tnt-x', name, external_customer_id: 'e', status: 'active', created_at: '', updated_at: '' }) } as unknown as Response;
+    }
+    if (u.includes('/token')) return { status: 200, ok: true, json: async () => ({ access_token: 'idp-access-token' }) } as unknown as Response;
+    return { status: 200, ok: true, json: async () => ({ email, name }) } as unknown as Response; // userinfo
+  });
+}
+
+/** Runs the real callback for (provider, plan, email) and returns the resulting org.plan. */
+async function planAfterOAuth(provider: 'google' | 'microsoft', plan: string | undefined, email: string) {
+  configureProviders();
+  vi.stubGlobal('fetch', fetchOAuthCallbackOk(email, 'OAuth User'));
+  const cfg = getConfig();
+  const store = getStore(cfg);
+  const { res, state } = makeRes();
+  await callbackHandler(makeReq({ code: 'auth-code', state: signState(cfg, provider, plan) }), res);
+  const user = await store.getUserByEmail(email);
+  const membership = user ? await store.getPrimaryMembershipForUser(user.id) : null;
+  const org = membership ? await store.getOrganizationById(membership.organization_id) : null;
+  return { httpStatus: state.status, location: state.headers['location'], plan: org?.plan ?? null };
+}
+
+describe('OAuth callback preserves the pricing-selected plan (Google/Microsoft × Starter/Growth)', () => {
+  it('A. Google + Starter → organization.plan = starter (not free)', async () => {
+    const r = await planAfterOAuth('google', 'starter', 'starter-google@acme.com');
+    expect(r.httpStatus).toBe(302);
+    expect(r.plan).toBe('starter');
+    expect(r.plan).not.toBe('free');
+    expect(entitlementsForPlan(r.plan!).sensorLimit).toBe(20); // entitlement derived from selected plan
+  });
+
+  it('B. Google + Growth (work email) → organization.plan = growth (not free)', async () => {
+    const r = await planAfterOAuth('google', 'growth', 'growth-google@acme.com');
+    expect(r.plan).toBe('growth');
+    expect(r.plan).not.toBe('free');
+    expect(entitlementsForPlan(r.plan!).decoysEnabled).toBe(true);
+  });
+
+  it('C. Microsoft + Starter → organization.plan = starter (not free)', async () => {
+    const r = await planAfterOAuth('microsoft', 'starter', 'starter-ms@acme.com');
+    expect(r.plan).toBe('starter');
+    expect(r.plan).not.toBe('free');
+  });
+
+  it('D. Microsoft + Growth (work email) → organization.plan = growth (not free)', async () => {
+    const r = await planAfterOAuth('microsoft', 'growth', 'growth-ms@acme.com');
+    expect(r.plan).toBe('growth');
+    expect(r.plan).not.toBe('free');
+    expect(entitlementsForPlan(r.plan!).sensorLimit).toBeNull(); // Growth = unlimited sensors
+  });
+
+  it('default: OAuth with NO selected plan → organization.plan = free', async () => {
+    const r = await planAfterOAuth('google', undefined, 'noplan@acme.com');
+    expect(r.plan).toBe('free');
+  });
+
+  it('provider choice does not alter the selected plan (Google vs Microsoft, same Starter)', async () => {
+    const g = await planAfterOAuth('google', 'starter', 'same-plan-google@acme.com');
+    __resetInMemoryStore();
+    const m = await planAfterOAuth('microsoft', 'starter', 'same-plan-ms@acme.com');
+    expect(g.plan).toBe(m.plan);
+    expect(g.plan).toBe('starter');
+  });
+
+  it('does NOT overwrite an EXISTING OAuth user\'s organization plan on subsequent login', async () => {
+    // First login selects Growth (work email) → new org granted growth.
+    const first = await planAfterOAuth('google', 'growth', 'returning@acme.com');
+    expect(first.plan).toBe('growth');
+    // Subsequent login (different provider, and even a LOWER/absent plan intent)
+    // must link the existing account and leave its plan unchanged — never downgrade.
+    const second = await planAfterOAuth('microsoft', 'starter', 'returning@acme.com');
+    expect(second.plan).toBe('growth');
+    const third = await planAfterOAuth('google', undefined, 'returning@acme.com');
+    expect(third.plan).toBe('growth');
   });
 });
