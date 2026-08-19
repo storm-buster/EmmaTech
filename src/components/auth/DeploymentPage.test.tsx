@@ -98,4 +98,16 @@ describe('DeploymentPage', () => {
       await screen.findByText('RAPHA is temporarily unavailable. Please try again later.'),
     ).toBeInTheDocument();
   });
+
+  it('reflects live API access (no stale "coming soon"/"not available yet")', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonRes(200, ACCOUNT)),
+    );
+    renderPage();
+    await screen.findByText('Free');
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/not available yet/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/API access is live/i)).toBeInTheDocument();
+  });
 });

@@ -7,7 +7,7 @@
  * until the RAPHA customer read APIs are connected in Phase 7B.
  */
 
-export type ConsoleSectionId = 'overview' | 'sensors' | 'telemetry' | 'alerts' | 'forensics';
+export type ConsoleSectionId = 'overview' | 'api-keys' | 'sensors' | 'telemetry' | 'alerts' | 'forensics';
 
 export interface ConsoleNavItem {
   id: ConsoleSectionId;
@@ -18,6 +18,7 @@ export interface ConsoleNavItem {
 
 export const CONSOLE_NAV: ConsoleNavItem[] = [
   { id: 'overview', label: 'Overview', live: true },
+  { id: 'api-keys', label: 'API Keys', live: true },
   { id: 'sensors', label: 'Sensors', live: false },
   { id: 'telemetry', label: 'Telemetry', live: false },
   { id: 'alerts', label: 'Alerts', live: false },

@@ -400,20 +400,35 @@ const webServices = (
       <DocLi><strong>API key</strong> — used for API authentication in integrations.</DocLi>
     </DocUl>
 
-    <Callout variant="unavailable" title="API-key management not yet enabled">
+    <Callout variant="note" title="API-key management is live">
       <p>
-        Customer-facing API-key management through EmmaTech is not enabled yet, so there is no
-        self-service API-key creation at this time.
-      </p>
-      <p>
-        API integration access will be available through the customer portal when it is enabled for
-        your organization.
+        Manage API keys in the <strong>RAPHA Console → API Keys</strong> (listed directly under
+        Overview). API keys are a separate credential type from enrollment tokens and authenticate
+        your REST integrations.
       </p>
     </Callout>
 
+    <DocH2>Managing API keys</DocH2>
+    <DocUl>
+      <DocLi><strong>Where</strong> — open the RAPHA Console and select <strong>API Keys</strong>.</DocLi>
+      <DocLi><strong>Create</strong> — give the key a name; it is issued with the <code>ingest</code> scope.</DocLi>
+      <DocLi><strong>Rotate</strong> — issues a new secret and stops the previous key from working immediately.</DocLi>
+      <DocLi><strong>Revoke</strong> — permanently disables a key.</DocLi>
+    </DocUl>
+
+    <Callout variant="note" title="The secret is shown once">
+      <p>
+        The raw API key is displayed <strong>only once</strong> — immediately after create or
+        rotate. Copy it then; it cannot be retrieved again. Listing your keys shows metadata only
+        (name, scope, status, created time) and <strong>never</strong> returns the secret.
+      </p>
+    </Callout>
+
+    <DocH2>Using an API key</DocH2>
     <DocP>
-      When API access is enabled, you will manage integration credentials from the customer portal.
-      Until then, plan your integrations around the enrollment/sensor flow documented here.
+      Send the API key as the credential your integration requires (never your enrollment token,
+      and never an internal service token). Store it in your own secrets manager, and rotate or
+      revoke it from the Console if it is ever exposed.
     </DocP>
 
     <Callout variant="note" title="A note on internal credentials">

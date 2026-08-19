@@ -323,3 +323,30 @@ function renderConsoleContainer(hash: string) {
   );
   return container;
 }
+
+
+
+// API Keys section (moved into the Console below Overview). The section loads
+// via apiKeysClient; mock it so the console test does not hit the network.
+vi.mock('../../auth/apiKeysClient', () => ({
+  listApiKeys: vi.fn(async () => []),
+  createApiKey: vi.fn(),
+  rotateApiKey: vi.fn(),
+  revokeApiKey: vi.fn(),
+}));
+
+describe('ConsolePage — API Keys section', () => {
+  it('shows an API Keys navigation entry when authenticated', () => {
+    authValue = { account: ACCOUNT, loading: false };
+    renderConsole('#/console');
+    expect(screen.getAllByText('API Keys').length).toBeGreaterThan(0);
+  });
+
+  it('renders the API Keys management section at #/console/api-keys', async () => {
+    authValue = { account: ACCOUNT, loading: false };
+    renderConsole('#/console/api-keys');
+    expect(
+      await screen.findByText(/connect your RAPHA deployment to external systems/i),
+    ).toBeInTheDocument();
+  });
+});
