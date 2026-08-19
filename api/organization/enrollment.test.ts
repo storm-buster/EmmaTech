@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import enrollmentHandler from './enrollment-token.js';
-import signupHandler from '../auth/signup.js';
 import { __resetInMemoryStore, getStore } from '../_lib/store/index.js';
 import { __resetRateLimits } from '../_lib/ratelimit.js';
 import { getConfig } from '../_lib/config.js';
 import { SESSION_COOKIE_NAME, createSessionToken } from '../_lib/session.js';
+import { signup as svcSignup } from '../_lib/service.js';
+import { hashPassword } from '../_lib/password.js';
 
 const SERVICE_TOKEN = 'super-secret-service-token-value';
 const RAW_ENROLLMENT = 'renr_rawsecrettoken_value';
@@ -42,12 +43,6 @@ function makeRes(): { res: VercelResponse; state: ResState } {
     },
   } as unknown as VercelResponse;
   return { res, state };
-}
-
-function cookieFrom(state: ResState): string {
-  const setCookie = state.headers['set-cookie'] ?? '';
-  const token = setCookie.split(';')[0].split('=')[1] ?? '';
-  return `${SESSION_COOKIE_NAME}=${token}`;
 }
 
 /** fetch mock branching on provision vs enrollment; provision echoes external_customer_id. */
@@ -96,10 +91,19 @@ const SIGNUP_BODY = {
 };
 
 async function signupActiveOrg(): Promise<{ cookie: string; orgId: string }> {
-  const signup = makeRes();
-  await signupHandler(makeReq({ method: 'POST', body: SIGNUP_BODY }), signup.res);
-  const body = signup.state.body as { organization: { id: string; status: string } };
-  return { cookie: cookieFrom(signup.state), orgId: body.organization.id };
+  const result = await svcSignup(
+    getStore(getConfig()),
+    getConfig(),
+    {
+      email: SIGNUP_BODY.email,
+      password: SIGNUP_BODY.password,
+      name: SIGNUP_BODY.name,
+      organizationName: SIGNUP_BODY.organizationName,
+    },
+    hashPassword,
+  );
+  const cookie = `${SESSION_COOKIE_NAME}=${createSessionToken(result.user.id, SESSION_SECRET)}`;
+  return { cookie, orgId: result.organization.id };
 }
 
 let consoleLogSpy: ReturnType<typeof vi.spyOn>;
@@ -197,9 +201,18 @@ describe('POST /api/organization/enrollment-token', () => {
       'fetch',
       vi.fn(async () => ({ status: 503, ok: false, json: async () => ({}) })),
     );
-    const signup = makeRes();
-    await signupHandler(makeReq({ method: 'POST', body: SIGNUP_BODY }), signup.res);
-    const cookie = cookieFrom(signup.state);
+    const result = await svcSignup(
+      getStore(getConfig()),
+      getConfig(),
+      {
+        email: SIGNUP_BODY.email,
+        password: SIGNUP_BODY.password,
+        name: SIGNUP_BODY.name,
+        organizationName: SIGNUP_BODY.organizationName,
+      },
+      hashPassword,
+    );
+    const cookie = `${SESSION_COOKIE_NAME}=${createSessionToken(result.user.id, SESSION_SECRET)}`;
 
     const { res, state } = makeRes();
     await enrollmentHandler(makeReq({ method: 'POST', body: {}, cookie }), res);

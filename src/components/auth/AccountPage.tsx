@@ -6,6 +6,7 @@ import { retryProvisioning } from '../../auth/authClient';
 import type { OrgStatus } from '../../auth/authClient';
 import type { Route } from '../../App';
 import { AuthCard, AuthPage, AuthTitle } from './authStyles';
+import { PlanSelectionModal } from './PlanSelectionModal';
 
 interface Props {
   onNavigate: (to: Route) => void;
@@ -104,6 +105,7 @@ export function AccountPage({ onNavigate }: Props) {
 
   return (
     <AuthPage>
+      {organization && !organization.plan_selected && <PlanSelectionModal />}
       <AuthCard>
         <AuthTitle>Account</AuthTitle>
         <Row>

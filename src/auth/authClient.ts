@@ -17,6 +17,9 @@ export interface PublicOrganization {
   id: string;
   name: string;
   plan: 'free' | 'starter' | 'growth' | 'perpetual';
+  /** True once the customer has made a deliberate initial plan choice. The SPA
+   *  shows the plan-selection modal exactly when this is false. */
+  plan_selected: boolean;
   status: OrgStatus;
   rapha_tenant_id: string | null;
   created_at: string;
@@ -73,22 +76,50 @@ async function post(path: string, body: unknown): Promise<Record<string, unknown
   return data;
 }
 
-export async function signup(input: {
+/**
+ * Phase 1 of email/password signup — request an email OTP. Creates nothing
+ * server-side yet; the response is generic (never contains the code). `plan` is
+ * a UX intent only.
+ */
+export async function requestSignupOtp(input: {
   name: string;
   email: string;
   password: string;
   organizationName: string;
-  /** UX intent only — server sets the authoritative plan (default FREE). */
   requestedPlan?: string;
-}): Promise<AccountResponse> {
-  const body = {
+}): Promise<void> {
+  await post('/api/auth/signup', {
+    action: 'request',
     name: input.name,
+    organizationName: input.organizationName,
     email: input.email,
     password: input.password,
-    organizationName: input.organizationName,
     requested_plan: input.requestedPlan,
-  };
-  return post('/api/auth/signup', body) as unknown as Promise<AccountResponse>;
+  });
+}
+
+/**
+ * Phase 2 — verify the OTP. On success the account is created and a session
+ * cookie is set; returns the authenticated account.
+ */
+export async function verifySignupOtp(input: {
+  email: string;
+  code: string;
+}): Promise<AccountResponse> {
+  return post('/api/auth/signup', {
+    action: 'verify',
+    email: input.email,
+    code: input.code,
+  }) as unknown as Promise<AccountResponse>;
+}
+
+/**
+ * Apply the ONE-TIME initial plan selection (post-signup modal, generic path).
+ * `plan` is a UX intent; the server validates it (public-only; Growth requires
+ * a work email) and is authoritative.
+ */
+export async function selectInitialPlan(plan: string): Promise<void> {
+  await post('/api/me', { requested_plan: plan });
 }
 
 export type OAuthProvider = 'google' | 'microsoft';

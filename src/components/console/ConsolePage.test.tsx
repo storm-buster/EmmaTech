@@ -42,6 +42,7 @@ const ACCOUNT = {
     id: 'org-1',
     name: 'Acme Inc',
     plan: 'starter',
+    plan_selected: true,
     status: 'active',
     rapha_tenant_id: 'tnt-abc',
     created_at: '2026-01-01T00:00:00Z',

@@ -170,7 +170,12 @@ async function planAfterOAuth(provider: 'google' | 'microsoft', plan: string | u
   const user = await store.getUserByEmail(email);
   const membership = user ? await store.getPrimaryMembershipForUser(user.id) : null;
   const org = membership ? await store.getOrganizationById(membership.organization_id) : null;
-  return { httpStatus: state.status, location: state.headers['location'], plan: org?.plan ?? null };
+  return {
+    httpStatus: state.status,
+    location: state.headers['location'],
+    plan: org?.plan ?? null,
+    plan_selected: org?.plan_selected ?? null,
+  };
 }
 
 describe('OAuth callback preserves the pricing-selected plan (Google/Microsoft × Starter/Growth)', () => {
@@ -205,6 +210,19 @@ describe('OAuth callback preserves the pricing-selected plan (Google/Microsoft �
   it('default: OAuth with NO selected plan → organization.plan = free', async () => {
     const r = await planAfterOAuth('google', undefined, 'noplan@acme.com');
     expect(r.plan).toBe('free');
+  });
+
+  it('25/31: OAuth with NO plan → plan_selected=false (post-auth modal will show)', async () => {
+    const g = await planAfterOAuth('google', undefined, 'g-noplan@acme.com');
+    expect(g.plan_selected).toBe(false);
+    __resetInMemoryStore();
+    const m = await planAfterOAuth('microsoft', undefined, 'm-noplan@acme.com');
+    expect(m.plan_selected).toBe(false);
+  });
+
+  it('OAuth WITH a pricing plan → plan_selected=true (no modal)', async () => {
+    const r = await planAfterOAuth('google', 'starter', 'sel@acme.com');
+    expect(r.plan_selected).toBe(true);
   });
 
   it('provider choice does not alter the selected plan (Google vs Microsoft, same Starter)', async () => {
