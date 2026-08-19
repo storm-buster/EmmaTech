@@ -86,17 +86,6 @@ const PlaceholderTitle = styled.h3`
   gap: ${({ theme }) => theme.spacing.sm};
 `;
 
-const ComingSoon = styled.span`
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 2px 8px;
-  border-radius: 999px;
-  color: ${({ theme }) => theme.colors.neutral.lightGray};
-  background: rgba(255, 255, 255, 0.06);
-`;
-
 const PlaceholderText = styled.p`
   font-size: 13px;
   color: ${({ theme }) => theme.colors.neutral.lightGray};
@@ -184,25 +173,21 @@ export function DeploymentPage({ onNavigate }: Props) {
         )}
 
         <Placeholder>
-          <PlaceholderTitle>
-            RAPHA Web Console <ComingSoon>Coming soon</ComingSoon>
-          </PlaceholderTitle>
+          <PlaceholderTitle>RAPHA Console</PlaceholderTitle>
           <PlaceholderText>
-            Your real-time SOC dashboard will be available at{' '}
-            <code>rapha.emmatech.in</code>. This console is not yet live; a link will appear
-            here once it is deployed.
+            Manage your deployment in the RAPHA Console, including{' '}
+            <strong>API Keys</strong> for REST integrations. Open it from the{' '}
+            <strong>Console</strong> link in your navigation.
           </PlaceholderText>
         </Placeholder>
 
         <Placeholder>
-          <PlaceholderTitle>
-            API Access <ComingSoon>Coming soon</ComingSoon>
-          </PlaceholderTitle>
+          <PlaceholderTitle>API access is live</PlaceholderTitle>
           <PlaceholderText>
-            Programmatic API-key management for REST/WebSocket integrations will appear here.
-            It is not available yet: it will be enabled once the RAPHA control plane exposes a
-            service-level API-key contract. API keys are a separate credential type from
-            enrollment tokens.
+            Programmatic API-key management is available now in the RAPHA Console under{' '}
+            <strong>API Keys</strong>. API keys are a separate credential type from enrollment
+            tokens: use them to authenticate REST integrations. The raw key is shown once at
+            creation and cannot be retrieved again.
           </PlaceholderText>
         </Placeholder>
       </AuthCard>

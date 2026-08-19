@@ -93,11 +93,13 @@ describe('DocsPage accuracy constraints', () => {
     expect(container.textContent).not.toMatch(/open https:\/\/rapha\.emmatech\.in/i);
   });
 
-  it('Web Services page does not expose X-Service-Token or a fake Create API Key flow', () => {
+  it('Web Services page reflects live API-key management (no stale "coming soon", no service token / fake create form)', () => {
     const { container } = renderDocsAt('#/docs/web-services');
     expect(container.textContent).not.toMatch(/X-Service-Token/i);
     expect(container.textContent).not.toMatch(/create api key/i);
-    expect(screen.getByText(/not enabled yet/i)).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/not enabled yet|not available yet|coming soon/i);
+    expect(screen.getByText(/API-key management is live/i)).toBeInTheDocument();
+    expect(screen.getByText(/shown/i)).toBeTruthy();
   });
 
   it('Quick Start distinguishes enrollment token from API key', () => {

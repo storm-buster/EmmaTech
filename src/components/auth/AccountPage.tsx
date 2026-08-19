@@ -6,7 +6,6 @@ import { retryProvisioning } from '../../auth/authClient';
 import type { OrgStatus } from '../../auth/authClient';
 import type { Route } from '../../App';
 import { AuthCard, AuthPage, AuthTitle } from './authStyles';
-import { ApiKeysSection } from './ApiKeysSection';
 
 interface Props {
   onNavigate: (to: Route) => void;
@@ -155,7 +154,6 @@ export function AccountPage({ onNavigate }: Props) {
             )}
           </>
         )}
-        {organization && <ApiKeysSection />}
         <Actions>
           {organization && organization.status === 'active' && (
             <Button variant="secondary" onClick={() => onNavigate('deploy')}>

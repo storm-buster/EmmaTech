@@ -14,6 +14,7 @@ import type { StreamStatus } from './useConsoleStream';
 import type { AccountResponse, OrgStatus } from '../../auth/authClient';
 import type { Route } from '../../App';
 import { Button } from '../Button';
+import { ApiKeysSection } from '../auth/ApiKeysSection';
 import { LoadingSpinner } from '../LoadingSpinner';
 import {
   CONSOLE_NAV,
@@ -594,6 +595,8 @@ export function ConsolePage({ onNavigate }: Props) {
 
         {section === 'overview' ? (
           <Overview account={account} onNavigate={onNavigate} />
+        ) : section === 'api-keys' ? (
+          <ApiKeysSection />
         ) : (
           <DataSection id={section} live={live} />
         )}
