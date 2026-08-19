@@ -115,17 +115,19 @@ describe('signup — Growth work-email enforcement (server-authoritative)', () =
     ).rejects.toBeInstanceOf(ValidationError);
   });
 
-  it('accepts a business email for growth but the org stays on the FREE default (no elevation)', async () => {
+  it('grants Growth for a business email at signup (pre-billing public-plan grant)', async () => {
     vi.stubGlobal('fetch', fetchProvisionOk());
     const store = getStore(getConfig());
     const result = await signup(store, getConfig(), { ...base, email: 'owner@acme.com', requestedPlan: 'growth' }, hashPassword);
-    expect(result.organization.plan).toBe('free');
+    expect(result.organization.plan).toBe('growth');
   });
 
-  it('a tampered requested_plan cannot elevate a free/consumer signup to growth', async () => {
+  it('a non-public or invalid requested_plan cannot be self-selected (perpetual/unknown → free)', async () => {
     vi.stubGlobal('fetch', fetchProvisionOk());
     const store = getStore(getConfig());
-    const result = await signup(store, getConfig(), { ...base, email: 'owner@acme.com', requestedPlan: 'growth' }, hashPassword);
-    expect(result.organization.plan).not.toBe('growth');
+    const perpetual = await signup(store, getConfig(), { ...base, email: 'a@acme.com', requestedPlan: 'perpetual' }, hashPassword);
+    expect(perpetual.organization.plan).toBe('free');
+    const bogus = await signup(store, getConfig(), { ...base, email: 'b@acme.com', requestedPlan: 'enterprise' }, hashPassword);
+    expect(bogus.organization.plan).toBe('free');
   });
 });
