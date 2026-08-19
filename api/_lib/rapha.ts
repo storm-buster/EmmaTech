@@ -576,31 +576,55 @@ export class RaphaServiceClient {
     return body;
   }
 
-  /** POST api-keys — returns the raw key EXACTLY ONCE. */
+  /**
+   * Normalize RAPHA's FLAT create/rotate response into EmmaTech's internal
+   * one-time-key contract. RAPHA returns the raw secret as the TOP-LEVEL
+   * `api_key` STRING (there is NO `raw_key` and NO nested api_key metadata
+   * object); `scopes` may be a string ("ingest") or an array. We map it to
+   * { api_key: <metadata>, raw_key: <the top-level api_key string> }. Any
+   * key_hash is never present here and is never surfaced.
+   */
+  private normalizeCreatedKey(body: unknown): RaphaApiKeyCreated {
+    const b = (body ?? {}) as Record<string, unknown>;
+    const raw = b.api_key; // RAPHA's top-level raw secret (create/rotate only)
+    if (typeof raw !== 'string' || !raw || typeof b.id !== 'string' || !b.id) {
+      throw new RaphaError('upstream', 'RAPHA returned an invalid response');
+    }
+    const api_key: RaphaApiKeyMetadata = {
+      id: b.id,
+      name: typeof b.name === 'string' ? b.name : '',
+      scopes: RaphaServiceClient.normalizeScopes(b.scopes),
+      created_at: b.created_at != null ? String(b.created_at) : '',
+      revoked_at: null, // a freshly created/rotated key is active
+    };
+    return { api_key, raw_key: raw };
+  }
+
+  /** RAPHA scopes may be a single string or an array; normalize to string[]. */
+  private static normalizeScopes(scopes: unknown): string[] {
+    if (Array.isArray(scopes)) return scopes.filter((s): s is string => typeof s === 'string');
+    return typeof scopes === 'string' && scopes ? [scopes] : [];
+  }
+
+  /** POST api-keys (HTTP 201) — returns the raw key EXACTLY ONCE (flat shape). */
   async createTenantApiKey(tenantId: string, input: CreateApiKeyInput): Promise<RaphaApiKeyCreated> {
     const payload: { name: string; scopes?: string[] } = { name: input.name };
     if (input.scopes) payload.scopes = input.scopes;
-    const body = (await this.serviceKeyRequest(tenantId, 'api-keys', 'POST', payload)) as RaphaApiKeyCreated;
-    if (!body || typeof body.raw_key !== 'string' || !body.raw_key || !body.api_key) {
-      throw new RaphaError('upstream', 'RAPHA returned an invalid response');
-    }
-    return body;
+    const body = await this.serviceKeyRequest(tenantId, 'api-keys', 'POST', payload);
+    return this.normalizeCreatedKey(body);
   }
 
-  /** POST api-keys/{id}/rotate — returns the NEW raw key EXACTLY ONCE. */
+  /** POST api-keys/{id}/rotate (HTTP 200) — returns the NEW raw key EXACTLY ONCE (flat shape). */
   async rotateTenantApiKey(tenantId: string, keyId: string): Promise<RaphaApiKeyCreated> {
-    const body = (await this.serviceKeyRequest(
+    const body = await this.serviceKeyRequest(
       tenantId,
       `api-keys/${encodeURIComponent(keyId)}/rotate`,
       'POST',
-    )) as RaphaApiKeyCreated;
-    if (!body || typeof body.raw_key !== 'string' || !body.raw_key || !body.api_key) {
-      throw new RaphaError('upstream', 'RAPHA returned an invalid response');
-    }
-    return body;
+    );
+    return this.normalizeCreatedKey(body);
   }
 
-  /** POST api-keys/{id}/revoke — no secret returned. */
+  /** POST api-keys/{id}/revoke (HTTP 200 + JSON) — no secret surfaced. */
   async revokeTenantApiKey(tenantId: string, keyId: string): Promise<void> {
     await this.serviceKeyRequest(tenantId, `api-keys/${encodeURIComponent(keyId)}/revoke`, 'POST');
   }

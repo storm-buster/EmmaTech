@@ -72,47 +72,69 @@ function cookieFor(userId: string): string {
   return `${SESSION_COOKIE_NAME}=${createSessionToken(userId, SECRET)}`;
 }
 
-/** Mock RAPHA. Success bodies deliberately INCLUDE a key_hash to prove EmmaTech
- *  strips it. Set `status` to simulate upstream errors. */
-function mockRapha(status = 200) {
+const RAW_CREATE = 'rapha_raw_ABC123';
+const RAW_ROTATE = 'rapha_raw_NEW999';
+
+function ok(status: number, body: unknown): Response {
+  return { status, ok: true, json: async () => body } as unknown as Response;
+}
+
+/** Mock RAPHA using the SOURCE-VERIFIED production contract. Success bodies
+ *  deliberately include a stray `key_hash` (RAPHA does not actually send one on
+ *  create/rotate) to prove EmmaTech never surfaces it. On create/rotate the raw
+ *  secret is the TOP-LEVEL `api_key` string and `scopes` is a string; the list
+ *  uses an array. Set `errorStatus` to simulate an upstream failure. */
+function mockRapha(errorStatus?: number) {
   return vi.fn(async (url: string, init: RequestInit) => {
     const path = String(url);
     const method = (init?.method as string) ?? 'GET';
-    const ok = status >= 200 && status < 300;
-    let body: unknown = {};
-    if (ok) {
-      if (method === 'GET') {
-        body = {
-          api_keys: [
-            {
-              id: 'k1',
-              name: 'CI',
-              scopes: ['ingest'],
-              created_at: '2026-01-01T00:00:00Z',
-              revoked_at: null,
-              key_hash: RAPHA_HASH,
-            },
-          ],
-        };
-      } else if (path.endsWith('/revoke')) {
-        body = { id: 'k1', status: 'revoked' };
-      } else {
-        // create or rotate
-        body = {
-          api_key: {
-            id: 'k2',
-            name: 'New',
+    if (errorStatus) {
+      return { status: errorStatus, ok: false, json: async () => ({ detail: 'x' }) } as unknown as Response;
+    }
+    if (method === 'GET') {
+      return ok(200, {
+        tenant_id: SERVER_TENANT,
+        api_keys: [
+          {
+            id: 'key-1',
+            tenant_id: SERVER_TENANT,
             scopes: ['ingest'],
-            created_at: '2026-01-02T00:00:00Z',
+            status: 'active',
+            created_at: 1699999999.5,
             revoked_at: null,
+            name: 'CI',
             key_hash: RAPHA_HASH,
           },
-          raw_key: 'rapha_raw_ABC123',
-          key_hash: RAPHA_HASH,
-        };
-      }
+        ],
+      });
     }
-    return { status, ok, json: async () => body } as unknown as Response;
+    if (path.endsWith('/revoke')) {
+      return ok(200, { tenant_id: SERVER_TENANT, id: 'key-1', status: 'revoked', revoked: true });
+    }
+    if (path.endsWith('/rotate')) {
+      return ok(200, {
+        tenant_id: SERVER_TENANT,
+        id: 'key-1',
+        api_key: RAW_ROTATE,
+        scopes: 'ingest',
+        status: 'active',
+        created_at: 1699999999.9,
+        name: 'CI',
+        rotated_from: 'key-0',
+        key_hash: RAPHA_HASH,
+      });
+    }
+    // create → HTTP 201, flat top-level api_key raw secret
+    return ok(201, {
+      tenant_id: SERVER_TENANT,
+      id: 'key-2',
+      api_key: RAW_CREATE,
+      scopes: 'ingest',
+      status: 'active',
+      created_at: 1699999999.5,
+      name: 'SIEM',
+      key_hash: RAPHA_HASH,
+    });
   });
 }
 
@@ -197,10 +219,10 @@ describe('/api/organization/api-keys — list', () => {
     expect(JSON.stringify(state.body)).not.toContain(SERVICE_TOKEN);
     const keys = state.body.api_keys as Array<Record<string, unknown>>;
     expect(keys[0]).toEqual({
-      id: 'k1',
+      id: 'key-1',
       name: 'CI',
       scopes: ['ingest'],
-      created_at: '2026-01-01T00:00:00Z',
+      created_at: 1699999999.5,
       revoked_at: null,
     });
   });
@@ -225,11 +247,14 @@ describe('/api/organization/api-keys — create', () => {
     expect(url).toContain(`/api/v1/service/tenants/${SERVER_TENANT}/api-keys`);
     expect(url).not.toContain('tnt-EVIL');
     expect((init.method as string)).toBe('POST');
-    expect(state.body.raw_key).toBe('rapha_raw_ABC123');
+    expect(state.body.raw_key).toBe(RAW_CREATE);
     expect(JSON.stringify(state.body)).not.toContain(RAPHA_HASH);
     expect(JSON.stringify(state.body)).not.toContain('key_hash');
     expect(JSON.stringify(state.body)).not.toContain(SERVICE_TOKEN);
-    expect((state.body.api_key as Record<string, unknown>).id).toBe('k2');
+    const created = state.body.api_key as Record<string, unknown>;
+    expect(created.id).toBe('key-2');
+    expect(created.scopes).toEqual(['ingest']); // RAPHA sent scopes:"ingest" (string) → normalized
+    expect(created).not.toHaveProperty('key_hash');
   });
 
   it('rejects a missing name → 400 (no RAPHA call)', async () => {
@@ -290,7 +315,7 @@ describe('/api/organization/api-keys — rotate & revoke', () => {
     expect(state.statusCode).toBe(200);
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toContain(`/api/v1/service/tenants/${SERVER_TENANT}/api-keys/k1/rotate`);
-    expect(state.body.raw_key).toBe('rapha_raw_ABC123');
+    expect(state.body.raw_key).toBe(RAW_ROTATE);
     expect(JSON.stringify(state.body)).not.toContain('key_hash');
   });
 
@@ -343,6 +368,26 @@ describe('/api/organization/api-keys — upstream error mapping', () => {
     const { res, state } = makeRes();
     await apiKeysHandler(makeReq({ method: 'GET', cookie: cookieFor(user.id) }), res);
     expect(state.statusCode).toBe(502);
+  });
+
+  it('create success (201) missing the top-level api_key → 502 (fails safe, no secret)', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        ({
+          status: 201,
+          ok: true,
+          json: async () => ({ tenant_id: SERVER_TENANT, id: 'key-9', scopes: 'ingest', status: 'active' }),
+        }) as unknown as Response,
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const { user } = await seedUserWithOrg();
+    const { res, state } = makeRes();
+    await apiKeysHandler(
+      makeReq({ method: 'POST', cookie: cookieFor(user.id), body: { action: 'create', name: 'x' } }),
+      res,
+    );
+    expect(state.statusCode).toBe(502);
+    expect(JSON.stringify(state.body)).not.toContain(SERVICE_TOKEN);
   });
 });
 
