@@ -301,13 +301,18 @@ export async function signup(
  * model as email/password users. Find-or-create by (provider-verified) email:
  * existing users are linked (no duplicate account system); new users are created
  * with a non-verifiable password sentinel (password login impossible) + org +
- * owner membership + RAPHA provisioning. Entitlement stays server-authoritative
- * (org.plan = DEFAULT_PLAN_ID); the OAuth `plan` intent never grants entitlement.
+ * owner membership + RAPHA provisioning. A NEW organization is granted the
+ * validated public plan carried from the pricing page (reusing the same
+ * server-side resolveSignupPlan validator as email/password signup):
+ * unknown/invalid or non-public plans → FREE, and Growth requires a work email
+ * (a consumer-domain Growth intent fails safe to FREE rather than aborting an
+ * already-authenticated login). EXISTING users are only linked — their
+ * organization.plan is NEVER changed here.
  */
 export async function findOrCreateOAuthUser(
   store: DataStore,
   cfg: AppConfig,
-  input: { email: unknown; name?: unknown; provider: 'google' | 'microsoft' },
+  input: { email: unknown; name?: unknown; provider: 'google' | 'microsoft'; plan?: unknown },
   requestId?: string,
 ): Promise<{ user: User; organization: Organization | null; created: boolean }> {
   const email = normalizeEmail(input.email);
@@ -321,10 +326,21 @@ export async function findOrCreateOAuthUser(
     return { user: existing, organization, created: false };
   }
 
+  // NEW organization: grant the validated PUBLIC plan selected on the pricing
+  // page. Growth is B2B → a consumer-domain email fails safe to FREE (the same
+  // work-email restriction as signup, but without throwing since the user is
+  // already authenticated via OAuth). Plan validation is NOT duplicated — it
+  // reuses resolveSignupPlan (public-only; unknown/invalid/perpetual → FREE).
+  const requestedPlan =
+    typeof input.plan === 'string' && input.plan === 'growth' && isConsumerEmailDomain(email)
+      ? undefined
+      : input.plan;
+  const plan = resolveSignupPlan(requestedPlan);
+
   const user = await store.createUser({ email, password_hash: `oauth:${input.provider}`, name });
   let organization = await store.createOrganization({
     name,
-    plan: DEFAULT_PLAN_ID,
+    plan,
     status: 'pending',
     rapha_tenant_id: null,
   });

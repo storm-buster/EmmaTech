@@ -92,7 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const { user } = await findOrCreateOAuthUser(
       store,
       cfg,
-      { email: info.email, name: info.name, provider: state.provider },
+      { email: info.email, name: info.name, provider: state.provider, plan: state.plan },
       requestId,
     );
 
