@@ -46,13 +46,6 @@ const Subheading = styled.h2`
   letter-spacing: 0.02em;
 `;
 
-const Subheading3 = styled.h3`
-  font-size: 20px;
-  font-weight: 600;
-  color: ${({ theme }) => theme.colors.neutral.white};
-  margin: ${({ theme }) => theme.spacing.lg} 0 ${({ theme }) => theme.spacing.sm};
-`;
-
 const Paragraph = styled.p`
   margin-bottom: ${({ theme }) => theme.spacing.md};
 `;
@@ -125,323 +118,199 @@ export const TermsOfService: React.FC = () => {
       <ContentWrapper>
         <Heading>Terms of Service</Heading>
         <Meta>
-          <B>Last Updated:</B> July 15, 2026 &nbsp;|&nbsp; <B>Version:</B> 1.0 &nbsp;|&nbsp; <B>Effective Date:</B> July 15, 2026
+          <B>Last Updated:</B> August 20, 2026 &nbsp;|&nbsp; <B>Version:</B> 2.0 &nbsp;|&nbsp; <B>Effective Date:</B> August 20, 2026
         </Meta>
 
         <Divider />
 
-        {/* 1. Agreement to Terms */}
-        <Subheading>1. Agreement to Terms</Subheading>
+        {/* 1. Agreement */}
+        <Subheading>1. Agreement to These Terms</Subheading>
         <Paragraph>
-          By accessing or using the <B>RAPHA</B> cybersecurity platform ("RAPHA," "the Service," "the Platform") operated by <B>EmmaTech Private Limited</B> ("EmmaTech," "we," "our," "us"), you ("Customer," "you," "your") agree to be bound by these Terms of Service ("Terms").
+          These Terms of Service ("Terms") govern your access to and use of the <B>RAPHA</B> platform and the EmmaTech
+          web application at <B>emmatech.in</B> (together, the "Service"), operated by <B>EmmaTech Private Limited</B>
+          ("EmmaTech," "we," "our," "us").
         </Paragraph>
         <Paragraph>
-          If you are entering into these Terms on behalf of an organization, you represent that you have authority to bind that organization to these Terms.
+          By creating an account or using the Service, you ("you," "your") agree to these Terms. If you create an account
+          on behalf of an organization, you represent that you are authorized to bind that organization. If you do not
+          agree, do not use the Service.
         </Paragraph>
-        <Paragraph><B>Please read these Terms carefully.</B> If you do not agree, do not use the Service.</Paragraph>
 
         <Divider />
 
         {/* 2. Definitions */}
         <Subheading>2. Definitions</Subheading>
         <StyledTable>
-          <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+          <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
           <tbody>
-            <tr><td><B>Service</B></td><td>The RAPHA cybersecurity platform, including API, dashboard, honeypot infrastructure, and all related services</td></tr>
-            <tr><td><B>Customer Data</B></td><td>All telemetry, logs, alerts, forensic chains, honeypot data, and configurations you submit</td></tr>
-            <tr><td><B>Authorized Users</B></td><td>Your employees, contractors, agents authorized to use the Service</td></tr>
-            <tr><td><B>API Key</B></td><td>Unique identifier for authenticating API requests</td></tr>
-            <tr><td><B>Tenant</B></td><td>Your isolated environment within the multi-tenant platform</td></tr>
-            <tr><td><B>Forensic Chain</B></td><td>Tamper-evident cryptographic ledger of security events</td></tr>
-            <tr><td><B>Honeypot</B></td><td>Deception asset deployed to capture attacker activity</td></tr>
+            <tr><td><B>Account</B></td><td>Your individual user record (name, email, authentication method)</td></tr>
+            <tr><td><B>Organization</B></td><td>The workspace your account owns or belongs to, associated with a plan and a RAPHA tenant</td></tr>
+            <tr><td><B>Plan</B></td><td>The commercial tier selected for an Organization: Free, Starter, or Growth</td></tr>
+            <tr><td><B>RAPHA Console</B></td><td>The in-app console that displays your Organization's RAPHA data</td></tr>
+            <tr><td><B>API Key</B></td><td>A credential for programmatic access to your Organization's RAPHA tenant</td></tr>
+            <tr><td><B>Enrollment Credential</B></td><td>A one-time credential used to enroll a sensor/host with your RAPHA tenant</td></tr>
+            <tr><td><B>Tenant</B></td><td>Your Organization's isolated environment within RAPHA</td></tr>
           </tbody>
         </StyledTable>
 
         <Divider />
 
-        {/* 3. Service Description */}
-        <Subheading>3. Service Description</Subheading>
-        <Subheading3>3.1 What RAPHA Does</Subheading3>
-        <Paragraph>RAPHA is an <B>autonomous cyber-defense platform</B> providing:</Paragraph>
+        {/* 3. The Service */}
+        <Subheading>3. The Service</Subheading>
+        <Paragraph>The Service currently provides:</Paragraph>
         <BulletList>
-          <li><B>Threat Detection:</B> Real-time network/host telemetry analysis via ML + rules</li>
-          <li><B>Threat Classification:</B> 3-class output (Normal / Suspicious / Malicious) with confidence scores</li>
-          <li><B>Forensic Chain:</B> Tamper-evident, cryptographically-linked audit trail of all events</li>
-          <li><B>Autonomous Deception:</B> Honeypot deployment, attacker redirection, session capture</li>
-          <li><B>Alert Delivery:</B> HMAC-signed webhooks to your SIEM, Slack, SOAR, email</li>
-          <li><B>Multi-tenant Isolation:</B> Cryptographic tenant isolation with per-tenant forensic chains</li>
+          <li>Account creation and authentication (email/password with email verification, or Google/Microsoft sign-in);</li>
+          <li>Organization creation and selection of a plan (Free, Starter, or Growth);</li>
+          <li>Provisioning of a RAPHA tenant for your Organization;</li>
+          <li>A RAPHA Console that displays your Organization's sensors, telemetry, alerts, and forensic records;</li>
+          <li>Management of API keys and one-time enrollment credentials for your Organization's tenant.</li>
         </BulletList>
-
-        <Subheading3>3.2 Deployment Models</Subheading3>
-        <StyledTable>
-          <thead><tr><th>Mode</th><th>Behavior</th></tr></thead>
-          <tbody>
-            <tr><td><B>Hosted Pilot</B></td><td>Cloud SaaS, detect + alert only</td></tr>
-            <tr><td><B>Standalone Active</B></td><td>Self-hosted, detect + alert + deceive</td></tr>
-          </tbody>
-        </StyledTable>
-
-        <Subheading3>3.3 Pilot Program Terms</Subheading3>
-        <Paragraph><B>Current Phase:</B> Design-partner pilot program</Paragraph>
-        <BulletList>
-          <li><B>Duration:</B> 30 days (renewable by mutual agreement)</li>
-          <li><B>Scope:</B> Up to 5 design partners</li>
-          <li><B>Cost:</B> Free during pilot</li>
-          <li><B>Support:</B> Business hours email, shared Slack channel</li>
-          <li><B>SLA:</B> Best-effort (no financial SLA during pilot)</li>
-        </BulletList>
-        <Paragraph><B>Pilot Limitations:</B></Paragraph>
-        <BulletList>
-          <li>Single-instance deployment (no HA/failover)</li>
-          <li>Rule-based detection primary; ML ensemble when model provided</li>
-          <li>No production SLA — not for production-critical workloads</li>
-          <li>No indemnification during pilot</li>
-          <li>Data residency: India (Delhi) primary, EU (Frankfurt) available</li>
-        </BulletList>
-        <Paragraph><B>Design Partner Obligations:</B></Paragraph>
-        <BulletList>
-          <li>Monthly feedback (30-min call or written)</li>
-          <li>Bug/incident reporting within 24 hours</li>
-          <li>Quarterly product review participation</li>
-          <li>Anonymized usage analytics for product improvement</li>
-        </BulletList>
+        <Paragraph>
+          RAPHA is a cyber-defense platform. It is designed to help reduce security risk but <B>cannot guarantee that all
+          threats will be detected or prevented</B>. You remain responsible for your overall security posture.
+        </Paragraph>
 
         <Divider />
 
-        {/* 4. Customer Responsibilities */}
-        <Subheading>4. Customer Responsibilities</Subheading>
-        <Subheading3>4.1 Data &amp; Configuration</Subheading3>
-        <BulletList>
-          <li>Accuracy and legality of all telemetry sent to the API</li>
-          <li>Securing API keys and webhook secrets (rotate regularly)</li>
-          <li>Configuring webhook endpoints with HTTPS + HMAC verification</li>
-          <li>Accurate tenant contact information for notifications</li>
-        </BulletList>
-
-        <Subheading3>4.2 Acceptable Use</Subheading3>
-        <Paragraph><B>You shall NOT:</B></Paragraph>
-        <BulletList>
-          <li>Send malicious payloads designed to exploit the platform</li>
-          <li>Attempt to access other tenants' data or forensic chains</li>
-          <li>Reverse engineer ML models, detection rules, or deception logic</li>
-          <li>Use the Service for illegal activities or attacking third parties</li>
-          <li>Resell or redistribute the Service without written agreement</li>
-          <li>Exceed rate limits (120 req/min per tenant IP)</li>
-        </BulletList>
-
-        <Subheading3>4.3 Compliance</Subheading3>
-        <Paragraph>You are responsible for compliance with:</Paragraph>
-        <BulletList>
-          <li>Applicable data protection laws (GDPR, DPDP Act, CCPA)</li>
-          <li>Industry regulations (PCI DSS, HIPAA, SOX where applicable)</li>
-          <li>Export control and sanctions laws</li>
-          <li>Your industry-specific security requirements</li>
-        </BulletList>
-
-        <Divider />
-
-        {/* 5. Intellectual Property */}
-        <Subheading>5. Intellectual Property</Subheading>
-        <Subheading3>5.1 Our Rights</Subheading3>
-        <Paragraph>EmmaTech retains all rights, title, and interest in:</Paragraph>
-        <BulletList>
-          <li>RAPHA platform, code, algorithms, models, detection rules</li>
-          <li>Deception techniques, honeypot orchestration, forensic chain design</li>
-          <li>Web console, API, documentation, trademarks ("RAPHA," "EmmaTech")</li>
-        </BulletList>
-
-        <Subheading3>5.2 Your Rights</Subheading3>
-        <Paragraph>You retain ownership of:</Paragraph>
-        <BulletList>
-          <li>Your telemetry data, alerts, forensic chains (your Tenant Data)</li>
-          <li>Custom detection rules you create</li>
-          <li>Integration code you write for your environment</li>
-        </BulletList>
-
-        <Subheading3>5.3 License Grant</Subheading3>
-        <Paragraph><B>We grant you:</B> Non-exclusive, non-transferable, revocable license to use the Service per these Terms.</Paragraph>
-        <Paragraph><B>You grant us:</B> License to process your telemetry solely to provide the Service, improve detection, and generate forensic chains.</Paragraph>
-
-        <Subheading3>5.4 Feedback License</Subheading3>
-        <Paragraph>Any feedback, suggestions, or bug reports you provide are licensed to us royalty-free, perpetual, irrevocable, worldwide, for any purpose.</Paragraph>
-
-        <Subheading3>5.5 No Reverse Engineering</Subheading3>
-        <Paragraph>You may not:</Paragraph>
-        <BulletList>
-          <li>Reverse engineer, decompile, disassemble the Service</li>
-          <li>Extract model weights, training data, or detection rules</li>
-          <li>Create derivative works from the Service</li>
-        </BulletList>
-
-        <Divider />
-
-        {/* 6. Data Protection & Privacy */}
-        <Subheading>6. Data Protection &amp; Privacy</Subheading>
-        <Paragraph>These Terms incorporate our <B>Privacy Policy</B> (incorporated by reference). By using the Service, you acknowledge our Privacy Policy.</Paragraph>
-        <Paragraph>For EU/UK customers, our standard DPA (incorporating SCCs) applies automatically. Request our DPA at <Link href="mailto:legal@emmatech.in">legal@emmatech.in</Link>.</Paragraph>
-        <Paragraph>We use subprocessors for infrastructure, email, monitoring. 30-day notice for new subprocessors.</Paragraph>
-
-        <Subheading3>6.1 Data Residency</Subheading3>
-        <BulletList>
-          <li><B>Primary:</B> India (Delhi) / EU (Frankfurt)</li>
-          <li><B>Backup:</B> Same region as primary</li>
-          <li><B>On-prem option:</B> Available for enterprise (contact sales)</li>
-        </BulletList>
-
-        <Divider />
-
-        {/* 7. Service Levels & Availability */}
-        <Subheading>7. Service Levels &amp; Availability</Subheading>
-        <Subheading3>7.1 Pilot SLA (Best Effort)</Subheading3>
-        <StyledTable>
-          <thead><tr><th>Metric</th><th>Target</th></tr></thead>
-          <tbody>
-            <tr><td>API Uptime</td><td>≥ 99.5% (best effort)</td></tr>
-            <tr><td>API Latency (p99)</td><td>&lt; 2 seconds</td></tr>
-            <tr><td>Alert Delivery</td><td>&lt; 30 seconds</td></tr>
-            <tr><td>Honeypot Deploy</td><td>&lt; 60 seconds</td></tr>
-          </tbody>
-        </StyledTable>
-        <Paragraph><B>No financial credits during pilot.</B> Post-pilot SLA negotiable.</Paragraph>
-
-        <Subheading3>7.2 Maintenance &amp; Recovery</Subheading3>
-        <BulletList>
-          <li><B>Scheduled Maintenance:</B> Sundays 02:00–04:00 UTC (advance notice)</li>
-          <li><B>RPO:</B> ≤ 1 hour (continuous WAL + volume snapshots)</li>
-          <li><B>RTO:</B> ≤ 4 hours (single-instance restore)</li>
-          <li><B>Backups:</B> Daily encrypted snapshots, 30-day retention</li>
-        </BulletList>
-
-        <Divider />
-
-        {/* 8. Fees & Billing */}
-        <Subheading>8. Fees &amp; Billing (Post-Pilot)</Subheading>
-        <Paragraph><B>Free</B> for design partners during pilot period (30 days).</Paragraph>
-        <Subheading3>8.1 Post-Pilot Pricing (Indicative)</Subheading3>
-        <StyledTable>
-          <thead><tr><th>Tier</th><th>Pricing</th><th>Includes</th></tr></thead>
-          <tbody>
-            <tr><td><B>Starter</B></td><td>₹18,000 /node/year</td><td>Up to 20 sensors, ML baseline, 30-day retention</td></tr>
-            <tr><td><B>Growth</B></td><td>₹35,000 /node/year</td><td>Unlimited sensors, 8h SLA, full forensic chain</td></tr>
-            <tr><td><B>Regulated</B></td><td>₹30L+ perpetual + 20% AMC</td><td>Air-gapped deploy, compliance ready, dedicated engineering</td></tr>
-          </tbody>
-        </StyledTable>
-        <Paragraph><B>Note:</B> A node is one policy-enforced Orchestrator managing multiple sensors.</Paragraph>
-
-        <Divider />
-
-        {/* 9. Confidentiality */}
-        <Subheading>9. Confidentiality</Subheading>
-        <Paragraph>"Confidential Information" includes: API keys, detection rules, model architectures, threat intelligence, customer lists, pricing, roadmaps, and any non-public information marked or reasonably understood as confidential.</Paragraph>
-        <BulletList>
-          <li>Hold in strict confidence (same care as your own)</li>
-          <li>Use only for performing obligations under these Terms</li>
-          <li>Disclose only to Authorized Users with need-to-know</li>
-          <li>Return/destroy upon termination</li>
-        </BulletList>
-        <Paragraph>Not confidential if: public through no fault of recipient, independently developed, received from third party without restriction, or required by law (with notice).</Paragraph>
-        <Paragraph>Survives <B>3 years</B> post-termination (trade secrets: indefinite).</Paragraph>
-
-        <Divider />
-
-        {/* 10. Warranties & Disclaimers */}
-        <Subheading>10. Warranties &amp; Disclaimers</Subheading>
-        <Paragraph>EmmaTech warrants the Service will substantially conform to documentation. <B>Exclusive Remedy:</B> We will use commercially reasonable efforts to fix non-conformity.</Paragraph>
-        <Disclaimer>
-          THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE." TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING: MERCHANTABILITY, FITNESS FOR PARTICULAR PURPOSE, NON-INFRINGEMENT, TITLE, QUIET ENJOYMENT, ACCURACY, COMPLETENESS, RELIABILITY OF DETECTION, UNINTERRUPTED, ERROR-FREE, OR SECURE OPERATION.
-        </Disclaimer>
-        <Paragraph>RAPHA <B>reduces risk but does not eliminate it.</B> No security product can guarantee 100% threat prevention. You remain responsible for your overall security posture.</Paragraph>
-
-        <Divider />
-
-        {/* 11. Limitation of Liability */}
-        <Subheading>11. Limitation of Liability</Subheading>
-        <Disclaimer>
-          TO THE MAXIMUM EXTENT PERMITTED BY LAW, EMMATECH'S TOTAL AGGREGATE LIABILITY SHALL NOT EXCEED THE GREATER OF: (A) FEES PAID IN THE 12 MONTHS PRECEDING THE CLAIM, OR (B) $10,000 USD.
-        </Disclaimer>
-        <Paragraph><B>In no event shall we be liable for:</B></Paragraph>
-        <BulletList>
-          <li>Indirect, incidental, special, consequential, punitive damages</li>
-          <li>Loss of data, profits, revenue, business opportunity</li>
-          <li>Security breaches, data breaches, or unauthorized access</li>
-          <li>Failure to detect any specific threat or attack</li>
-          <li>Third-party actions or equipment failures</li>
-        </BulletList>
-        <Paragraph>Cap does not apply to: (a) breach of confidentiality, (b) IP infringement, (c) gross negligence/willful misconduct, (d) bodily injury/death.</Paragraph>
-
-        <Divider />
-
-        {/* 12. Indemnification */}
-        <Subheading>12. Indemnification</Subheading>
-        <Subheading3>12.1 By You</Subheading3>
-        <Paragraph>You indemnify us against claims arising from:</Paragraph>
-        <BulletList>
-          <li>Your Customer Data or use of the Service</li>
-          <li>Your violation of these Terms or applicable law</li>
-          <li>Your Authorized Users' actions</li>
-        </BulletList>
-        <Subheading3>12.2 By Us</Subheading3>
-        <Paragraph>We indemnify you against third-party claims that the Service infringes IP rights, provided you: notify us promptly, grant us sole control of defense, and cooperate reasonably.</Paragraph>
-
-        <Divider />
-
-        {/* 13. Term & Termination */}
-        <Subheading>13. Term &amp; Termination</Subheading>
-        <BulletList>
-          <li><B>Pilot:</B> 30 days from activation, auto-renews for successive 30-day periods</li>
-          <li><B>Post-Pilot:</B> Annual or monthly per Order Form</li>
-          <li><B>Termination for Convenience:</B> Either party may terminate with 30 days written notice</li>
-        </BulletList>
-        <Paragraph><B>Termination for Cause</B> — Immediate termination for:</Paragraph>
-        <BulletList>
-          <li>Material breach uncured after 15 days notice</li>
-          <li>Non-payment (post-pilot) after 10 days notice</li>
-          <li>Insolvency, bankruptcy, dissolution</li>
-          <li>Regulatory prohibition</li>
-        </BulletList>
-        <Paragraph><B>Effect of Termination:</B></Paragraph>
-        <BulletList>
-          <li>Immediate cessation of Service access</li>
-          <li>Customer Data export provided within 30 days (JSON/Parquet)</li>
-          <li>Forensic chains exported in tamper-evident format</li>
-          <li>All licenses revoked; return/destroy our Confidential Information</li>
-          <li>Accrued fees immediately due</li>
-        </BulletList>
-
-        <Divider />
-
-        {/* 14. General Provisions */}
-        <Subheading>14. General Provisions</Subheading>
-        <Paragraph><B>Governing Law:</B> Laws of India &nbsp;|&nbsp; <B>Exclusive Jurisdiction:</B> Courts of Delhi, India &nbsp;|&nbsp; <B>Language:</B> English</Paragraph>
-        <Paragraph><em>For EU customers:</em> GDPR rights preserved; SCCs apply.</Paragraph>
-
-        <Subheading3>14.1 Dispute Resolution</Subheading3>
+        {/* 4. Accounts & Verification */}
+        <Subheading>4. Accounts and Verification</Subheading>
         <OrderedList>
-          <li>Good-faith negotiation (30 days)</li>
-          <li>Mediation (ICC Mediation Rules, Delhi)</li>
-          <li>Binding arbitration (ICC Arbitration Rules, Delhi, English, 1 arbitrator)</li>
+          <li>You must provide an accurate name, email address, and organization name when signing up.</li>
+          <li>Accounts created with email and password require <B>email verification via a one-time code</B> before the account is created and usable.</li>
+          <li>Accounts created with Google or Microsoft sign-in are verified through that provider and do not require a separate code.</li>
+          <li>You are responsible for keeping your password and any API keys or enrollment credentials secure, and for all activity under your account.</li>
+          <li>Notify us promptly at <Link href="mailto:security@emmatech.in">security@emmatech.in</Link> if you believe your account or a credential has been compromised.</li>
         </OrderedList>
 
-        <Paragraph><B>Force Majeure:</B> Neither party liable for delays due to events beyond reasonable control (natural disasters, war, strikes, government action, internet outages).</Paragraph>
-        <Paragraph><B>Assignment:</B> Neither party may assign without prior written consent (not unreasonably withheld). Permitted: affiliate, acquirer of substantially all assets.</Paragraph>
-        <Paragraph><B>Entire Agreement:</B> These Terms, Privacy Policy, DPA, Order Forms constitute the entire agreement. Supersedes all prior agreements.</Paragraph>
-        <Paragraph><B>Amendments:</B> We may update Terms with 30 days notice. Continued use = acceptance. Material changes: email + dashboard notice.</Paragraph>
-        <Paragraph><B>Severability:</B> If any provision is unenforceable, remainder remains in effect.</Paragraph>
+        <Divider />
+
+        {/* 5. Plans & Service Usage */}
+        <Subheading>5. Plans and Service Usage</Subheading>
+        <Paragraph>
+          Each Organization is associated with a plan that determines its entitlements. After signup you may select an
+          initial plan; the selected plan is applied by EmmaTech and used to configure your RAPHA tenant.
+        </Paragraph>
+        <StyledTable>
+          <thead><tr><th>Plan</th><th>Entitlements</th></tr></thead>
+          <tbody>
+            <tr><td><B>Free</B></td><td>1 sensor; decoys not included</td></tr>
+            <tr><td><B>Starter</B></td><td>Up to 20 sensors; decoys included</td></tr>
+            <tr><td><B>Growth</B></td><td>Unlimited sensors; decoys included</td></tr>
+          </tbody>
+        </StyledTable>
+        <Paragraph>
+          The Growth plan is intended for organizations and requires a work (non-consumer) email address at selection.
+          Prices shown on the website are indicative. Automated online payment/subscription billing is not part of the
+          current Service; entitlements are granted as described above, and paid arrangements (if any) are handled
+          separately by contacting EmmaTech.
+        </Paragraph>
 
         <Divider />
 
-        {/* 15. Export Controls */}
-        <Subheading>15. Export Controls</Subheading>
-        <Paragraph>You comply with all applicable export controls (US EAR, EU Dual-Use, India SCOMET). You are not on any denied party list. The Service uses encryption (TLS 1.3, AES-256, HMAC-SHA256).</Paragraph>
-
-        <Divider />
-
-        {/* 16. Contact */}
-        <Subheading>16. Contact</Subheading>
+        {/* 6. Acceptable Use */}
+        <Subheading>6. Acceptable Use</Subheading>
+        <Paragraph><B>You agree not to:</B></Paragraph>
         <BulletList>
-          <li><B>Legal:</B> <Link href="mailto:legal@emmatech.in">legal@emmatech.in</Link></li>
+          <li>Attempt to access another organization's account, tenant, data, or credentials;</li>
+          <li>Share, misuse, or attempt to recover API keys or enrollment credentials beyond their intended one-time use;</li>
+          <li>Attack, disrupt, or probe the Service, or use it to attack third parties or for unlawful activity;</li>
+          <li>Reverse engineer, decompile, or attempt to extract the platform's models, detection logic, or source;</li>
+          <li>Circumvent authentication, authorization, rate limits, or other technical controls;</li>
+          <li>Resell or redistribute the Service without a separate written agreement.</li>
+        </BulletList>
+        <Paragraph>You are responsible for your own compliance with laws applicable to your use of the Service.</Paragraph>
+
+        <Divider />
+
+        {/* 7. Intellectual Property */}
+        <Subheading>7. Intellectual Property</Subheading>
+        <Paragraph>
+          EmmaTech and its licensors retain all rights in the RAPHA platform, the web application, the API, and the
+          "EmmaTech" and "RAPHA" names and logos. You retain rights in the data your Organization submits to or generates
+          within your RAPHA tenant.
+        </Paragraph>
+        <Paragraph>
+          We grant you a non-exclusive, non-transferable, revocable right to use the Service in accordance with these
+          Terms. Any feedback you provide may be used by us to improve the Service without restriction.
+        </Paragraph>
+
+        <Divider />
+
+        {/* 8. Confidentiality */}
+        <Subheading>8. Confidentiality</Subheading>
+        <Paragraph>
+          Non-public information disclosed by either party (including API keys, enrollment credentials, and other
+          credentials) must be protected with reasonable care and used only as needed to use or provide the Service.
+        </Paragraph>
+
+        <Divider />
+
+        {/* 9. Availability & Disclaimers */}
+        <Subheading>9. Service Availability and Disclaimers</Subheading>
+        <Disclaimer>
+          The Service is provided "as is" and "as available." To the maximum extent permitted by law, EmmaTech disclaims
+          all warranties, express or implied, including merchantability, fitness for a particular purpose, and
+          non-infringement. We do not warrant that the Service will be uninterrupted, error-free, or that it will detect
+          or prevent any particular threat.
+        </Disclaimer>
+        <Paragraph>The Service may change, and access may be suspended for maintenance, security, or operational reasons.</Paragraph>
+
+        <Divider />
+
+        {/* 10. Limitation of Liability */}
+        <Subheading>10. Limitation of Liability</Subheading>
+        <Paragraph>
+          To the maximum extent permitted by law, EmmaTech will not be liable for indirect, incidental, special,
+          consequential, or punitive damages, or for lost data, profits, or revenue. Our total aggregate liability arising
+          out of or relating to the Service will not exceed the amounts (if any) you paid to EmmaTech for the Service in
+          the twelve (12) months preceding the event giving rise to the claim.
+        </Paragraph>
+
+        <Divider />
+
+        {/* 11. Indemnification */}
+        <Subheading>11. Indemnification</Subheading>
+        <Paragraph>
+          You agree to indemnify and hold EmmaTech harmless from claims arising out of your data, your use of the Service,
+          your violation of these Terms, or your violation of applicable law.
+        </Paragraph>
+
+        <Divider />
+
+        {/* 12. Term & Termination */}
+        <Subheading>12. Term and Termination</Subheading>
+        <BulletList>
+          <li>These Terms apply while you have an account or otherwise use the Service.</li>
+          <li>You may stop using the Service at any time.</li>
+          <li>We may suspend or terminate access for breach of these Terms, unlawful use, or to protect the Service or other users.</li>
+          <li>On termination, your right to access the Service ends. Provisions that by their nature should survive (e.g., intellectual property, confidentiality, disclaimers, limitation of liability) will survive.</li>
+        </BulletList>
+
+        <Divider />
+
+        {/* 13. Changes */}
+        <Subheading>13. Changes to These Terms</Subheading>
+        <Paragraph>
+          We may update these Terms from time to time. When we do, we will revise the "Last Updated" date above. Your
+          continued use of the Service after an update constitutes acceptance of the revised Terms.
+        </Paragraph>
+
+        <Divider />
+
+        {/* 14. Governing Law */}
+        <Subheading>14. Governing Law</Subheading>
+        <Paragraph>
+          These Terms are governed by the laws of India, where EmmaTech Private Limited is established, without regard to
+          conflict-of-laws rules.
+        </Paragraph>
+
+        <Divider />
+
+        {/* 15. Contact */}
+        <Subheading>15. Contact</Subheading>
+        <BulletList>
+          <li><B>General/Legal:</B> <Link href="mailto:legal@emmatech.in">legal@emmatech.in</Link></li>
           <li><B>Security:</B> <Link href="mailto:security@emmatech.in">security@emmatech.in</Link></li>
-          <li><B>Privacy:</B> <Link href="mailto:privacy@emmatech.in">privacy@emmatech.in</Link></li>
           <li><B>Support:</B> <Link href="mailto:support@emmatech.in">support@emmatech.in</Link></li>
         </BulletList>
         <Paragraph><B>EmmaTech Private Limited</B><br />Delhi, India</Paragraph>
@@ -449,9 +318,8 @@ export const TermsOfService: React.FC = () => {
         <Divider />
 
         <Paragraph style={{ textAlign: 'center', fontStyle: 'italic' }}>
-          By using RAPHA, you acknowledge you have read, understood, and agree to these Terms of Service.
+          By using RAPHA, you acknowledge that you have read, understood, and agree to these Terms of Service.
         </Paragraph>
-
       </ContentWrapper>
     </PageContainer>
   );
