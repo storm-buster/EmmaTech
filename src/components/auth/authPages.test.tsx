@@ -6,7 +6,9 @@ import { theme } from '../../styles/theme';
 import { SignupPage } from './SignupPage';
 import { LoginPage } from './LoginPage';
 
-const signup = vi.fn();
+const requestSignupOtp = vi.fn();
+const verifySignupOtp = vi.fn();
+const selectPlan = vi.fn();
 const login = vi.fn();
 let authValue: Record<string, unknown> = {};
 vi.mock('../../auth/AuthContext', () => ({ useAuth: () => authValue }));
@@ -30,13 +32,24 @@ function renderLogin(onNavigate = vi.fn()) {
 
 beforeEach(() => {
   sessionStorage.clear();
-  signup.mockReset().mockResolvedValue(undefined);
+  requestSignupOtp.mockReset().mockResolvedValue(undefined);
+  verifySignupOtp.mockReset().mockResolvedValue(undefined);
+  selectPlan.mockReset().mockResolvedValue(undefined);
   login.mockReset().mockResolvedValue(undefined);
-  authValue = { signup, login, account: null, loading: false, logout: vi.fn(), refresh: vi.fn() };
+  authValue = {
+    requestSignupOtp,
+    verifySignupOtp,
+    selectPlan,
+    login,
+    account: null,
+    loading: false,
+    logout: vi.fn(),
+    refresh: vi.fn(),
+  };
 });
 afterEach(() => cleanup());
 
-describe('SignupPage — unified options', () => {
+describe('SignupPage — unified options + OTP', () => {
   it('renders Google, Microsoft, and email/password signup', () => {
     renderSignup();
     expect(screen.getByText('Continue with Google')).toBeInTheDocument();
@@ -46,7 +59,7 @@ describe('SignupPage — unified options', () => {
     expect(screen.getByText('or')).toBeInTheDocument();
   });
 
-  it('Growth intent requires a work email (consumer rejected, no signup call)', async () => {
+  it('Growth intent requires a work email (consumer rejected, no OTP request)', async () => {
     sessionStorage.setItem('emmatech.intendedPlan', 'growth');
     renderSignup();
     expect(screen.getByText('Growth')).toBeInTheDocument(); // plan badge
@@ -56,10 +69,10 @@ describe('SignupPage — unified options', () => {
     await userEvent.type(screen.getByLabelText('Password'), 'a-strong-password');
     await userEvent.click(screen.getByRole('button', { name: /Create account/i }));
     expect(await screen.findByText('Work email required for Growth')).toBeInTheDocument();
-    expect(signup).not.toHaveBeenCalled();
+    expect(requestSignupOtp).not.toHaveBeenCalled();
   });
 
-  it('Growth intent accepts a business email and submits requestedPlan=growth', async () => {
+  it('valid details request an OTP with the plan intent, then reveal the code step', async () => {
     sessionStorage.setItem('emmatech.intendedPlan', 'growth');
     renderSignup();
     await userEvent.type(screen.getByLabelText('Your name'), 'Jane');
@@ -67,9 +80,25 @@ describe('SignupPage — unified options', () => {
     await userEvent.type(screen.getByLabelText('Work email'), 'jane@acme.com');
     await userEvent.type(screen.getByLabelText('Password'), 'a-strong-password');
     await userEvent.click(screen.getByRole('button', { name: /Create account/i }));
-    expect(signup).toHaveBeenCalledWith(
+    expect(requestSignupOtp).toHaveBeenCalledWith(
       expect.objectContaining({ email: 'jane@acme.com', requestedPlan: 'growth' }),
     );
+    // Now on the OTP step.
+    expect(await screen.findByLabelText('Verification code')).toBeInTheDocument();
+  });
+
+  it('entering the code verifies and navigates to the account page', async () => {
+    const onNavigate = vi.fn();
+    renderSignup(onNavigate);
+    await userEvent.type(screen.getByLabelText('Your name'), 'Jane');
+    await userEvent.type(screen.getByLabelText('Organization name'), 'Acme');
+    await userEvent.type(screen.getByLabelText('Work email'), 'jane@acme.com');
+    await userEvent.type(screen.getByLabelText('Password'), 'a-strong-password');
+    await userEvent.click(screen.getByRole('button', { name: /Create account/i }));
+    await userEvent.type(await screen.findByLabelText('Verification code'), '123456');
+    await userEvent.click(screen.getByRole('button', { name: /Verify & create account/i }));
+    expect(verifySignupOtp).toHaveBeenCalledWith({ email: 'jane@acme.com', code: '123456' });
+    expect(onNavigate).toHaveBeenCalledWith('account');
   });
 });
 

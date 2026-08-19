@@ -16,7 +16,7 @@ const fetchMeMock = vi.mocked(fetchMe);
 
 const authedAccount = {
   user: { id: 'u1', email: 'owner@acme.com', name: 'Owner' },
-  organization: { id: 'o1', name: 'Acme', status: 'active', rapha_tenant_id: 'tnt-1', plan: 'free' },
+  organization: { id: 'o1', name: 'Acme', status: 'active', rapha_tenant_id: 'tnt-1', plan: 'free', plan_selected: true },
   role: 'owner',
   entitlement: { plan: 'free', planName: 'Free', sensorLimit: 1, decoysEnabled: false },
 } as unknown as AccountResponse;

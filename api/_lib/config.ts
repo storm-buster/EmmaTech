@@ -19,6 +19,10 @@ export interface AppConfig {
   raphaServiceToken: string;
   /** Postgres connection string. When absent, the in-memory store is used (dev/test). */
   databaseUrl: string | null;
+  /** Resend API key for transactional email (signup OTP). Secret; null when unset. */
+  resendApiKey: string | null;
+  /** Verified "from" address for OTP emails (e.g. "EmmaTech <noreply@emmatech.in>"). */
+  otpEmailFrom: string | null;
 }
 
 export class ConfigError extends Error {
@@ -36,6 +40,8 @@ export function getConfig(): AppConfig {
     raphaBaseUrl: (process.env.RAPHA_BASE_URL ?? '').trim(),
     raphaServiceToken: (process.env.RAPHA_SERVICE_TOKEN ?? '').trim(),
     databaseUrl: (process.env.DATABASE_URL ?? '').trim() || null,
+    resendApiKey: (process.env.RESEND_API_KEY ?? '').trim() || null,
+    otpEmailFrom: (process.env.OTP_EMAIL_FROM ?? '').trim() || null,
   };
 }
 

@@ -11,6 +11,7 @@ const ACCOUNT = {
     id: 'o1',
     name: 'Acme',
     plan: 'free',
+    plan_selected: true,
     status: 'active',
     rapha_tenant_id: 'tenant-o1',
     created_at: '',

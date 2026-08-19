@@ -13,6 +13,12 @@ in-memory store (tests / local dev) and no migration is required.
 - `0002_organization_plan.up.sql` — adds `organizations.plan` (default `free`,
   CHECK in free/starter/growth/perpetual).
 - `0002_organization_plan.down.sql` — rollback (drops the `plan` column).
+- `0003_email_verification_and_plan_selection.up.sql` — adds
+  `users.email_verified`, `organizations.plan_selected`, and the
+  `email_challenges` table (email OTP). Backfills existing users as verified and
+  existing organizations as already-selected. **Must be applied before deploying
+  the OTP signup code.**
+- `0003_email_verification_and_plan_selection.down.sql` — rollback.
 
 ## Apply
 

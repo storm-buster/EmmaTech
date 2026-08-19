@@ -13,6 +13,16 @@ import type { DataStore, Organization, OrgRole, User } from './store/types.js';
 import { DuplicateEmailError } from './store/types.js';
 import { DEFAULT_PLAN_ID, getPlan, isValidPlanId, type PlanId } from '../../src/shared/plans.js';
 import { isConsumerEmailDomain, WORK_EMAIL_REQUIRED_MESSAGE } from '../../src/shared/businessEmail.js';
+import {
+  generateOtpCode,
+  hashOtpCode,
+  isOtpExpired,
+  otpExpiryFrom,
+  OTP_MAX_ATTEMPTS,
+  OTP_REQUEST_COOLDOWN_MS,
+  verifyOtpCode,
+} from './otp.js';
+import type { EmailSender } from './email.js';
 
 // ---- Validation ----------------------------------------------------------
 
@@ -71,6 +81,9 @@ export interface PublicOrganization {
   id: string;
   name: string;
   plan: PlanId;
+  /** True once the customer has made a deliberate initial plan choice. The SPA
+   *  shows the plan-selection modal exactly when this is false. */
+  plan_selected: boolean;
   status: Organization['status'];
   rapha_tenant_id: string | null;
   created_at: string;
@@ -85,6 +98,7 @@ export function toPublicOrganization(org: Organization): PublicOrganization {
     id: org.id,
     name: org.name,
     plan: org.plan,
+    plan_selected: org.plan_selected,
     status: org.status,
     rapha_tenant_id: org.rapha_tenant_id,
     created_at: org.created_at,
@@ -238,6 +252,70 @@ function resolveSignupPlan(requested: unknown): PlanId {
   return plan.publiclyVisible ? plan.id : DEFAULT_PLAN_ID;
 }
 
+/**
+ * Whether the client carried a DELIBERATE plan selection (any valid plan id,
+ * including explicit 'free'), as opposed to no plan at all (null/undefined →
+ * the generic path that must show the post-signup plan-selection modal).
+ * Drives `organization.plan_selected` so the modal appears exactly once and the
+ * "explicit Free" state is never collapsed into "no plan".
+ */
+function isExplicitSelection(requested: unknown): boolean {
+  return typeof requested === 'string' && isValidPlanId(requested);
+}
+
+/**
+ * Create the fully-verified account: user (email_verified) + organization
+ * (server-authoritative plan) + owner membership + RAPHA provisioning. Shared
+ * by the immediate `signup()` (tests/internal) and the OTP `verifySignupOtp()`
+ * path. `password_hash` is already a scrypt hash.
+ */
+async function createVerifiedAccount(
+  store: DataStore,
+  cfg: AppConfig,
+  args: {
+    email: string;
+    name: string;
+    organizationName: string;
+    password_hash: string;
+    plan: PlanId;
+    plan_selected: boolean;
+  },
+  requestId?: string,
+): Promise<SignupResult> {
+  const existing = await store.getUserByEmail(args.email);
+  if (existing) throw new DuplicateEmailError();
+
+  const user = await store.createUser({
+    email: args.email,
+    password_hash: args.password_hash,
+    name: args.name,
+    email_verified: true,
+  });
+  let organization = await store.createOrganization({
+    name: args.organizationName,
+    plan: args.plan,
+    plan_selected: args.plan_selected,
+    status: 'pending',
+    rapha_tenant_id: null,
+  });
+  await store.createMembership({ user_id: user.id, organization_id: organization.id, role: 'owner' });
+  logInfo({
+    requestId,
+    userId: user.id,
+    organizationId: organization.id,
+    operation: 'account.signup',
+    status: 'success',
+  });
+  const provision = await provisionOrganizationTenant(store, cfg, organization, requestId);
+  organization = provision.organization;
+  return { user, organization, role: 'owner' };
+}
+
+/**
+ * Immediate account creation (no OTP). Retained for internal/service use and
+ * unit tests; the HTTP signup route now goes through requestSignupOtp →
+ * verifySignupOtp. The account is created email_verified.
+ */
 export async function signup(
   store: DataStore,
   cfg: AppConfig,
@@ -250,50 +328,235 @@ export async function signup(
   const name = validateName(input.name, 'name', 100);
   const organizationName = validateName(input.organizationName, 'organizationName', 200);
 
-  // Growth is a B2B plan → require a work (non-consumer) email. This validates
-  // the CLIENT-SUPPLIED intent for UX correctness.
+  const requestedPlan = typeof input.requestedPlan === 'string' ? input.requestedPlan : undefined;
+  if (requestedPlan === 'growth' && isConsumerEmailDomain(email)) {
+    throw new ValidationError('email', WORK_EMAIL_REQUIRED_MESSAGE);
+  }
+  const plan = resolveSignupPlan(input.requestedPlan);
+  const plan_selected = isExplicitSelection(input.requestedPlan);
+
+  const existing = await store.getUserByEmail(email);
+  if (existing) throw new DuplicateEmailError();
+
+  const password_hash = await hashPassword(password);
+  return createVerifiedAccount(
+    store,
+    cfg,
+    { email, name, organizationName, password_hash, plan, plan_selected },
+    requestId,
+  );
+}
+
+// ---- Email OTP signup (two-phase) ---------------------------------------
+
+/**
+ * Phase 1 — request an email OTP for a NEW email/password signup. Validates the
+ * input, then (enumeration-safe) either stores a single-use challenge with the
+ * PENDING account payload and dispatches the code, or — if the email already
+ * has an account — does nothing. No user/org/session/plan is created here. The
+ * OTP plaintext is never returned or logged. Resend supersedes any prior code.
+ */
+export async function requestSignupOtp(
+  store: DataStore,
+  cfg: AppConfig,
+  input: SignupInput,
+  hashPassword: (pw: string) => Promise<string>,
+  sender: EmailSender,
+  requestId?: string,
+): Promise<void> {
+  const email = normalizeEmail(input.email);
+  const password = validatePassword(input.password);
+  const name = validateName(input.name, 'name', 100);
+  const organizationName = validateName(input.organizationName, 'organizationName', 200);
+
   const requestedPlan = typeof input.requestedPlan === 'string' ? input.requestedPlan : undefined;
   if (requestedPlan === 'growth' && isConsumerEmailDomain(email)) {
     throw new ValidationError('email', WORK_EMAIL_REQUIRED_MESSAGE);
   }
 
-  // Pre-billing: a NEW organization is granted the selected PUBLIC plan
-  // immediately (validated server-side; never trust client state blindly).
-  // Unknown/invalid → FREE; `perpetual` is not publicly selectable → FREE.
-  // A future billing gate will be inserted here before activating paid plans;
-  // the organization.plan → entitlementsForPlan → provisioning path is unchanged.
-  const plan = resolveSignupPlan(input.requestedPlan);
-
-  // Idempotency: never create duplicate accounts.
+  // Enumeration-safe: if an account already exists, silently stop (the handler
+  // returns the same generic response). Do not send a code or reveal existence.
   const existing = await store.getUserByEmail(email);
-  if (existing) throw new DuplicateEmailError();
+  if (existing) {
+    logInfo({ requestId, operation: 'account.otp_request', status: 'success', outcome: 'noop_existing' });
+    return;
+  }
 
   const password_hash = await hashPassword(password);
-  const user = await store.createUser({ email, password_hash, name });
-  let organization = await store.createOrganization({
-    name: organizationName,
-    // Server-authoritative, validated plan for the new organization.
+  const code = generateOtpCode();
+  const code_hash = hashOtpCode(code, email, cfg.sessionSecret);
+  // Durable, per-email throttle (survives instance changes / IP rotation). A
+  // request within the cooldown returns the SAME generic response WITHOUT
+  // sending — never revealing throttle/account state.
+  const result = await store.requestChallengeWithThrottle(
+    {
+      email,
+      code_hash,
+      expires_at: otpExpiryFrom(),
+      payload: {
+        name,
+        organization_name: organizationName,
+        password_hash,
+        requested_plan: requestedPlan ?? null,
+      },
+    },
+    OTP_REQUEST_COOLDOWN_MS,
+  );
+  if (!result.created) {
+    logInfo({ requestId, operation: 'account.otp_request', status: 'success', outcome: 'throttled' });
+    return;
+  }
+  await sender.sendOtp(email, code); // sender never logs/echoes the code
+  logInfo({ requestId, operation: 'account.otp_request', status: 'success', outcome: 'dispatched' });
+}
+
+const OTP_GENERIC_ERROR = 'The verification code is invalid or has expired.';
+
+/**
+ * Phase 2 — verify the OTP and, only on success, create the verified account
+ * from the challenge's pending payload (preserving the requested plan). Wrong
+ * codes increment a bounded attempt counter; exceeding the limit locks the
+ * challenge. Uses generic errors to avoid leaking which step failed.
+ */
+export async function verifySignupOtp(
+  store: DataStore,
+  cfg: AppConfig,
+  input: { email: unknown; code: unknown },
+  requestId?: string,
+): Promise<SignupResult> {
+  const email = normalizeEmail(input.email);
+  const code = typeof input.code === 'string' ? input.code.trim() : '';
+  if (!/^\d{6}$/.test(code)) throw new ValidationError('code', OTP_GENERIC_ERROR);
+
+  const challenge = await store.getActiveEmailChallengeByEmail(email);
+  if (!challenge) throw new ValidationError('code', OTP_GENERIC_ERROR);
+  if (isOtpExpired(challenge.expires_at)) throw new ValidationError('code', OTP_GENERIC_ERROR);
+  if (challenge.attempts >= OTP_MAX_ATTEMPTS) {
+    throw new ValidationError('code', 'Too many incorrect attempts. Please request a new code.');
+  }
+
+  const ok = verifyOtpCode(code, email, cfg.sessionSecret, challenge.code_hash);
+  if (!ok) {
+    const updated = await store.incrementEmailChallengeAttempts(challenge.id);
+    // Lock the challenge once the attempt ceiling is reached (brute-force stop).
+    if (updated.attempts >= OTP_MAX_ATTEMPTS) await store.consumeEmailChallenge(challenge.id);
+    throw new ValidationError('code', OTP_GENERIC_ERROR);
+  }
+
+  // Correct code. Consume + create the account ATOMICALLY in one transaction:
+  // the conditional consume is the single-use guard (serializes concurrent
+  // verifications → exactly one account), and if any write fails the whole
+  // transaction rolls back so the challenge stays usable (retryable). RAPHA
+  // provisioning is done AFTER the commit so it can never orphan the account.
+  const plan = resolveSignupPlan(challenge.payload.requested_plan);
+  const plan_selected = isExplicitSelection(challenge.payload.requested_plan);
+  const created = await store.createAccountConsumingChallenge({
+    challengeId: challenge.id,
+    email,
+    name: challenge.payload.name,
+    organizationName: challenge.payload.organization_name,
+    password_hash: challenge.payload.password_hash,
     plan,
-    status: 'pending',
-    rapha_tenant_id: null,
+    plan_selected,
   });
-  await store.createMembership({
-    user_id: user.id,
-    organization_id: organization.id,
-    role: 'owner',
-  });
+  if (!created.ok) {
+    // The challenge was consumed/expired/superseded by a concurrent request.
+    throw new ValidationError('code', OTP_GENERIC_ERROR);
+  }
+
   logInfo({
     requestId,
-    userId: user.id,
-    organizationId: organization.id,
+    userId: created.user.id,
+    organizationId: created.organization.id,
     operation: 'account.signup',
     status: 'success',
   });
+  const provision = await provisionOrganizationTenant(store, cfg, created.organization, requestId);
+  return { user: created.user, organization: provision.organization, role: 'owner' };
+}
 
-  const provision = await provisionOrganizationTenant(store, cfg, organization, requestId);
-  organization = provision.organization;
+/** Raised when a customer tries to set their initial plan after it was chosen. */
+export class PlanAlreadySelectedError extends Error {
+  constructor() {
+    super('A plan has already been selected for this organization');
+    this.name = 'PlanAlreadySelectedError';
+  }
+}
 
-  return { user, organization, role: 'owner' };
+/**
+ * Re-sync the RAPHA tenant capabilities to the organization's CURRENT plan.
+ * Active tenants are synced in place; not-yet-active orgs are provisioned now
+ * (which syncs the plan). Failures mark the org 'failed' for a controlled retry.
+ */
+async function syncEntitlementForPlan(
+  store: DataStore,
+  cfg: AppConfig,
+  org: Organization,
+  requestId?: string,
+): Promise<Organization> {
+  if (org.status === 'active' && org.rapha_tenant_id) {
+    const ent = entitlementsForPlan(org.plan);
+    try {
+      await new RaphaServiceClient(cfg).syncTenantCapabilities(org.rapha_tenant_id, {
+        plan: org.plan,
+        sensorLimit: ent.sensorLimit,
+        decoysEnabled: ent.decoysEnabled,
+      });
+      return org;
+    } catch (err) {
+      const kind = err instanceof RaphaError ? err.kind : 'upstream';
+      logError({
+        requestId,
+        organizationId: org.id,
+        operation: 'rapha.capability_sync',
+        status: 'failure',
+        outcome: `rapha_${kind}`,
+      });
+      return store.updateOrganizationTenant(org.id, {
+        rapha_tenant_id: org.rapha_tenant_id,
+        status: 'failed',
+      });
+    }
+  }
+  return (await provisionOrganizationTenant(store, cfg, org, requestId)).organization;
+}
+
+/**
+ * Apply the customer's ONE-TIME initial plan selection (the post-signup modal
+ * for the generic/no-plan path). Server-authoritative:
+ *   - only the caller's OWN owner organization is affected;
+ *   - fails with PlanAlreadySelectedError if a plan was already chosen (never
+ *     downgrades/overwrites an existing selection or the PR#10 OAuth grant);
+ *   - the plan is validated via resolveSignupPlan (public-only; invalid/
+ *     perpetual → Free); Growth requires a work email (consumer-domain Growth
+ *     fails safe to Free);
+ *   - re-syncs the RAPHA entitlement to the chosen plan.
+ */
+export async function selectInitialPlan(
+  store: DataStore,
+  cfg: AppConfig,
+  userId: string,
+  requestedPlan: unknown,
+  requestId?: string,
+): Promise<Organization> {
+  const user = await store.getUserById(userId);
+  if (!user) throw new ValidationError('account', 'Account not found');
+  const membership = await store.getPrimaryMembershipForUser(userId);
+  const org = membership ? await store.getOrganizationById(membership.organization_id) : null;
+  if (!membership || membership.role !== 'owner' || !org) {
+    throw new ValidationError('organization', 'No organization is available to update');
+  }
+  if (org.plan_selected) throw new PlanAlreadySelectedError();
+
+  // Growth requires a work email; a consumer-domain Growth intent fails safe to
+  // Free (same rule as signup/OAuth, without throwing).
+  const effective =
+    typeof requestedPlan === 'string' && requestedPlan === 'growth' && isConsumerEmailDomain(user.email)
+      ? undefined
+      : requestedPlan;
+  const plan = resolveSignupPlan(effective);
+  const updated = await store.setInitialOrganizationPlan(org.id, plan);
+  return syncEntitlementForPlan(store, cfg, updated, requestId);
 }
 
 /**
@@ -336,11 +599,21 @@ export async function findOrCreateOAuthUser(
       ? undefined
       : input.plan;
   const plan = resolveSignupPlan(requestedPlan);
+  // Did the flow carry a deliberate plan selection? Drives plan_selected so the
+  // post-signup modal shows ONLY for the generic (no-plan) OAuth path.
+  const plan_selected = isExplicitSelection(input.plan);
 
-  const user = await store.createUser({ email, password_hash: `oauth:${input.provider}`, name });
+  // OAuth identity is provider-verified — the account is created email_verified.
+  const user = await store.createUser({
+    email,
+    password_hash: `oauth:${input.provider}`,
+    name,
+    email_verified: true,
+  });
   let organization = await store.createOrganization({
     name,
     plan,
+    plan_selected,
     status: 'pending',
     rapha_tenant_id: null,
   });
@@ -372,6 +645,9 @@ export async function login(
 
   const user = await store.getUserByEmail(email);
   if (!user || !user.is_active) return null;
+  // Defense-in-depth: an email/password account is only ever created after OTP
+  // verification, but never allow an unverified account to authenticate.
+  if (!user.email_verified) return null;
   const ok = await verifyPassword(input.password, user.password_hash);
   return ok ? user : null;
 }
