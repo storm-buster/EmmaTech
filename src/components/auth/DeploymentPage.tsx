@@ -1,20 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { Button } from '../Button';
 import { useAuth } from '../../auth/AuthContext';
 import { AuthApiError, generateEnrollmentToken } from '../../auth/authClient';
 import type { EnrollmentCredential } from '../../auth/authClient';
+import { fetchConsoleSensors } from '../../auth/consoleClient';
+import type { SensorRow } from '../../auth/consoleClient';
 import type { Route } from '../../App';
 import { AuthCard, AuthPage, AuthTitle } from './authStyles';
+import { deriveConnectionState, formatExpiry, isExpired } from './deployment';
+import type { ConnectionState } from './deployment';
 
 interface Props {
   onNavigate: (to: Route) => void;
 }
 
-/** Stable, public EmmaTech installer URL (served as a static asset). The
- *  enrollment token is NEVER part of this URL or the command below. */
+/** Stable, public EmmaTech installer URL (static asset). Token is NEVER in it. */
 const INSTALLER_URL = 'https://emmatech.in/install-rapha.ps1';
 const SERVER_NAME_RE = /^[A-Za-z0-9_.-]{1,200}$/;
+const POLL_MS = 15000;
 
 const Section = styled.div`
   display: flex;
@@ -33,6 +37,24 @@ const Val = styled.span`
   font-size: 15px;
   color: ${({ theme }) => theme.colors.neutral.white};
   text-align: right;
+`;
+const StepBar = styled.ol`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${({ theme }) => theme.spacing.sm};
+  list-style: none;
+  margin: ${({ theme }) => theme.spacing.lg} 0 0;
+  padding: 0;
+`;
+const Step = styled.li<{ $active: boolean; $done: boolean }>`
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid
+    ${({ theme, $active, $done }) =>
+      $done ? theme.colors.semantic.success : $active ? theme.colors.primary.main : theme.colors.neutral.border};
+  color: ${({ theme, $active, $done }) =>
+    $done ? theme.colors.semantic.success : $active ? theme.colors.neutral.white : theme.colors.neutral.mediumGray};
 `;
 const StepTitle = styled.h3`
   font-size: 15px;
@@ -120,24 +142,25 @@ const ErrorText = styled.p`
   font-size: 14px;
   margin-top: ${({ theme }) => theme.spacing.md};
 `;
-const Placeholder = styled.div`
-  margin-top: ${({ theme }) => theme.spacing.xl};
+const StatusPanel = styled.div<{ $online: boolean }>`
+  margin-top: ${({ theme }) => theme.spacing.lg};
   padding: ${({ theme }) => theme.spacing.lg};
-  border: 1px dashed ${({ theme }) => theme.colors.neutral.border};
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid
+    ${({ theme, $online }) => ($online ? theme.colors.semantic.success : theme.colors.neutral.border)};
+  background: ${({ $online }) => ($online ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.02)')};
 `;
-const PlaceholderTitle = styled.h3`
-  font-size: 15px;
+const StatusTitle = styled.h3`
+  font-size: 16px;
   color: ${({ theme }) => theme.colors.neutral.white};
   margin: 0 0 ${({ theme }) => theme.spacing.xs};
 `;
-const PlaceholderText = styled.p`
-  font-size: 13px;
-  color: ${({ theme }) => theme.colors.neutral.lightGray};
-  line-height: 1.6;
-  margin: 0;
-`;
+
+const CONNECTION_LABEL: Record<ConnectionState, string> = {
+  waiting: 'Waiting for your server to connect…',
+  connected: 'Server connected — waiting for it to come online…',
+  online: 'ONLINE',
+};
 
 export function DeploymentPage({ onNavigate }: Props) {
   const { account, loading } = useAuth();
@@ -146,10 +169,46 @@ export function DeploymentPage({ onNavigate }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [sensors, setSensors] = useState<SensorRow[]>([]);
+  const [checking, setChecking] = useState(false);
+  const nameRef = useRef('');
 
   useEffect(() => {
     if (!loading && !account) onNavigate('login');
   }, [loading, account, onNavigate]);
+
+  const org = account?.organization;
+  const entitlement = account?.entitlement;
+  const provisioned = org?.status === 'active';
+  const trimmedName = serverName.trim();
+  const nameValid = SERVER_NAME_RE.test(trimmedName);
+
+  const connState: ConnectionState | null = credential
+    ? deriveConnectionState(sensors, nameRef.current)
+    : null;
+  const online = connState === 'online';
+
+  // Poll the authoritative sensors API (existing endpoint; no new backend) to
+  // detect that the newly-enrolled server has actually connected. Enrollment
+  // success alone is NOT treated as ONLINE.
+  const checkConnection = useCallback(async () => {
+    setChecking(true);
+    try {
+      const res = await fetchConsoleSensors();
+      setSensors(res.sensors ?? []);
+    } catch {
+      /* transient — keep prior state; the manual "Check now" can retry */
+    } finally {
+      setChecking(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!credential || online) return;
+    void checkConnection();
+    const id = window.setInterval(() => void checkConnection(), POLL_MS);
+    return () => window.clearInterval(id);
+  }, [credential, online, checkConnection]);
 
   if (loading) {
     return (
@@ -160,12 +219,6 @@ export function DeploymentPage({ onNavigate }: Props) {
   }
   if (!account) return null;
 
-  const org = account.organization;
-  const entitlement = account.entitlement;
-  const provisioned = org?.status === 'active';
-  const trimmedName = serverName.trim();
-  const nameValid = SERVER_NAME_RE.test(trimmedName);
-
   const onGenerate = async () => {
     setError(null);
     setCopied(false);
@@ -175,7 +228,8 @@ export function DeploymentPage({ onNavigate }: Props) {
     }
     setWorking(true);
     try {
-      // sensor_name is carried to the server; tenant is derived server-side.
+      nameRef.current = trimmedName;
+      setSensors([]);
       setCredential(await generateEnrollmentToken(trimmedName));
     } catch (err) {
       setError(err instanceof AuthApiError ? err.message : 'Something went wrong');
@@ -194,11 +248,19 @@ export function DeploymentPage({ onNavigate }: Props) {
     }
   };
 
-  // NOTE: the enrollment token is intentionally NOT included in this command.
-  // The installer securely prompts for it (no-echo) at runtime.
+  // The token is intentionally NOT in this command; the installer prompts for it.
   const installCommand =
     `Invoke-WebRequest ${INSTALLER_URL} -OutFile install-rapha.ps1\n` +
     `.\\install-rapha.ps1 -SensorName "${trimmedName || 'WEB-SERVER-01'}"`;
+  const fallbackCommand =
+    `powershell -ExecutionPolicy Bypass -File .\\install-rapha.ps1 -SensorName "${trimmedName || 'WEB-SERVER-01'}"`;
+
+  const expiryText = credential ? formatExpiry(credential.expires_at) : '';
+  const expired = credential ? isExpired(credential.expires_at) : false;
+
+  // Step bar state (1..5).
+  const stepIndex = online ? 4 : credential ? 3 : 0; // name → generate → install → wait → online
+  const stepLabels = ['Name server', 'Generate credential', 'Install agent', 'Wait for connection', 'Server online'];
 
   return (
     <AuthPage>
@@ -214,7 +276,15 @@ export function DeploymentPage({ onNavigate }: Props) {
           <Val>{provisioned ? 'Provisioned' : 'Not provisioned'}</Val>
         </Section>
 
-        {/* STEP 1 — Server name */}
+        <StepBar aria-label="deployment steps">
+          {stepLabels.map((label, i) => (
+            <Step key={label} $active={i === stepIndex} $done={i < stepIndex || (online && i === 4)}>
+              {i + 1}. {label}
+            </Step>
+          ))}
+        </StepBar>
+
+        {/* STEP 1 — name */}
         <StepTitle>1. Name your server</StepTitle>
         <Field>
           <Label htmlFor="serverName">Server name</Label>
@@ -229,7 +299,7 @@ export function DeploymentPage({ onNavigate }: Props) {
           <Hint>This identifies the server/sensor in your RAPHA Console.</Hint>
         </Field>
 
-        {/* STEP 2 — Generate */}
+        {/* STEP 2 — generate */}
         <Actions>
           <Button variant="primary" onClick={onGenerate} disabled={working || !provisioned}>
             {working ? 'Generating…' : 'Generate enrollment credential'}
@@ -244,7 +314,14 @@ export function DeploymentPage({ onNavigate }: Props) {
             Your RAPHA deployment is still being prepared. Please try again shortly.
           </ErrorText>
         )}
-        {error && <ErrorText role="alert">{error}</ErrorText>}
+        {error && (
+          <ErrorText role="alert">
+            {error}
+            {/^(the enrollment request was rejected|malformed|invalid|expired)/i.test(error)
+              ? ' — generate a new enrollment credential and try again.'
+              : ''}
+          </ErrorText>
+        )}
 
         {credential && (
           <>
@@ -258,47 +335,76 @@ export function DeploymentPage({ onNavigate }: Props) {
               </TokenRow>
               <Warn>
                 This token authorizes a <strong>single RAPHA sensor</strong> to join your
-                organization. It is shown <strong>once</strong>, is sensitive, expires
-                {credential.expires_at ? ` (${new Date(credential.expires_at).toLocaleString()})` : ''},
-                and is not an API key. Copy it now — you will paste it into the installer prompt.
+                organization. It is shown <strong>once</strong> and is sensitive.{' '}
+                {expiryText ? (
+                  <>
+                    {expired ? 'It EXPIRED at ' : 'It expires at '}
+                    <strong>{expiryText}</strong> (your local time).
+                  </>
+                ) : (
+                  'It is short-lived.'
+                )}{' '}
+                Copy it now — you will paste it into the installer prompt.
               </Warn>
             </TokenBox>
 
-            {/* STEP 3 — Installation instructions */}
+            {/* STEP 3 — install */}
             <StepTitle>2. Install the RAPHA agent on your Windows server</StepTitle>
             <Steps>
-              <li>On the server, open <strong>PowerShell as Administrator</strong>.</li>
+              <li>On the server (Windows 10/11), open <strong>PowerShell as Administrator</strong>.</li>
               <li>Download and run the EmmaTech installer:</li>
             </Steps>
             <CodeBlock aria-label="installer command">{installCommand}</CodeBlock>
+            <Hint>
+              If script execution is blocked by policy, use:
+            </Hint>
+            <CodeBlock aria-label="installer fallback command">{fallbackCommand}</CodeBlock>
             <Steps start={3}>
-              <li>When prompted, <strong>paste the enrollment token above</strong> (input is hidden).</li>
+              <li>When prompted, <strong>paste the enrollment token above</strong> and press Enter.</li>
               <li>The installer verifies the download, installs the agent + service, and enrolls this server.</li>
-              <li>Return to the <strong>RAPHA Console</strong> — your server appears once telemetry begins.</li>
             </Steps>
             <Hint>
-              The installer is downloaded from EmmaTech ({INSTALLER_URL}); no GitHub access is
-              required. The enrollment token is never part of the command or any URL.
+              Works on Windows PowerShell 5.1 and PowerShell 7+. The installer is downloaded from
+              EmmaTech ({INSTALLER_URL}); no GitHub access is required. The enrollment token is never
+              part of the command or any URL.
             </Hint>
+
+            {/* STEP 4/5 — wait for connection / online */}
+            <StepTitle>3. Wait for your server to come online</StepTitle>
+            <StatusPanel $online={online} role="status">
+              <StatusTitle>{online ? 'RAPHA Agent installed successfully' : CONNECTION_LABEL[connState ?? 'waiting']}</StatusTitle>
+              {online ? (
+                <>
+                  <Section>
+                    <Key>Server</Key>
+                    <Val>{nameRef.current}</Val>
+                  </Section>
+                  <Section>
+                    <Key>Status</Key>
+                    <Val>ONLINE</Val>
+                  </Section>
+                  <Actions>
+                    <Button variant="primary" onClick={() => onNavigate('console')}>
+                      Open Console
+                    </Button>
+                  </Actions>
+                </>
+              ) : (
+                <>
+                  <Hint>
+                    This page checks automatically. Enrollment succeeding on the server is not the same
+                    as the sensor being online — we wait until it actually connects.
+                  </Hint>
+                  <Actions>
+                    <Button variant="secondary" onClick={() => void checkConnection()} disabled={checking}>
+                      {checking ? 'Checking…' : 'Check now'}
+                    </Button>
+                  </Actions>
+                </>
+              )}
+            </StatusPanel>
           </>
         )}
-
-        <Placeholder>
-          <PlaceholderTitle>RAPHA Console</PlaceholderTitle>
-          <PlaceholderText>
-            Manage your deployment in the RAPHA Console, including <strong>API Keys</strong> for REST
-            integrations. Open it from the <strong>Console</strong> link in your navigation.
-          </PlaceholderText>
-        </Placeholder>
-
-        <Placeholder>
-          <PlaceholderTitle>API access is live</PlaceholderTitle>
-          <PlaceholderText>
-            Programmatic API-key management is available now in the RAPHA Console under{' '}
-            <strong>API Keys</strong>. API keys are a separate credential type from enrollment
-            tokens.
-          </PlaceholderText>
-        </Placeholder>
       </AuthCard>
     </AuthPage>
   );

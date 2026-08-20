@@ -35,6 +35,34 @@ export interface EnrollmentTokenResult {
   expires_at: string;
 }
 
+/**
+ * Normalize a RAPHA `expires_at` to a canonical ISO-8601 string.
+ *
+ * RAPHA may return the expiry as an ISO string OR a numeric epoch. The
+ * production "January 1970" display bug was caused by RAPHA returning epoch
+ * SECONDS which the browser then fed to `new Date(n)` (which expects ms).
+ * Here we detect a numeric epoch and scale seconds → ms (values < 1e12 are
+ * treated as seconds), so the client always receives a correct ISO timestamp.
+ * Unknown/invalid input yields '' (the UI then shows no expiry rather than 1970).
+ */
+export function normalizeExpiryToIso(value: unknown): string {
+  const isNumericString = typeof value === 'string' && /^\d+(\.\d+)?$/.test(value.trim());
+  if (typeof value === 'number' || isNumericString) {
+    const n = typeof value === 'number' ? value : Number(value);
+    if (Number.isFinite(n) && n > 0) {
+      const ms = n < 1e12 ? n * 1000 : n; // epoch seconds → ms
+      const d = new Date(ms);
+      if (!Number.isNaN(d.getTime())) return d.toISOString();
+    }
+    return '';
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) return d.toISOString();
+  }
+  return '';
+}
+
 export async function requestEnrollmentToken(
   store: DataStore,
   cfg: AppConfig,
@@ -68,6 +96,6 @@ export async function requestEnrollmentToken(
     enrollment_token: token.enrollment_token,
     status: token.status,
     created_at: token.created_at,
-    expires_at: token.expires_at,
+    expires_at: normalizeExpiryToIso(token.expires_at),
   };
 }
