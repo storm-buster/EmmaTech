@@ -204,18 +204,25 @@ function Resolve-PythonExe {
 # Steps
 # --------------------------------------------------------------------------- #
 function Read-EnrollmentTokenIfNeeded {
-    # Secure, no-echo prompt when the token was not supplied on the command line,
-    # so it never appears in shell history or the process command line.
-    if (-not [string]::IsNullOrWhiteSpace($EnrollmentToken)) { return $EnrollmentToken }
-    $secure = Read-Host -Prompt 'Paste your RAPHA enrollment token (input hidden)' -AsSecureString
-    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
-    try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
-    finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
+    # If supplied on the command line, use it (validated below in env checks).
+    if (-not [string]::IsNullOrWhiteSpace($EnrollmentToken)) { return $EnrollmentToken.Trim() }
+    # SECURITY NOTE (Windows PowerShell 5.1 compatibility):
+    # We intentionally use a PLAIN Read-Host here, NOT -AsSecureString. On Windows
+    # PowerShell 5.1 the conhost masked SecureString prompt drops/mangles PASTED
+    # characters, producing a truncated token that RAPHA rejected with HTTP 401.
+    # A plain prompt captures a pasted token reliably on both PS 5.1 and 7+.
+    # This is acceptable because the token is one-time, short-lived, shown only on
+    # the admin's own console during their own install, and is still trimmed,
+    # format-validated, passed to the agent ONLY via stdin, never logged, never
+    # placed in a URL or process arguments, and cleared from memory after use.
+    $entered = Read-Host -Prompt 'Paste your RAPHA enrollment token, then press Enter'
+    if ($null -eq $entered) { return '' }
+    return $entered.Trim()   # strip stray whitespace / CR introduced by pasting
 }
 
 function Invoke-EnvironmentChecks {
     param([string] $Token)
-    Write-RaphaLog -Level STEP -Message "Checking Windows environment"
+    Write-RaphaLog -Level STEP -Message "[1/10] Checking Windows environment"
     if ([Environment]::OSVersion.Platform -ne 'Win32NT') { throw "Windows is required." }
     if (-not [Environment]::Is64BitOperatingSystem) { Write-RaphaLog -Level WARN -Message "Non-64-bit OS detected." }
     if (-not (Test-IsAdministrator)) { throw "Administrator privileges are required to install a Windows service. Re-run PowerShell as Administrator." }
@@ -225,7 +232,7 @@ function Invoke-EnvironmentChecks {
 }
 
 function Test-Connectivity {
-    Write-RaphaLog -Level STEP -Message "Checking connectivity to RAPHA"
+    Write-RaphaLog -Level STEP -Message "[2/10] Checking RAPHA connectivity"
     $healthUrl = ($BaseUrl.TrimEnd('/')) + '/api/v1/health'
     try {
         $resp = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 15
@@ -237,18 +244,42 @@ function Test-Connectivity {
 
 function Get-AgentPackage {
     param([string] $StageDir)
-    Write-RaphaLog -Level STEP -Message "Acquiring RAPHA agent package v1.0.1"
+    Write-RaphaLog -Level STEP -Message "[3/10] Acquiring RAPHA agent package v1.0.1"
     $dest = Join-Path $StageDir 'rapha-agent.zip'
     $src = Resolve-PackageSource -PackagePath $PackagePath -ExpectedSha256 $ExpectedSha256
     if ($src.Mode -eq 'local') {
         if (-not (Test-Path $src.LocalPath)) { throw "Package not found: $($src.LocalPath)" }
         Copy-Item -Path $src.LocalPath -Destination $dest -Force
     } else {
-        Write-RaphaLog -Message "Downloading agent package from EmmaTech storage"
-        Invoke-WebRequest -Uri $src.Url -OutFile $dest -UseBasicParsing -TimeoutSec 600
+        # Download with bounded retry for transient failures. NEVER reuse a
+        # partial file. NOTE: on Windows PowerShell 5.1, Invoke-WebRequest is
+        # dramatically slower (often 10-50x) when the progress bar renders, which
+        # is the likely cause of the multi-minute ~40 MB download observed in
+        # acceptance. Suppressing $ProgressPreference restores normal throughput.
+        $attempts = 3
+        for ($i = 1; $i -le $attempts; $i++) {
+            if (Test-Path $dest) { Remove-Item $dest -Force -ErrorAction SilentlyContinue }
+            $prevProgress = $ProgressPreference
+            $ProgressPreference = 'SilentlyContinue'
+            try {
+                Write-RaphaLog -Message "Downloading agent package from EmmaTech storage (attempt $i/$attempts)"
+                Invoke-WebRequest -Uri $src.Url -OutFile $dest -UseBasicParsing -TimeoutSec 600
+                break
+            } catch {
+                if (Test-Path $dest) { Remove-Item $dest -Force -ErrorAction SilentlyContinue } # no partial package
+                if ($i -eq $attempts) { throw "Download failed after $attempts attempts: $($_.Exception.Message)" }
+                $delay = $i * 5
+                Write-RaphaLog -Level WARN -Message "Download attempt $i failed; retrying in ${delay}s"
+                Start-Sleep -Seconds $delay
+            } finally {
+                $ProgressPreference = $prevProgress
+            }
+        }
     }
-    # Verify SHA-256 BEFORE extraction. Fail closed on mismatch.
+    # Verify SHA-256 BEFORE extraction. Fail closed on mismatch (and drop the file).
+    Write-RaphaLog -Level STEP -Message "[4/10] Verifying package integrity (SHA-256)"
     if (-not (Test-FileSha256 -Path $dest -Expected $src.ExpectedSha)) {
+        if (Test-Path $dest) { Remove-Item $dest -Force -ErrorAction SilentlyContinue }
         throw "Package checksum verification FAILED (expected $($src.ExpectedSha)). Aborting before extraction."
     }
     Write-RaphaLog -Message "Package checksum verified (SHA-256 OK)"
@@ -274,7 +305,7 @@ function Remove-ExistingService {
 
 function Install-AgentFiles {
     param([string] $ZipPath)
-    Write-RaphaLog -Level STEP -Message "Installing agent files to $InstallDir"
+    Write-RaphaLog -Level STEP -Message "[5/10] Installing agent files to $InstallDir"
     if (-not (Test-Path $InstallDir)) { New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null }
     Expand-Archive -Path $ZipPath -DestinationPath $InstallDir -Force
     foreach ($d in @($DataDir, $script:LogDir, (Join-Path $DataDir 'state'), (Join-Path $DataDir 'secrets'))) {
@@ -284,7 +315,7 @@ function Install-AgentFiles {
 
 function Invoke-Provisioning {
     param([string] $Token)
-    Write-RaphaLog -Level STEP -Message "Enrolling machine (token via stdin; never on command line)"
+    Write-RaphaLog -Level STEP -Message "[6/10] Enrolling this machine with RAPHA"
     $py = Resolve-PythonExe -Explicit $PythonExe -InstallDir $InstallDir
     $idem = Get-InstallIdempotencyKey -Path $script:IdempotencyPath
     $sensor = Get-SafeSensorName -Name $SensorName
@@ -344,7 +375,7 @@ function New-WinswConfigXml {
 
 function Install-Service {
     if ($SkipService) { Write-RaphaLog -Message "SkipService set; not installing service"; return }
-    Write-RaphaLog -Level STEP -Message "Installing Windows service ($script:ServiceId)"
+    Write-RaphaLog -Level STEP -Message "[7/10] Installing the RAPHA Windows service ($script:ServiceId)"
     $py = Resolve-PythonExe -Explicit $PythonExe -InstallDir $InstallDir
     $winsw = Join-Path $InstallDir 'winsw.exe'
     if (-not (Test-Path $winsw)) { throw "Bundled winsw.exe not found in the package. Re-download and retry." }
@@ -356,12 +387,12 @@ function Install-Service {
     & $winsw install
     if ($LASTEXITCODE -ne 0) { throw "Service install failed (winsw install exit $LASTEXITCODE)." }
     & $winsw start
-    Write-RaphaLog -Message "Service installed and start requested"
+    Write-RaphaLog -Message "[8/10] Service installed; start requested"
 }
 
 function Test-ServiceHealth {
     if ($SkipService) { return $true }
-    Write-RaphaLog -Level STEP -Message "Waiting for agent health"
+    Write-RaphaLog -Level STEP -Message "[9/10] Waiting for agent health"
     $py = Resolve-PythonExe -Explicit $PythonExe -InstallDir $InstallDir
     $probe = "import sys; sys.path.insert(0, r'$InstallDir'); " +
              "from rapha_agent.health import is_healthy, default_heartbeat_path; " +
@@ -410,7 +441,7 @@ function Invoke-Main {
             Install-Service
             if (-not (Test-ServiceHealth)) { throw "Service health check failed." }
         }
-        Write-RaphaLog -Level STEP -Message "RAPHA agent installation SUCCESSFUL (sensor_id=$($result.sensor_id)). It should appear in your EmmaTech Console shortly."
+        Write-RaphaLog -Level STEP -Message "[10/10] RAPHA agent installed and enrolled SUCCESSFULLY (sensor_id=$($result.sensor_id)). Your server will appear in the EmmaTech Console once it connects."
     } catch {
         Invoke-Rollback -Reason $_.Exception.Message
         throw

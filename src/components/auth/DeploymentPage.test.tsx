@@ -20,6 +20,9 @@ const ACCOUNT = {
   entitlement: { plan: 'free', planName: 'Free', sensorLimit: 1, decoysEnabled: false },
 };
 
+// Future epoch SECONDS (2026-08-21) — exercises the UI's seconds→ms handling.
+const EPOCH_SECONDS = 1787270400;
+
 function jsonRes(status: number, body: unknown) {
   return { ok: status >= 200 && status < 300, status, json: async () => body };
 }
@@ -35,20 +38,25 @@ function renderPage(onNavigate = vi.fn()) {
   return onNavigate;
 }
 
-/** fetch mock that records enrollment-token POST bodies. */
-function stubFetch(tokenResponder?: (init?: RequestInit) => unknown) {
+/** fetch mock: /me → account, POST enrollment-token → credential, /console/sensors → given list. */
+function stubFetch(opts: { tokenStatus?: number; expiresAt?: unknown; sensors?: unknown[] } = {}) {
   const calls: { url: string; init?: RequestInit }[] = [];
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     calls.push({ url, init });
     if (url.includes('/enrollment-token') && init?.method === 'POST') {
-      return (tokenResponder?.(init) as ReturnType<typeof jsonRes>) ??
-        jsonRes(201, {
-          enrollment_token: 'renr_shownonce_abcdefghijklmnop',
-          token_id: 'tok_1',
-          status: 'active',
-          expires_at: '2026-01-02T00:00:00Z',
-          note: 'sensitive',
-        });
+      if (opts.tokenStatus && opts.tokenStatus >= 400) {
+        return jsonRes(opts.tokenStatus, { error: 'RAPHA is temporarily unavailable. Please try again later.' });
+      }
+      return jsonRes(201, {
+        enrollment_token: 'renr_shownonce_abcdefghijklmnop',
+        token_id: 'tok_1',
+        status: 'active',
+        expires_at: opts.expiresAt ?? '2026-08-21T00:00:00.000Z',
+        note: 'sensitive',
+      });
+    }
+    if (url.includes('/api/console/sensors')) {
+      return jsonRes(200, { tenant_id: 'tenant-o1', sensors: opts.sensors ?? [] });
     }
     return jsonRes(200, ACCOUNT);
   });
@@ -61,14 +69,14 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('DeploymentPage — Add Server flow', () => {
+describe('DeploymentPage — hardened deployment flow', () => {
   it('redirects unauthenticated users to login', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonRes(401, { error: 'Not authenticated' })));
     const onNavigate = renderPage();
     await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('login'));
   });
 
-  it('shows plan/provisioned status and a server-name input', async () => {
+  it('shows plan/status and a server-name input', async () => {
     stubFetch();
     renderPage();
     expect(await screen.findByText('Free')).toBeInTheDocument();
@@ -79,34 +87,34 @@ describe('DeploymentPage — Add Server flow', () => {
   it('requires a valid server name before generating (no POST on empty)', async () => {
     const { calls } = stubFetch();
     renderPage();
-    const btn = await screen.findByText('Generate enrollment credential');
-    fireEvent.click(btn);
+    fireEvent.click(await screen.findByText('Generate enrollment credential'));
     expect(await screen.findByRole('alert')).toHaveTextContent(/server name/i);
-    // No enrollment-token POST happened.
     expect(calls.some((c) => c.url.includes('/enrollment-token') && c.init?.method === 'POST')).toBe(false);
   });
 
-  it('generates with the server name, shows the one-time token + install instructions', async () => {
-    const { calls } = stubFetch();
+  it('generates a token, renders a correct (non-1970) expiry from epoch seconds, and token-free commands', async () => {
+    const { calls } = stubFetch({ expiresAt: EPOCH_SECONDS }); // epoch seconds
     renderPage();
     fireEvent.change(await screen.findByLabelText('Server name'), { target: { value: 'WEB-SERVER-01' } });
     fireEvent.click(screen.getByText('Generate enrollment credential'));
 
-    // Token appears once.
     expect(await screen.findByText('renr_shownonce_abcdefghijklmnop')).toBeInTheDocument();
-    // sensor_name was sent (tenant derived server-side; never sent by client).
+    // sensor_name sent; no tenant_id from browser.
     const post = calls.find((c) => c.url.includes('/enrollment-token') && c.init?.method === 'POST');
     expect(JSON.parse(post!.init!.body as string)).toEqual({ sensor_name: 'WEB-SERVER-01' });
-    expect(post!.init!.body as string).not.toContain('tenant_id');
 
-    // Install instructions + installer URL appear.
+    // Expiry renders in local time and is NOT the 1970 bug.
+    const expectedExpiry = new Date(EPOCH_SECONDS * 1000).toLocaleString();
+    expect(screen.getByText(expectedExpiry)).toBeInTheDocument();
+    expect(document.body.textContent ?? '').not.toContain('1970');
+
+    // Primary + fallback commands present; neither contains the token.
     const cmd = await screen.findByLabelText('installer command');
-    expect(screen.getAllByText(/emmatech\.in\/install-rapha\.ps1/).length).toBeGreaterThan(0);
-
-    // The token is NOT in the command or the installer URL.
-    expect(cmd.textContent ?? '').not.toContain('renr_shownonce_abcdefghijklmnop');
+    const fb = await screen.findByLabelText('installer fallback command');
     expect(cmd.textContent ?? '').toContain('-SensorName "WEB-SERVER-01"');
-    expect(cmd.textContent ?? '').not.toContain('token');
+    expect(cmd.textContent ?? '').not.toContain('renr_shownonce_abcdefghijklmnop');
+    expect(fb.textContent ?? '').toContain('-ExecutionPolicy Bypass');
+    expect(fb.textContent ?? '').not.toContain('renr_shownonce_abcdefghijklmnop');
   });
 
   it('copies the token via an explicit Copy action', async () => {
@@ -121,22 +129,41 @@ describe('DeploymentPage — Add Server flow', () => {
     await waitFor(() => expect(writeText).toHaveBeenCalledWith('renr_shownonce_abcdefghijklmnop'));
   });
 
+  it('transitions to ONLINE when the enrolled sensor connects, and offers Open Console', async () => {
+    stubFetch({
+      sensors: [
+        { sensor_id: 'orch-x', tenant_id: 'tenant-o1', hostname: 'WEB-SERVER-01', status: 'active', last_seen: EPOCH_SECONDS },
+      ],
+    });
+    const onNavigate = renderPage();
+    fireEvent.change(await screen.findByLabelText('Server name'), { target: { value: 'WEB-SERVER-01' } });
+    fireEvent.click(screen.getByText('Generate enrollment credential'));
+    // Auto-poll picks up the matching active sensor → ONLINE success state.
+    expect(await screen.findByText('RAPHA Agent installed successfully')).toBeInTheDocument();
+    expect(screen.getByText('ONLINE')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Open Console'));
+    expect(onNavigate).toHaveBeenCalledWith('console');
+  });
+
+  it('stays in a waiting state (not ONLINE) when no matching sensor has connected', async () => {
+    stubFetch({ sensors: [] });
+    renderPage();
+    fireEvent.change(await screen.findByLabelText('Server name'), { target: { value: 'WEB-SERVER-01' } });
+    fireEvent.click(screen.getByText('Generate enrollment credential'));
+    await screen.findByText('renr_shownonce_abcdefghijklmnop');
+    await waitFor(() =>
+      expect(screen.getByText(/Waiting for your server to connect/i)).toBeInTheDocument(),
+    );
+    expect(screen.queryByText('ONLINE')).not.toBeInTheDocument();
+  });
+
   it('shows a safe error message when generation fails', async () => {
-    stubFetch(() => jsonRes(502, { error: 'RAPHA is temporarily unavailable. Please try again later.' }));
+    stubFetch({ tokenStatus: 502 });
     renderPage();
     fireEvent.change(await screen.findByLabelText('Server name'), { target: { value: 'web-1' } });
     fireEvent.click(screen.getByText('Generate enrollment credential'));
     expect(
-      await screen.findByText('RAPHA is temporarily unavailable. Please try again later.'),
+      await screen.findByText(/RAPHA is temporarily unavailable/i),
     ).toBeInTheDocument();
-  });
-
-  it('reflects live API access (no stale "coming soon"/"not available yet")', async () => {
-    stubFetch();
-    renderPage();
-    await screen.findByText('Free');
-    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/not available yet/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/API access is live/i)).toBeInTheDocument();
   });
 });

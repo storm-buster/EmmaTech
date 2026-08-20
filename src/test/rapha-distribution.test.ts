@@ -50,10 +50,27 @@ describe('install-rapha.ps1 (EmmaTech bootstrapper)', () => {
 
   it('passes the enrollment token via stdin and never puts it in a URL or command line', () => {
     expect(installer).toContain('StandardInput.WriteLine($Token)');
-    expect(installer).toMatch(/AsSecureString/); // secure no-echo prompt
+    // PS 5.1 compatibility: a plain Read-Host is used for the token prompt
+    // (the -AsSecureString masked prompt truncated pasted tokens on 5.1 → HTTP 401).
+    expect(installer).toMatch(/Read-Host -Prompt/);
+    expect(installer).not.toMatch(/-Prompt[^\n]*-AsSecureString/); // no masked-prompt usage
+    expect(installer).toMatch(/\.Trim\(\)/); // trims stray whitespace/CR from paste
     // No token query-string patterns.
     expect(installer).not.toMatch(/enrollment_token=/);
     expect(installer).not.toMatch(/\?token=/);
+  });
+
+  it('has robust download behavior (progress suppressed, bounded retry, no partial reuse)', () => {
+    // Windows PowerShell 5.1 IWR is dramatically slower with the progress bar.
+    expect(installer).toContain("$ProgressPreference = 'SilentlyContinue'");
+    expect(installer).toMatch(/attempt \$i\/\$attempts|attempts/); // retry loop
+    expect(installer).toMatch(/Remove-Item \$dest -Force/); // deletes partial downloads
+    expect(installer).toContain('-TimeoutSec 600'); // explicit timeout
+  });
+
+  it('shows clear numbered installation phases', () => {
+    expect(installer).toMatch(/\[1\/10\]/);
+    expect(installer).toMatch(/\[10\/10\]/);
   });
 
   it('is Windows PowerShell 5.1 compatible: no ProcessStartInfo.ArgumentList usage', () => {
