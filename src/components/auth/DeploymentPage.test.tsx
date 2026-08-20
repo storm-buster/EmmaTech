@@ -108,13 +108,22 @@ describe('DeploymentPage — hardened deployment flow', () => {
     expect(screen.getByText(expectedExpiry)).toBeInTheDocument();
     expect(document.body.textContent ?? '').not.toContain('1970');
 
-    // Primary + fallback commands present; neither contains the token.
+    // Primary + run commands present; neither contains the token.
     const cmd = await screen.findByLabelText('installer command');
-    const fb = await screen.findByLabelText('installer fallback command');
-    expect(cmd.textContent ?? '').toContain('-SensorName "WEB-SERVER-01"');
+    const run = await screen.findByLabelText('installer run command');
+    // EXACT, static download command (quoted canonical www URL + quoted $PWD path).
+    expect(cmd.textContent).toBe(
+      'Invoke-WebRequest "https://www.emmatech.in/install-rapha.ps1" -OutFile "$PWD\\install-rapha.ps1"',
+    );
+    // Negative guards: unquoted -OutFile form and apex (non-www) URL must be absent.
+    expect(cmd.textContent ?? '').not.toContain('-OutFile install-rapha.ps1');
+    expect(cmd.textContent ?? '').not.toContain('https://emmatech.in/install-rapha.ps1');
     expect(cmd.textContent ?? '').not.toContain('renr_shownonce_abcdefghijklmnop');
-    expect(fb.textContent ?? '').toContain('-ExecutionPolicy Bypass');
-    expect(fb.textContent ?? '').not.toContain('renr_shownonce_abcdefghijklmnop');
+    // Execution command unchanged (powershell.exe -NoProfile -ExecutionPolicy Bypass).
+    expect(run.textContent ?? '').toContain(
+      'powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\install-rapha.ps1 -SensorName "WEB-SERVER-01"',
+    );
+    expect(run.textContent ?? '').not.toContain('renr_shownonce_abcdefghijklmnop');
   });
 
   it('copies the token via an explicit Copy action', async () => {

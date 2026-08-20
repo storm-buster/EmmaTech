@@ -15,8 +15,10 @@ interface Props {
   onNavigate: (to: Route) => void;
 }
 
-/** Stable, public EmmaTech installer URL (static asset). Token is NEVER in it. */
-const INSTALLER_URL = 'https://emmatech.in/install-rapha.ps1';
+/** Stable, public EmmaTech installer URL (static asset). Token is NEVER in it.
+ *  Uses the canonical www host: the apex `emmatech.in` issues a 308 redirect
+ *  that Windows PowerShell 5.1's Invoke-WebRequest does not follow for -OutFile. */
+const INSTALLER_URL = 'https://www.emmatech.in/install-rapha.ps1';
 const SERVER_NAME_RE = /^[A-Za-z0-9_.-]{1,200}$/;
 const POLL_MS = 15000;
 
@@ -248,12 +250,14 @@ export function DeploymentPage({ onNavigate }: Props) {
     }
   };
 
-  // The token is intentionally NOT in this command; the installer prompts for it.
-  const installCommand =
-    `Invoke-WebRequest ${INSTALLER_URL} -OutFile install-rapha.ps1\n` +
-    `.\\install-rapha.ps1 -SensorName "${trimmedName || 'WEB-SERVER-01'}"`;
-  const fallbackCommand =
-    `powershell -ExecutionPolicy Bypass -File .\\install-rapha.ps1 -SensorName "${trimmedName || 'WEB-SERVER-01'}"`;
+  // The token is intentionally NOT in these commands; the installer prompts for it.
+  // The download command is EXACT and static (quoted www URL + quoted $PWD path):
+  // the apex host 308-redirects and Windows PowerShell 5.1's IWR -OutFile does not
+  // follow it. $PWD keeps the file in the current directory regardless of cwd.
+  const downloadCommand =
+    'Invoke-WebRequest "https://www.emmatech.in/install-rapha.ps1" -OutFile "$PWD\\install-rapha.ps1"';
+  const runCommand =
+    `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\install-rapha.ps1 -SensorName "${trimmedName || 'WEB-SERVER-01'}"`;
 
   const expiryText = credential ? formatExpiry(credential.expires_at) : '';
   const expired = credential ? isExpired(credential.expires_at) : false;
@@ -352,13 +356,13 @@ export function DeploymentPage({ onNavigate }: Props) {
             <StepTitle>2. Install the RAPHA agent on your Windows server</StepTitle>
             <Steps>
               <li>On the server (Windows 10/11), open <strong>PowerShell as Administrator</strong>.</li>
-              <li>Download and run the EmmaTech installer:</li>
+              <li>Download the EmmaTech installer:</li>
             </Steps>
-            <CodeBlock aria-label="installer command">{installCommand}</CodeBlock>
-            <Hint>
-              If script execution is blocked by policy, use:
-            </Hint>
-            <CodeBlock aria-label="installer fallback command">{fallbackCommand}</CodeBlock>
+            <CodeBlock aria-label="installer command">{downloadCommand}</CodeBlock>
+            <Steps start={2}>
+              <li>Run it (you will be prompted for the enrollment token):</li>
+            </Steps>
+            <CodeBlock aria-label="installer run command">{runCommand}</CodeBlock>
             <Steps start={3}>
               <li>When prompted, <strong>paste the enrollment token above</strong> and press Enter.</li>
               <li>The installer verifies the download, installs the agent + service, and enrolls this server.</li>
