@@ -57,6 +57,48 @@ export interface SensorRow {
   last_seen?: number | string | null;
 }
 
+/**
+ * Authoritative sensor LIVENESS window.
+ *
+ * The RAPHA agent reports on a ~60s heartbeat/ingest interval (installer
+ * `--interval 60` / agent `ingest_interval_seconds: 60`). A sensor is ONLINE
+ * only if its `last_seen` is within ~3 missed heartbeats (180s), which tolerates
+ * normal jitter / a single retry without reporting a stopped agent as online.
+ * Derived from the existing interval — not an arbitrary value.
+ */
+export const SENSOR_ONLINE_WINDOW_MS = 3 * 60 * 1000;
+
+/** Normalize a RAPHA `last_seen` (ISO string, epoch seconds, or epoch ms) to
+ *  epoch milliseconds; returns null for missing/invalid values. */
+function sensorLastSeenMs(value: number | string | null | undefined): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const isNumeric = typeof value === 'number' || /^\d+(\.\d+)?$/.test(String(value).trim());
+  if (isNumeric) {
+    const n = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return n < 1e12 ? n * 1000 : n; // epoch seconds → ms
+  }
+  const t = Date.parse(String(value));
+  return Number.isNaN(t) ? null : t;
+}
+
+/**
+ * AUTHORITATIVE sensor liveness: ONLINE iff `last_seen` is fresh (within
+ * SENSOR_ONLINE_WINDOW_MS of `now`). Missing / invalid / stale `last_seen` →
+ * OFFLINE. The persisted registration `status` is intentionally IGNORED for
+ * liveness — it does not go stale when the agent stops, which previously caused
+ * every registered sensor to display as ONLINE. This does NOT remove the sensor
+ * record; the Sensors page still lists offline sensors.
+ */
+export function isSensorOnline(
+  sensor: Pick<SensorRow, 'last_seen'> | null | undefined,
+  now: number = Date.now(),
+): boolean {
+  if (!sensor) return false;
+  const ms = sensorLastSeenMs(sensor.last_seen);
+  return ms !== null && now - ms <= SENSOR_ONLINE_WINDOW_MS && now - ms >= -SENSOR_ONLINE_WINDOW_MS;
+}
+
 export interface TelemetryRow {
   sensor_id: string;
   tenant_id: string;

@@ -62,12 +62,14 @@ describe('matchEnrolledSensor', () => {
   });
 });
 
-describe('sensorIsOnline', () => {
+describe('sensorIsOnline (freshness-only; persisted status ignored)', () => {
   const now = EPOCH_MS;
-  it('online when active or recently seen; offline otherwise', () => {
-    expect(sensorIsOnline(sensor({ status: 'active' }), now)).toBe(true);
-    expect(sensorIsOnline(sensor({ status: 'inactive', last_seen: EPOCH_SECONDS - 60 }), now)).toBe(true); // recent
-    expect(sensorIsOnline(sensor({ status: 'inactive', last_seen: EPOCH_SECONDS - 3600 }), now)).toBe(false); // stale
+  it('online only when last_seen is fresh; stale/missing → offline regardless of status', () => {
+    expect(sensorIsOnline(sensor({ status: 'active', last_seen: EPOCH_SECONDS - 30 }), now)).toBe(true); // fresh
+    // Persisted status "active"/"online" must NOT force online when last_seen is stale.
+    expect(sensorIsOnline(sensor({ status: 'active', last_seen: EPOCH_SECONDS - 3600 }), now)).toBe(false);
+    expect(sensorIsOnline(sensor({ status: 'online', last_seen: EPOCH_SECONDS - 3600 }), now)).toBe(false);
+    expect(sensorIsOnline(sensor({ last_seen: null }), now)).toBe(false); // missing
     expect(sensorIsOnline(null, now)).toBe(false);
   });
 });

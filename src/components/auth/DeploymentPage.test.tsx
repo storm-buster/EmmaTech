@@ -138,20 +138,37 @@ describe('DeploymentPage — hardened deployment flow', () => {
     await waitFor(() => expect(writeText).toHaveBeenCalledWith('renr_shownonce_abcdefghijklmnop'));
   });
 
-  it('transitions to ONLINE when the enrolled sensor connects, and offers Open Console', async () => {
+  it('transitions to ONLINE only when the enrolled sensor sends a FRESH heartbeat, and offers Open Console', async () => {
     stubFetch({
       sensors: [
-        { sensor_id: 'orch-x', tenant_id: 'tenant-o1', hostname: 'WEB-SERVER-01', status: 'active', last_seen: EPOCH_SECONDS },
+        // status is 'active' but liveness comes from a FRESH last_seen (now).
+        { sensor_id: 'orch-x', tenant_id: 'tenant-o1', hostname: 'WEB-SERVER-01', status: 'active', last_seen: Math.floor(Date.now() / 1000) },
       ],
     });
     const onNavigate = renderPage();
     fireEvent.change(await screen.findByLabelText('Server name'), { target: { value: 'WEB-SERVER-01' } });
     fireEvent.click(screen.getByText('Generate enrollment credential'));
-    // Auto-poll picks up the matching active sensor → ONLINE success state.
     expect(await screen.findByText('RAPHA Agent installed successfully')).toBeInTheDocument();
     expect(screen.getByText('ONLINE')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Open Console'));
     expect(onNavigate).toHaveBeenCalledWith('console');
+  });
+
+  it('does NOT report ONLINE when the matching sensor is stale (enrollment succeeded ≠ online)', async () => {
+    stubFetch({
+      sensors: [
+        // matches by name, persisted status 'active', but last_seen is stale → not ONLINE.
+        { sensor_id: 'orch-x', tenant_id: 'tenant-o1', hostname: 'WEB-SERVER-01', status: 'active', last_seen: 1735689600 },
+      ],
+    });
+    renderPage();
+    fireEvent.change(await screen.findByLabelText('Server name'), { target: { value: 'WEB-SERVER-01' } });
+    fireEvent.click(screen.getByText('Generate enrollment credential'));
+    await screen.findByText('renr_shownonce_abcdefghijklmnop');
+    await waitFor(() =>
+      expect(screen.queryByText('RAPHA Agent installed successfully')).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByText('ONLINE')).not.toBeInTheDocument();
   });
 
   it('stays in a waiting state (not ONLINE) when no matching sensor has connected', async () => {

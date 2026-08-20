@@ -16,13 +16,17 @@ let authValue: AuthValue = { account: null, loading: true };
 vi.mock('../../auth/AuthContext', () => ({ useAuth: () => authValue }));
 
 // Control the RAPHA health probe and console data fetchers.
-vi.mock('../../auth/consoleClient', () => ({
-  fetchRaphaStatus: vi.fn(),
-  fetchConsoleSensors: vi.fn(),
-  fetchConsoleTelemetry: vi.fn(),
-  fetchConsoleAlerts: vi.fn(),
-  fetchConsoleForensics: vi.fn(),
-}));
+vi.mock('../../auth/consoleClient', async (importActual) => {
+  const actual = await importActual<typeof import('../../auth/consoleClient')>();
+  return {
+    ...actual, // keep real isSensorOnline / SENSOR_ONLINE_WINDOW_MS
+    fetchRaphaStatus: vi.fn(),
+    fetchConsoleSensors: vi.fn(),
+    fetchConsoleTelemetry: vi.fn(),
+    fetchConsoleAlerts: vi.fn(),
+    fetchConsoleForensics: vi.fn(),
+  };
+});
 import {
   fetchRaphaStatus,
   fetchConsoleSensors,
@@ -182,15 +186,36 @@ describe('ConsolePage — data sections (real data via /api/console/*)', () => {
     authValue = { account: ACCOUNT, loading: false };
   });
 
-  it('Sensors: renders real sensor fields (no fabricated data)', async () => {
+  it('Sensors: renders real sensor fields; a stale/stopped sensor reads OFFLINE but stays listed', async () => {
     mockSensors.mockResolvedValue({
       tenant_id: 'tnt-abc',
       sensors: [{ sensor_id: 'orch-1', tenant_id: 'tnt-abc', hostname: 'WIN-HOST-1', status: 'active', last_seen: 1735689600 }],
     });
     renderConsole('#/console/sensors');
+    // Registered sensor remains visible even though its last_seen is stale.
     expect(await screen.findByText('WIN-HOST-1')).toBeInTheDocument();
     expect(screen.getByText('orch-1')).toBeInTheDocument();
-    expect(screen.getByText('active')).toBeInTheDocument();
+    // Liveness derived from last_seen freshness — persisted status:'active' does NOT force ONLINE.
+    expect(screen.getByText('OFFLINE')).toBeInTheDocument();
+    expect(screen.queryByText('ONLINE')).not.toBeInTheDocument();
+  });
+
+  it('Sensors: a fresh heartbeat reads ONLINE; multiple sensors are independent', async () => {
+    const nowSec = Math.floor(Date.now() / 1000);
+    mockSensors.mockResolvedValue({
+      tenant_id: 'tnt-abc',
+      sensors: [
+        { sensor_id: 'orch-live', tenant_id: 'tnt-abc', hostname: 'LIVE-HOST', status: 'active', last_seen: nowSec },
+        { sensor_id: 'orch-dead', tenant_id: 'tnt-abc', hostname: 'DEAD-HOST', status: 'active', last_seen: 1735689600 },
+        { sensor_id: 'orch-new', tenant_id: 'tnt-abc', hostname: 'NEW-HOST', status: 'active', last_seen: null },
+      ],
+    });
+    renderConsole('#/console/sensors');
+    expect(await screen.findByText('LIVE-HOST')).toBeInTheDocument();
+    expect(screen.getByText('DEAD-HOST')).toBeInTheDocument(); // offline sensor still listed
+    expect(screen.getByText('NEW-HOST')).toBeInTheDocument(); // never-reported sensor still listed
+    expect(screen.getAllByText('ONLINE')).toHaveLength(1); // only the fresh one
+    expect(screen.getAllByText('OFFLINE')).toHaveLength(2); // stale + never-reported
   });
 
   it('Sensors: honest empty state (distinct from unavailable)', async () => {
