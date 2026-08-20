@@ -56,6 +56,28 @@ describe('install-rapha.ps1 (EmmaTech bootstrapper)', () => {
     expect(installer).not.toMatch(/\?token=/);
   });
 
+  it('is Windows PowerShell 5.1 compatible: no ProcessStartInfo.ArgumentList usage', () => {
+    // Guard against reintroducing the .NET Core-only API (unavailable on
+    // Windows PowerShell 5.1 / .NET Framework). Match real USAGE forms, not the
+    // explanatory comments that mention the name.
+    expect(installer).not.toMatch(/\.ArgumentList\.Add/);
+    expect(installer).not.toMatch(/\$psi\.ArgumentList/);
+    expect(installer).toContain('$psi.Arguments =');
+    expect(installer).toMatch(/ConvertTo-ArgumentString/);
+    expect(installer).toContain('$psi.UseShellExecute = $false');
+    expect(installer).toContain('$psi.RedirectStandardInput = $true');
+  });
+
+  it('never includes the enrollment token in the constructed process arguments', () => {
+    // The Arguments string is built only from the non-secret provArgs.
+    expect(installer).toMatch(/\$psi\.Arguments = ConvertTo-ArgumentString -Arguments \$provArgs/);
+    // The provArgs array literal must not reference the token variable(s).
+    const m = installer.match(/\$provArgs = @\(([\s\S]*?)\)/);
+    expect(m).not.toBeNull();
+    expect(m![1]).not.toContain('$Token');
+    expect(m![1]).not.toContain('$EnrollmentToken');
+  });
+
   it('reproduces the real v1.0.1 enroll/service contract (bundled python/winsw, provision, RAPHAAgent)', () => {
     expect(installer).toContain('rapha_agent.provision');
     expect(installer).toContain('RAPHAAgent');

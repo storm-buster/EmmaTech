@@ -141,6 +141,44 @@ function Test-IsAdministrator {
     return $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+function ConvertTo-WindowsArg {
+    # Quote a single argument per the Windows CommandLineToArgvW rules so it can
+    # be placed in a single ProcessStartInfo.Arguments string safely. Windows
+    # PowerShell 5.1 / .NET Framework has no ProcessStartInfo.ArgumentList, so we
+    # must build (and correctly escape) the command-line string ourselves.
+    # NOTE: this is only ever used for NON-SECRET args — the enrollment token is
+    # never passed through here; it goes on stdin.
+    param([string] $Arg)
+    if ($null -eq $Arg) { $Arg = '' }
+    if ($Arg -ne '' -and $Arg -notmatch '[\s"]') { return $Arg }  # no quoting needed
+    $sb = New-Object System.Text.StringBuilder
+    [void]$sb.Append('"')
+    $backslashes = 0
+    foreach ($ch in $Arg.ToCharArray()) {
+        if ($ch -eq '\') {
+            $backslashes++
+        } elseif ($ch -eq '"') {
+            # Escape all pending backslashes (doubled) plus this quote.
+            [void]$sb.Append('\', ($backslashes * 2 + 1))
+            [void]$sb.Append('"')
+            $backslashes = 0
+        } else {
+            if ($backslashes -gt 0) { [void]$sb.Append('\', $backslashes); $backslashes = 0 }
+            [void]$sb.Append($ch)
+        }
+    }
+    # Double any trailing backslashes so the closing quote is not escaped.
+    if ($backslashes -gt 0) { [void]$sb.Append('\', ($backslashes * 2)) }
+    [void]$sb.Append('"')
+    return $sb.ToString()
+}
+
+function ConvertTo-ArgumentString {
+    # Join NON-SECRET arguments into a single, correctly-quoted command line.
+    param([string[]] $Arguments)
+    return (($Arguments | ForEach-Object { ConvertTo-WindowsArg $_ }) -join ' ')
+}
+
 function Resolve-PackageSource {
     # Precedence: (1) -PackagePath (local, testing), else (2) pinned EmmaTech Blob
     # URL. SHA-256 is ALWAYS the pinned value unless an explicit override is given
@@ -250,14 +288,17 @@ function Invoke-Provisioning {
     $py = Resolve-PythonExe -Explicit $PythonExe -InstallDir $InstallDir
     $idem = Get-InstallIdempotencyKey -Path $script:IdempotencyPath
     $sensor = Get-SafeSensorName -Name $SensorName
-    $args = @('-m','rapha_agent.provision','--base-url',$BaseUrl,'--config-path',$script:ConfigPath,
+    $provArgs = @('-m','rapha_agent.provision','--base-url',$BaseUrl,'--config-path',$script:ConfigPath,
               '--secret-dir',(Join-Path $DataDir 'secrets'),'--sensor-name',$sensor,
               '--idempotency-key',$idem,'--interval',"$IngestIntervalSeconds")
-    if ($EnableNetworkSensor) { $args += '--enable-network-sensor' }
+    if ($EnableNetworkSensor) { $provArgs += '--enable-network-sensor' }
 
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = $py
-    foreach ($a in $args) { $psi.ArgumentList.Add($a) }
+    # Windows PowerShell 5.1 / .NET Framework has NO ProcessStartInfo.ArgumentList,
+    # so build a correctly-quoted Arguments string instead (works on PS 5.1 AND 7+).
+    # The enrollment token is NEVER included here — it is written to stdin below.
+    $psi.Arguments = ConvertTo-ArgumentString -Arguments $provArgs
     $psi.WorkingDirectory = $InstallDir
     $psi.RedirectStandardInput = $true
     $psi.RedirectStandardOutput = $true
