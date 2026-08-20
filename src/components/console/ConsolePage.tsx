@@ -4,6 +4,7 @@ import {
   fetchRaphaStatus,
   fetchConsoleForensics,
   fetchConsoleSensors,
+  isSensorOnline,
 } from '../../auth/consoleClient';
 import type { RaphaStatus, ForensicRow, SensorRow } from '../../auth/consoleClient';
 import { usePolling } from './usePolling';
@@ -288,7 +289,9 @@ function SensorsSection() {
       emptyText="No sensors are enrolled yet. Deploy a sensor to your host to see it here."
     >
       <CardGrid>
-        {rows.map((s, i) => (
+        {rows.map((s, i) => {
+          const online = isSensorOnline(s);
+          return (
           <ConsoleCard key={s.sensor_id || i}>
             <CardHeading>{s.hostname || s.sensor_id}</CardHeading>
             <DefRow>
@@ -298,8 +301,11 @@ function SensorsSection() {
             <DefRow>
               <DefKey>Status</DefKey>
               <DefVal>
-                <StatusPill $state={s.status === 'active' ? 'operational' : 'neutral'}>
-                  {s.status || 'unknown'}
+                {/* Liveness is derived from last_seen freshness (not the persisted
+                    registration status), so a stopped/stale agent reads OFFLINE
+                    while remaining listed as a registered sensor. */}
+                <StatusPill $state={online ? 'operational' : 'down'}>
+                  {online ? 'ONLINE' : 'OFFLINE'}
                 </StatusPill>
               </DefVal>
             </DefRow>
@@ -308,7 +314,8 @@ function SensorsSection() {
               <DefVal>{fmtTime(s.last_seen)}</DefVal>
             </DefRow>
           </ConsoleCard>
-        ))}
+          );
+        })}
       </CardGrid>
     </SectionStates>
   );

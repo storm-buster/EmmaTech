@@ -1,4 +1,5 @@
 import type { SensorRow } from '../../auth/consoleClient';
+import { isSensorOnline as consoleIsSensorOnline } from '../../auth/consoleClient';
 
 /**
  * Deployment-page pure helpers (unit-testable, no React).
@@ -53,15 +54,14 @@ export function matchEnrolledSensor(sensors: SensorRow[], serverName: string): S
 }
 
 /** A sensor is ONLINE when RAPHA marks it active, or it was seen very recently. */
+/** A sensor is ONLINE only when its heartbeat (`last_seen`) is fresh — delegates
+ *  to the single authoritative determination. The persisted `status` is NOT
+ *  trusted for liveness (a stopped agent keeps its registration status). */
 export function sensorIsOnline(
   sensor: SensorRow | null | undefined,
   now: number = Date.now(),
-  windowMs: number = 5 * 60 * 1000,
 ): boolean {
-  if (!sensor) return false;
-  if (normalizeName(sensor.status) === 'active') return true;
-  const seen = toDate(sensor.last_seen);
-  return seen ? now - seen.getTime() <= windowMs : false;
+  return consoleIsSensorOnline(sensor ?? null, now);
 }
 
 export type ConnectionState = 'waiting' | 'connected' | 'online';
