@@ -25,7 +25,7 @@
 
 .EXAMPLE
   # Download from EmmaTech, then run (you will be prompted for the token):
-  Invoke-WebRequest https://emmatech.in/install-rapha.ps1 -OutFile install-rapha.ps1
+  Invoke-WebRequest https://www.emmatech.in/install-rapha.ps1 -OutFile install-rapha.ps1
   .\install-rapha.ps1 -SensorName "WEB-SERVER-01"
 #>
 [CmdletBinding()]
