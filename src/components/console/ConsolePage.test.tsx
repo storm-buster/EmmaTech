@@ -258,6 +258,29 @@ describe('ConsolePage — data sections (real data via /api/console/*)', () => {
     expect(await screen.findByText(/No telemetry has been received yet/i)).toBeInTheDocument();
   });
 
+  it('Telemetry: renders one card per sensor_id; shows hostname when known, raw id when not', async () => {
+    mockSensors.mockResolvedValue({
+      tenant_id: 'tnt-abc',
+      sensors: [{ sensor_id: 'orch-aaa', tenant_id: 'tnt-abc', hostname: 'LAPTOP-AAA', last_seen: 1735689600 }],
+    });
+    mockTelemetry.mockResolvedValue({
+      tenant_id: 'tnt-abc',
+      telemetry: [
+        { sensor_id: 'orch-aaa', tenant_id: 'tnt-abc', last_category: 'port_scan', last_score: 0.5, updated_at: 1735689600 },
+        { sensor_id: 'orch-bbb', tenant_id: 'tnt-abc', last_category: 'benign', last_score: 0.1, updated_at: 1735689600 },
+      ],
+    });
+    renderConsole('#/console/telemetry');
+    // Known sensor → hostname heading + its raw id shown beneath.
+    expect(await screen.findByText('LAPTOP-AAA')).toBeInTheDocument();
+    expect(screen.getByText('orch-aaa')).toBeInTheDocument();
+    // Unknown sensor → falls back to raw sensor_id as the heading.
+    expect(screen.getByText('orch-bbb')).toBeInTheDocument();
+    // Two independent per-sensor cards.
+    expect(screen.getByText('port_scan')).toBeInTheDocument();
+    expect(screen.getByText('benign')).toBeInTheDocument();
+  });
+
   it('Alerts: renders real alert fields and NO invented severity', async () => {
     mockAlerts.mockResolvedValue({
       tenant_id: 'tnt-abc',
@@ -292,6 +315,61 @@ describe('ConsolePage — data sections (real data via /api/console/*)', () => {
     expect(await screen.findByText('Record #7')).toBeInTheDocument();
     expect(screen.getByText('ingest-api')).toBeInTheDocument();
     expect(screen.getByText('p-1')).toBeInTheDocument();
+  });
+
+  it('Forensics: a NEW record shows its originating sensor (hostname) separately from the orchestrator', async () => {
+    mockSensors.mockResolvedValue({
+      tenant_id: 'tnt-abc',
+      sensors: [{ sensor_id: 'orch-2957f712', tenant_id: 'tnt-abc', hostname: 'LAPTOP-CO5C8IKO', last_seen: 1735689600 }],
+    });
+    mockForensics.mockResolvedValue({
+      tenant_id: 'tnt-abc',
+      forensics: [{
+        idx: 9, timestamp: 1735689600, tenant_id: 'tnt-abc', orchestrator_id: 'ingest-api',
+        policy_version: 'p-1', model_version: 'm-1', event: { sensor_id: 'orch-2957f712' },
+        previous_hash: 'aaaaaaaaaabbbbbbbbbb', hash: 'ccccccccccdddddddddd',
+      }],
+    });
+    renderConsole('#/console/forensics');
+    expect(await screen.findByText('Record #9')).toBeInTheDocument();
+    // Originating sensor: hostname + raw id.
+    expect(screen.getByText('LAPTOP-CO5C8IKO')).toBeInTheDocument();
+    expect(screen.getByText('orch-2957f712')).toBeInTheDocument();
+    // orchestrator_id is still shown separately (NOT replaced by sensor_id).
+    expect(screen.getByText('ingest-api')).toBeInTheDocument();
+  });
+
+  it('Forensics: an unknown sensor_id falls back to the raw id (no fabricated hostname)', async () => {
+    mockSensors.mockResolvedValue({ tenant_id: 'tnt-abc', sensors: [] });
+    mockForensics.mockResolvedValue({
+      tenant_id: 'tnt-abc',
+      forensics: [{
+        idx: 5, timestamp: 1735689600, tenant_id: 'tnt-abc', orchestrator_id: 'ingest-api',
+        policy_version: 'p-1', model_version: 'm-1', event: { sensor_id: 'orch-unknown-xyz' },
+        previous_hash: 'aaaaaaaaaabbbbbbbbbb', hash: 'ccccccccccdddddddddd',
+      }],
+    });
+    renderConsole('#/console/forensics');
+    expect(await screen.findByText('Record #5')).toBeInTheDocument();
+    expect(screen.getByText('orch-unknown-xyz')).toBeInTheDocument();
+    expect(screen.getByText('ingest-api')).toBeInTheDocument();
+  });
+
+  it('Forensics: a historical record with null sensor_id still renders (unattributed, no fabrication)', async () => {
+    mockSensors.mockResolvedValue({ tenant_id: 'tnt-abc', sensors: [] });
+    mockForensics.mockResolvedValue({
+      tenant_id: 'tnt-abc',
+      forensics: [{
+        idx: 3, timestamp: 1735689600, tenant_id: 'tnt-abc', orchestrator_id: 'ingest-api',
+        policy_version: 'p-1', model_version: 'm-1', event: { sensor_id: null },
+        previous_hash: 'aaaaaaaaaabbbbbbbbbb', hash: 'ccccccccccdddddddddd',
+      }],
+    });
+    renderConsole('#/console/forensics');
+    expect(await screen.findByText('Record #3')).toBeInTheDocument();
+    // Orchestrator still present; sensor shown as the neutral em dash (unattributed).
+    expect(screen.getByText('ingest-api')).toBeInTheDocument();
+    expect(screen.getByText('—')).toBeInTheDocument();
   });
 
   it('Forensics: error state on API failure', async () => {

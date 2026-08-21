@@ -129,6 +129,17 @@ export interface AlertRow {
   delivered?: number | boolean;
 }
 
+/**
+ * A forensic record's `event` payload. RAPHA now stamps each NEW event with the
+ * originating `sensor_id` (historical records may have it null/absent). The type
+ * is intentionally OPEN (`[key: string]: unknown`) so no existing event fields
+ * are lost or over-constrained — we only surface `sensor_id` in the Console.
+ */
+export interface ForensicEvent {
+  sensor_id?: string | null;
+  [key: string]: unknown;
+}
+
 export interface ForensicRow {
   idx?: number;
   timestamp?: number | string;
@@ -136,7 +147,7 @@ export interface ForensicRow {
   orchestrator_id?: string;
   policy_version?: string;
   model_version?: string;
-  event?: unknown;
+  event?: ForensicEvent | null;
   previous_hash?: string;
   hash?: string;
 }

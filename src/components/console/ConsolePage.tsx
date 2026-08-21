@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import {
   fetchRaphaStatus,
@@ -11,6 +11,7 @@ import { usePolling } from './usePolling';
 import type { PollState } from './usePolling';
 import { useConsoleLiveData } from './useConsoleLiveData';
 import type { ConsoleLiveData } from './useConsoleLiveData';
+import { buildSensorHostnameMap, resolveSensorLabel } from './sensorLabels';
 import type { StreamStatus } from './useConsoleStream';
 import type { AccountResponse, OrgStatus } from '../../auth/authClient';
 import type { Route } from '../../App';
@@ -321,9 +322,20 @@ function SensorsSection() {
   );
 }
 
+// ── Sensor hostname lookup (reuses the Sensors API; no new endpoint) ─────────
+// Shared by Telemetry + Forensics so a sensor_id can be shown with its hostname.
+function useSensorHostnames(): Map<string, string> {
+  const { data } = usePolling<{ sensors: SensorRow[] }>(
+    (signal) => fetchConsoleSensors(signal),
+    POLL.sensors,
+  );
+  return useMemo(() => buildSensorHostnameMap(data?.sensors), [data]);
+}
+
 // ── Telemetry (live via SSE, bounded-polling fallback) ───────────────────────
 function TelemetrySection({ live }: { live: ConsoleLiveData }) {
   const rows = live.telemetry;
+  const hostnames = useSensorHostnames();
   const state: PollState = live.loading ? 'loading' : live.error && rows.length === 0 ? 'error' : 'ok';
   return (
     <SectionStates
@@ -333,9 +345,18 @@ function TelemetrySection({ live }: { live: ConsoleLiveData }) {
       emptyText="No telemetry has been received yet. Once a sensor ingests events, its latest snapshot appears here."
     >
       <CardGrid>
-        {rows.map((t, i) => (
+        {rows.map((t, i) => {
+          const label = resolveSensorLabel(t.sensor_id, hostnames);
+          return (
           <ConsoleCard key={t.sensor_id || i}>
-            <CardHeading>{t.sensor_id}</CardHeading>
+            {/* Heading prefers hostname; falls back to the raw sensor_id. */}
+            <CardHeading>{label.hostname ?? label.id ?? '—'}</CardHeading>
+            {label.hostname && (
+              <DefRow>
+                <DefKey>Sensor ID</DefKey>
+                <DefVal>{label.id}</DefVal>
+              </DefRow>
+            )}
             <DefRow>
               <DefKey>Threat state</DefKey>
               <DefVal>
@@ -365,7 +386,8 @@ function TelemetrySection({ live }: { live: ConsoleLiveData }) {
               <DefVal>{fmtTime(t.updated_at)}</DefVal>
             </DefRow>
           </ConsoleCard>
-        ))}
+          );
+        })}
       </CardGrid>
     </SectionStates>
   );
@@ -427,6 +449,7 @@ function ForensicsSection() {
     (signal) => fetchConsoleForensics({ limit: 50, offset: 0 }, signal),
     POLL.forensics,
   );
+  const hostnames = useSensorHostnames();
   const rows = data?.forensics ?? [];
   return (
     <SectionStates
@@ -436,13 +459,27 @@ function ForensicsSection() {
       emptyText="No forensic records are available for your organization yet."
     >
       <CardGrid>
-        {rows.map((f, i) => (
+        {rows.map((f, i) => {
+          // sensor_id = originating sensor (new records); orchestrator_id =
+          // ingest processing component. Historical records have no sensor_id.
+          const sensor = resolveSensorLabel(f.event?.sensor_id, hostnames);
+          return (
           <ConsoleCard key={f.hash || f.idx || i}>
             <CardHeading>Record #{f.idx ?? i}</CardHeading>
             <DefRow>
               <DefKey>When</DefKey>
               <DefVal>{fmtTime(f.timestamp)}</DefVal>
             </DefRow>
+            <DefRow>
+              <DefKey>Sensor</DefKey>
+              <DefVal>{sensor.unattributed ? '—' : sensor.hostname ?? sensor.id}</DefVal>
+            </DefRow>
+            {sensor.hostname && (
+              <DefRow>
+                <DefKey>Sensor ID</DefKey>
+                <DefVal>{sensor.id}</DefVal>
+              </DefRow>
+            )}
             <DefRow>
               <DefKey>Orchestrator</DefKey>
               <DefVal>{f.orchestrator_id ?? '—'}</DefVal>
@@ -464,7 +501,8 @@ function ForensicsSection() {
               <DefVal>{shortHash(f.previous_hash)}</DefVal>
             </DefRow>
           </ConsoleCard>
-        ))}
+          );
+        })}
       </CardGrid>
     </SectionStates>
   );
