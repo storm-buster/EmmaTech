@@ -117,3 +117,27 @@ describe('Existing customer access is preserved', () => {
     expect(screen.queryByRole('heading', { name: /access is by request/i })).toBeNull();
   });
 });
+
+describe('No public pricing on anonymous marketing routes (regression)', () => {
+  // Catches any public price/plan/margin leak — e.g. the RAPHA product-page
+  // comparison row that formerly showed "Rs. 12K/node/year".
+  const PRICING = /(₹\s*\d|Rs\.\s*\d|\/node\/year|\/node\/yr|most popular|start free|start a pilot|start growth|breakeven|Starter margin|Growth margin|Regulated margin)/i;
+  const routes: Array<{ hash: string; name: string }> = [
+    { hash: '#/', name: 'home' },
+    { hash: '#/product', name: 'product (RAPHA)' },
+    { hash: '#/compliance', name: 'compliance' },
+    { hash: '#/private-deployment', name: 'private-deployment' },
+    { hash: '#/request-access', name: 'request-access' },
+    { hash: '#/contact', name: 'contact' },
+  ];
+  for (const r of routes) {
+    it(`${r.name} exposes no public pricing`, async () => {
+      window.location.hash = r.hash;
+      renderApp();
+      // Wait for nav/auth to settle so the full route content is mounted.
+      await screen.findAllByText('Sign in');
+      const text = document.body.textContent ?? '';
+      expect(text).not.toMatch(PRICING);
+    });
+  }
+});

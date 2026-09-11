@@ -174,9 +174,9 @@ const comparisonData = [
     rapha: 'Full session, hash-chained',
   },
   {
-    dimension: 'Operating cost (Indian SME)',
-    legacy: 'Rs. 10L+/year',
-    rapha: 'Rs. 12K/node/year',
+    dimension: 'Deployment model',
+    legacy: 'Extended procurement & integration',
+    rapha: 'Scoped private deployment',
   },
   {
     dimension: 'Setup',
