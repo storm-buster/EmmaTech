@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { breakpoints } from '../styles/breakpoints';
 import { LogoIcon } from './LogoIcon';
 import { useAuth } from '../auth/AuthContext';
+import { trackEvent } from '../analytics/events';
 
 const Nav = styled.nav<{ $isScrolled: boolean }>`
   position: fixed;
@@ -44,20 +45,37 @@ const NavContainer = styled.div`
 `;
 
 const Logo = styled.div`
-  font-family: ${({ theme }) => theme.typography.fontFamily.display};
-  font-size: 24px;
-  font-weight: 700;
-  color: ${({ theme }) => theme.colors.primary.main};
-  text-shadow: 0 0 10px ${({ theme }) => theme.colors.primary.glow};
   cursor: pointer;
   transition: ${({ theme }) => theme.transitions.default};
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 
   &:hover {
-    transform: scale(1.05);
+    transform: scale(1.03);
   }
+`;
+
+// Company wordmark — the primary brand identity in the header.
+const BrandName = styled.span`
+  font-family: ${({ theme }) => theme.typography.fontFamily.display};
+  font-size: 22px;
+  font-weight: 700;
+  color: ${({ theme }) => theme.colors.neutral.white};
+  letter-spacing: -0.2px;
+`;
+
+// Subordinate product tag — communicates "RAPHA is a product by EmmaTech".
+const ProductTag = styled.span`
+  font-family: ${({ theme }) => theme.typography.fontFamily.monospace};
+  font-size: 10px;
+  font-weight: 700;
+  color: ${({ theme }) => theme.colors.primary.main};
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border: 1px solid ${({ theme }) => theme.colors.neutral.border};
+  border-radius: 6px;
+  padding: 2px 6px;
 `;
 
 const NavLinks = styled.div`
@@ -139,6 +157,45 @@ const MobileMenuButton = styled.button`
   }
 `;
 
+const PrimaryCta = styled.a`
+  display: none;
+  color: ${({ theme }) => theme.colors.primary.main};
+  background: rgba(0, 240, 255, 0.06);
+  border: 1px solid ${({ theme }) => theme.colors.primary.main};
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: ${({ theme }) => theme.transitions.default};
+
+  &:hover {
+    background: rgba(0, 240, 255, 0.14);
+    color: ${({ theme }) => theme.colors.neutral.white};
+  }
+
+  ${breakpoints.desktop} {
+    display: inline-block;
+  }
+`;
+
+const MobilePrimaryCta = styled.a`
+  color: ${({ theme }) => theme.colors.primary.main};
+  background: rgba(0, 240, 255, 0.06);
+  border: 1px solid ${({ theme }) => theme.colors.primary.main};
+  border-radius: 8px;
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+`;
+
 const AuthCta = styled.a`
   display: none;
   color: ${({ theme }) => theme.colors.primary.main};
@@ -204,9 +261,8 @@ interface NavigationProps {
 
 const NAV_ITEMS: { label: string; route: Route }[] = [
   { label: 'Home', route: 'home' },
-  { label: 'Product', route: 'product' },
+  { label: 'RAPHA', route: 'product' },
   { label: 'Compliance', route: 'compliance' },
-  { label: 'Pricing', route: 'pricing' },
   { label: 'Docs', route: 'docs' },
   { label: 'Careers', route: 'careers' },
   { label: 'Contact', route: 'contact' },
@@ -244,9 +300,10 @@ export const Navigation: React.FC<NavigationProps> = ({
     <>
       <Nav $isScrolled={isScrolled}>
         <NavContainer>
-          <Logo onClick={handleLogoClick}>
+          <Logo onClick={handleLogoClick} aria-label="EmmaTech — home">
             <LogoIcon />
-            RAPHA
+            <BrandName>EmmaTech</BrandName>
+            <ProductTag>RAPHA</ProductTag>
           </Logo>
           <NavLinks>
             {NAV_ITEMS.map((item) => (
@@ -260,7 +317,25 @@ export const Navigation: React.FC<NavigationProps> = ({
             ))}
           </NavLinks>
           <RightCluster>
-            <AuthCta onClick={() => go(authRoute)}>{authLabel}</AuthCta>
+            <PrimaryCta
+              href="#/request-access"
+              onClick={(e) => {
+                e.preventDefault();
+                trackEvent('request_access_click', { source: 'nav' });
+                go('request-access');
+              }}
+              aria-label="Request private access to RAPHA"
+            >
+              Request Private Access
+            </PrimaryCta>
+            <AuthCta
+              onClick={() => {
+                if (!account) trackEvent('sign_in_click', { source: 'nav' });
+                go(authRoute);
+              }}
+            >
+              {authLabel}
+            </AuthCta>
             {account && (
               <AuthCta onClick={() => go('console')} aria-label="Open RAPHA console">
                 Console
@@ -285,7 +360,25 @@ export const Navigation: React.FC<NavigationProps> = ({
             {item.label}
           </MobileNavLink>
         ))}
-        <MobileNavLink onClick={() => go(authRoute)}>{authLabel}</MobileNavLink>
+        <MobilePrimaryCta
+          href="#/request-access"
+          onClick={(e) => {
+            e.preventDefault();
+            trackEvent('request_access_click', { source: 'nav_mobile' });
+            go('request-access');
+          }}
+          aria-label="Request private access to RAPHA"
+        >
+          Request Private Access
+        </MobilePrimaryCta>
+        <MobileNavLink
+          onClick={() => {
+            if (!account) trackEvent('sign_in_click', { source: 'nav_mobile' });
+            go(authRoute);
+          }}
+        >
+          {authLabel}
+        </MobileNavLink>
         {account && <MobileNavLink onClick={() => go('console')}>Console</MobileNavLink>}
       </MobileMenu>
     </>

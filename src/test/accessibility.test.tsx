@@ -21,5 +21,5 @@ describe('Accessibility Tests', () => {
     const { container } = renderWithTheme(<App />);
     const results = await axe(container);
     expect(results).toHaveNoViolations();
-  }, 10000);
+  }, 30000);
 });

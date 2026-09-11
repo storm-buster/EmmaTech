@@ -8,7 +8,8 @@ import { Logo } from './Logo';
 import { breakpoints } from '../styles/breakpoints';
 
 interface HeroSectionProps {
-  onDemoClick: () => void;
+  onRequestAccess: () => void;
+  onExplore: () => void;
 }
 
 const HeroContainer = styled.section`
@@ -225,8 +226,21 @@ const BadgeTicker = styled.div`
   margin-bottom: ${({ theme }) => theme.spacing.md};
 `;
 
+const AccessNote = styled.p`
+  font-family: ${({ theme }) => theme.typography.fontFamily.monospace};
+  font-size: 13px;
+  line-height: 1.5;
+  color: ${({ theme }) => theme.colors.neutral.lightGray};
+  border-left: 2px solid ${({ theme }) => theme.colors.primary.main};
+  padding-left: 12px;
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
+  max-width: 520px;
+  text-align: left;
+`;
+
 export const HeroSection: React.FC<HeroSectionProps> = ({
-  onDemoClick,
+  onRequestAccess,
+  onExplore,
 }) => {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
 
@@ -264,24 +278,26 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             RAPHA · Realtime Autonomous Protection & Honeypot Architecture
           </SubHeadline>
           <Headline>
-            <SplitText text="Silence the Noise." delay={0.4} />
+            <SplitText text="Autonomous Cyber Defense." delay={0.4} />
             <br />
-            <SplitText text="Secure the Future." delay={0.6} />
+            <SplitText text="Privately Deployed." delay={0.6} />
           </Headline>
           <Description>
-            Autonomous cyber defense for SMEs and MSSPs. RAPHA detects threats, decides without a human in the loop, and redirects attackers into honeypots all in real time. Trained only on normal behavior, so it catches zero-days the others miss.
+            RAPHA detects hostile behavior and autonomously redirects threats into controlled
+            deception environments — without requiring a human in the loop for every response. Built
+            for organizations facing meaningful security risk.
           </Description>
+          <AccessNote>
+            Private deployment only. Organizations are evaluated individually for deployment fit.
+          </AccessNote>
           <CTAButtons>
             <Magnet>
-              <Button variant="primary" onClick={onDemoClick}>
-                Request a Demo
+              <Button variant="primary" onClick={onRequestAccess}>
+                Request Private Access
               </Button>
             </Magnet>
             <Magnet>
-              <Button variant="secondary" onClick={() => {
-                const el = document.getElementById('solution');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}>
+              <Button variant="secondary" onClick={onExplore}>
                 Explore RAPHA
               </Button>
             </Magnet>

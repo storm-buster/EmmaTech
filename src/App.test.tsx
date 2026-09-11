@@ -1,12 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import App from './App';
 import { AuthProvider } from './auth/AuthContext';
-import { getIntendedPlan } from './auth/planIntent';
 import type { AccountResponse } from './auth/authClient';
 
 // Control the authenticated session by mocking the current-user fetch only.
-// All other authClient behavior (OAuth start, etc.) remains real.
 vi.mock('./auth/authClient', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./auth/authClient')>();
   return { ...actual, fetchMe: vi.fn() };
@@ -31,71 +29,115 @@ function renderApp() {
 
 beforeEach(() => {
   sessionStorage.clear();
-  window.location.hash = '#/pricing';
+  window.location.hash = '#/';
   fetchMeMock.mockReset();
   fetchMeMock.mockResolvedValue(null); // default: unauthenticated
 });
 
-describe('Pricing CTA routing — unauthenticated (existing flow preserved)', () => {
-  it('FREE → records intended plan and navigates to signup', async () => {
+// A navigation in one test sets window.location.hash, which dispatches an async
+// `hashchange`. Flush it (and neutralize the hash) after each test so a stale
+// event from a prior test cannot re-route the next test's freshly-mounted App.
+afterEach(async () => {
+  window.location.hash = '';
+  await new Promise((r) => setTimeout(r, 0));
+});
+
+describe('Commercial repositioning — private-access flow', () => {
+  it('legacy #/pricing resolves to the Private Deployment page (no public prices / self-serve CTAs)', async () => {
+    window.location.hash = '#/pricing';
     renderApp();
-    // account starts null and stays null (fetchMe → null); no wait required.
-    fireEvent.click(screen.getByRole('button', { name: /free plan/i }));
-    expect(window.location.hash).toBe('#/signup');
-    expect(getIntendedPlan()).toBe('free');
+    expect(await screen.findByRole('heading', { level: 1, name: /private deployment/i })).toBeInTheDocument();
+    // The former self-service pricing UI must be gone.
+    expect(screen.queryByText('Start free')).toBeNull();
+    expect(screen.queryByText('Start a pilot')).toBeNull();
+    expect(screen.queryByText('Start growth')).toBeNull();
+    expect(screen.queryByText('Most popular')).toBeNull();
+    // No public rupee prices on the commercial page.
+    expect(screen.queryByText(/₹18,000/)).toBeNull();
+    expect(screen.queryByText(/₹35,000/)).toBeNull();
   });
 
-  it('STARTER → records intended plan and navigates to signup', async () => {
+  it('Private Deployment "Request Private Access" routes to the application', async () => {
+    window.location.hash = '#/private-deployment';
     renderApp();
-    fireEvent.click(screen.getByRole('button', { name: /starter plan/i }));
-    expect(window.location.hash).toBe('#/signup');
-    expect(getIntendedPlan()).toBe('starter');
+    await screen.findByRole('heading', { level: 1, name: /private deployment/i });
+    fireEvent.click(screen.getByRole('button', { name: /request private access/i }));
+    expect(window.location.hash).toBe('#/request-access');
   });
 
-  it('GROWTH → records intended plan and navigates to signup', async () => {
+  it('renders the Request Private Access application form', async () => {
+    window.location.hash = '#/request-access';
     renderApp();
-    fireEvent.click(screen.getByRole('button', { name: /growth plan/i }));
-    expect(window.location.hash).toBe('#/signup');
-    expect(getIntendedPlan()).toBe('growth');
+    expect(await screen.findByRole('heading', { level: 1, name: /request private access/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/work email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/primary security challenge/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /request private access/i })).toBeInTheDocument();
+  });
+
+  it('nav Request Private Access CTA navigates to the application', async () => {
+    renderApp();
+    // Wait for auth to settle so the nav is fully rendered.
+    await screen.findAllByText('Sign in');
+    fireEvent.click(screen.getAllByText('Request Private Access')[0]);
+    expect(window.location.hash).toBe('#/request-access');
   });
 });
 
-describe('Pricing CTA routing — authenticated (bug fix: no re-signup)', () => {
-  it('FREE → navigates to account, NOT signup, and does not set an intent', async () => {
-    fetchMeMock.mockResolvedValue(authedAccount);
+describe('Self-service prevention — anonymous signup is gated', () => {
+  it('anonymous #/signup shows an access-controlled notice, not the signup form', async () => {
+    window.location.hash = '#/signup';
     renderApp();
-    // Wait until the session is applied (Navigation shows the Console entry only when authed).
-    await screen.findAllByText('Console');
-    fireEvent.click(screen.getByRole('button', { name: /free plan/i }));
-    expect(window.location.hash).toBe('#/account');
-    expect(window.location.hash).not.toBe('#/signup');
-    expect(getIntendedPlan()).toBeNull();
+    expect(await screen.findByRole('heading', { level: 1, name: /access is by request/i })).toBeInTheDocument();
+    // The real self-service account-creation form must NOT be reachable anonymously.
+    expect(screen.queryByText(/create your account/i)).toBeNull();
   });
 
-  it('GROWTH → navigates to account, NOT signup', async () => {
-    fetchMeMock.mockResolvedValue(authedAccount);
+  it('the signup gate routes to Request Private Access', async () => {
+    window.location.hash = '#/signup';
     renderApp();
-    await screen.findAllByText('Console');
-    fireEvent.click(screen.getByRole('button', { name: /growth plan/i }));
-    expect(window.location.hash).toBe('#/account');
-    expect(window.location.hash).not.toBe('#/signup');
+    await screen.findByRole('heading', { level: 1, name: /access is by request/i });
+    fireEvent.click(screen.getByRole('button', { name: /request private access/i }));
+    expect(window.location.hash).toBe('#/request-access');
+  });
+});
+
+describe('Existing customer access is preserved', () => {
+  it('#/login still renders the sign-in page (OAuth + credentials)', async () => {
+    window.location.hash = '#/login';
+    renderApp();
+    expect(await screen.findByText(/Continue with Google/i)).toBeInTheDocument();
   });
 
-  it('STARTER → navigates to account, NOT signup', async () => {
+  it('an authenticated user reaching #/signup is sent to their account, not the gate', async () => {
     fetchMeMock.mockResolvedValue(authedAccount);
+    window.location.hash = '#/signup';
     renderApp();
-    await screen.findAllByText('Console');
-    fireEvent.click(screen.getByRole('button', { name: /starter plan/i }));
-    expect(window.location.hash).toBe('#/account');
-    expect(window.location.hash).not.toBe('#/signup');
+    // AccountPage renders (authenticated) rather than the access-controlled gate.
+    expect(await screen.findAllByText('Console')).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: /access is by request/i })).toBeNull();
   });
+});
 
-  it('OAuth-authenticated session (indistinguishable client-side) → FREE goes to account', async () => {
-    // An OAuth-established session surfaces the same authenticated account via fetchMe.
-    fetchMeMock.mockResolvedValue(authedAccount);
-    renderApp();
-    await screen.findAllByText('Console');
-    fireEvent.click(screen.getByRole('button', { name: /free plan/i }));
-    expect(window.location.hash).toBe('#/account');
-  });
+describe('No public pricing on anonymous marketing routes (regression)', () => {
+  // Catches any public price/plan/margin leak — e.g. the RAPHA product-page
+  // comparison row that formerly showed "Rs. 12K/node/year".
+  const PRICING = /(₹\s*\d|Rs\.\s*\d|\/node\/year|\/node\/yr|most popular|start free|start a pilot|start growth|breakeven|Starter margin|Growth margin|Regulated margin)/i;
+  const routes: Array<{ hash: string; name: string }> = [
+    { hash: '#/', name: 'home' },
+    { hash: '#/product', name: 'product (RAPHA)' },
+    { hash: '#/compliance', name: 'compliance' },
+    { hash: '#/private-deployment', name: 'private-deployment' },
+    { hash: '#/request-access', name: 'request-access' },
+    { hash: '#/contact', name: 'contact' },
+  ];
+  for (const r of routes) {
+    it(`${r.name} exposes no public pricing`, async () => {
+      window.location.hash = r.hash;
+      renderApp();
+      // Wait for nav/auth to settle so the full route content is mounted.
+      await screen.findAllByText('Sign in');
+      const text = document.body.textContent ?? '';
+      expect(text).not.toMatch(PRICING);
+    });
+  }
 });

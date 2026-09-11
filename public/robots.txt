@@ -1,0 +1,9 @@
+# EmmaTech / RAPHA — robots policy
+# NOTE: the public site is currently a hash-routed SPA, so there is effectively
+# one crawlable URL (the origin). Per-page crawlable URLs are a Phase 2 SEO task.
+User-agent: *
+Allow: /
+# Application endpoints are not content — keep them out of the index.
+Disallow: /api/
+
+Sitemap: https://www.emmatech.in/sitemap.xml

@@ -235,7 +235,13 @@ const SuccessMessage = styled.div`
   text-align: center;
 `;
 
-export const ContactSection: React.FC = () => {
+interface ContactSectionProps {
+  /** Routes RAPHA-evaluation interest to the private-access application so the
+   *  contact form stays focused on general/partnership inquiries. */
+  onRequestAccess?: () => void;
+}
+
+export const ContactSection: React.FC<ContactSectionProps> = ({ onRequestAccess }) => {
   const {
     register,
     handleSubmit,
@@ -260,11 +266,24 @@ export const ContactSection: React.FC = () => {
       <SectionPrefix>§06 / CONTACT</SectionPrefix>
       <SectionTitle>Contact</SectionTitle>
       <SectionSubtitle>
-        Run a pilot. No PoC fees.
+        General, partnership, and press inquiries.
       </SectionSubtitle>
-      <div style={{ textAlign: 'center', marginBottom: '40px', color: '#c9d1d9', fontSize: '18px', maxWidth: '800px', margin: '0 auto 40px auto' }}>
-        We're onboarding Startups and SMEs for free pilots. You get the agent, the dashboard, and a real audit-trail in under a week.
+      <div style={{ textAlign: 'center', marginBottom: '40px', color: '#c9d1d9', fontSize: '18px', maxWidth: '800px', margin: '0 auto 24px auto' }}>
+        Use this form for general company, partnership, or press questions. If you are evaluating
+        RAPHA for your organization, please request private access instead — deployments are
+        reviewed individually.
       </div>
+      {onRequestAccess && (
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <Button
+            variant="primary"
+            onClick={onRequestAccess}
+            aria-label="Request private access to RAPHA"
+          >
+            Request Private Access
+          </Button>
+        </div>
+      )}
 
       <ContactGrid>
         <motion.div
@@ -306,14 +325,14 @@ export const ContactSection: React.FC = () => {
 
             <div style={{ marginTop: '24px', textAlign: 'center' }}>
               <Button
-                variant="primary"
+                variant="secondary"
                 onClick={() =>
                   (window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(
-                    'Pilot request — RAPHA'
+                    'General inquiry — EmmaTech'
                   )}`)
                 }
               >
-                Start a Pilot
+                Email us
               </Button>
             </div>
           </ContactInfo>
@@ -370,14 +389,14 @@ export const ContactSection: React.FC = () => {
                 <Label htmlFor="message">Message *</Label>
                 <TextArea
                   id="message"
-                  placeholder="Tell us what you're protecting — fleet size, stack, compliance needs."
+                  placeholder="How can we help?"
                   {...register('message', { required: 'Message is required' })}
                 />
                 {errors.message && <ErrorMessage>{errors.message.message}</ErrorMessage>}
               </FormGroup>
 
               <Button type="submit" variant="primary">
-                Request a pilot
+                Send message
               </Button>
 
               {isSubmitted && (
