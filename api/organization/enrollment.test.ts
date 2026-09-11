@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import enrollmentHandler from './enrollment-token.js';
+import orgHandler from './[action].js';
+// Route the consolidated organization function as the enrollment-token action
+// (preserves the exact /api/organization/enrollment-token behavior).
+const enrollmentHandler = (req: VercelRequest, res: VercelResponse) => {
+  const r = req as unknown as { query?: Record<string, unknown> };
+  r.query = { ...(r.query ?? {}), action: 'enrollment-token' };
+  return orgHandler(req, res);
+};
 import { __resetInMemoryStore, getStore } from '../_lib/store/index.js';
 import { __resetRateLimits } from '../_lib/ratelimit.js';
 import { getConfig } from '../_lib/config.js';

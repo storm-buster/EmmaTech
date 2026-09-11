@@ -402,7 +402,9 @@ export async function requestSignupOtp(
     },
     OTP_REQUEST_COOLDOWN_MS,
   );
-  if (!result.created) {
+  // `result` is a discriminated union ({created} | {throttled}); use an `in`
+  // guard so the narrowing is explicit (the throttled arm has no `created`).
+  if (!('created' in result)) {
     logInfo({ requestId, operation: 'account.otp_request', status: 'success', outcome: 'throttled' });
     return;
   }
