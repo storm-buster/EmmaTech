@@ -95,4 +95,24 @@ describe('POST /api/access-requests', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
   });
+
+  it('best-effort notification: a failing/hanging Resend never fails the submission, and the fetch is abort-wired', async () => {
+    process.env.RESEND_API_KEY = 'test-key';
+    process.env.OTP_EMAIL_FROM = 'EmmaTech <noreply@example.com>';
+    process.env.ACCESS_REQUEST_NOTIFY_TO = 'ops@example.com';
+    // Simulate a network failure/abort — the handler must still return 201.
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network/abort'));
+    const { res, state } = makeRes();
+    await handler(makeReq({ body: validBody }), res);
+    expect(state.statusCode).toBe(201);
+    // Notify was attempted with a bounded AbortController signal wired in.
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const opts = fetchSpy.mock.calls[0][1] as RequestInit;
+    expect(opts.signal).toBeInstanceOf(AbortSignal);
+    // The durable record persisted despite the notification failure.
+    const store = getStore(getConfig());
+    const page = await store.listAccessRequests({ page: 1, pageSize: 25 });
+    expect(page.total).toBe(1);
+    fetchSpy.mockRestore();
+  });
 });

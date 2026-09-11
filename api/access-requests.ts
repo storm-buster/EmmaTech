@@ -119,6 +119,11 @@ async function notifyBestEffort(
     `Application id:  ${r.id}`,
     `Submitted:       ${r.created_at}`,
   ].join('\n');
+  // Bounded timeout so a slow/unreachable Resend never keeps the public
+  // submission pending. The durable record was already saved by the caller, so
+  // aborting here only skips the (best-effort) email — it never fails the request.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
   try {
     const resp = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -129,10 +134,15 @@ async function notifyBestEffort(
         subject: `RAPHA private-access request — ${r.organization}`,
         text: lines,
       }),
+      signal: controller.signal,
     });
     if (!resp.ok) throw new Error(`notify_status_${resp.status}`);
     logInfo({ requestId, operation: 'access_request.notify', status: 'success', outcome: 'sent' });
   } catch {
+    // Includes AbortError on timeout. Swallowed: the durable record is the
+    // source of truth; notification is best-effort only.
     logError({ requestId, operation: 'access_request.notify', status: 'failure', outcome: 'send_error' });
+  } finally {
+    clearTimeout(timeout);
   }
 }

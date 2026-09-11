@@ -318,7 +318,9 @@ export const Navigation: React.FC<NavigationProps> = ({
           </NavLinks>
           <RightCluster>
             <PrimaryCta
-              onClick={() => {
+              href="#/request-access"
+              onClick={(e) => {
+                e.preventDefault();
                 trackEvent('request_access_click', { source: 'nav' });
                 go('request-access');
               }}
@@ -359,7 +361,9 @@ export const Navigation: React.FC<NavigationProps> = ({
           </MobileNavLink>
         ))}
         <MobilePrimaryCta
-          onClick={() => {
+          href="#/request-access"
+          onClick={(e) => {
+            e.preventDefault();
             trackEvent('request_access_click', { source: 'nav_mobile' });
             go('request-access');
           }}

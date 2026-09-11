@@ -150,6 +150,14 @@ const Group = styled.div<{ $full?: boolean }>`
   ${({ $full }) => ($full ? 'grid-column: 1 / -1;' : '')}
 `;
 
+// Short, non-intrusive caveat for the free-text security fields.
+const GroupNote = styled.p`
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  color: ${({ theme }) => theme.colors.neutral.mediumGray};
+`;
+
 const Label = styled.label`
   font-size: 14px;
   font-weight: 500;
@@ -424,6 +432,7 @@ export function RequestAccessPage() {
           </Group>
 
           <GroupHeading>Security requirements</GroupHeading>
+          <GroupNote>Do not submit passwords, API keys, credentials, or other secrets in these fields.</GroupNote>
 
           <Group $full>
             <Label htmlFor="security_challenge">Primary security challenge *</Label>

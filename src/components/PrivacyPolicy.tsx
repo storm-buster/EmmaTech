@@ -110,7 +110,7 @@ export const PrivacyPolicy: React.FC = () => {
       <ContentWrapper>
         <Heading>Privacy Policy</Heading>
         <Meta>
-          <B>Effective Date:</B> August 20, 2026 &nbsp;|&nbsp; <B>Last Updated:</B> August 20, 2026 &nbsp;|&nbsp; <B>Version:</B> 2.0
+          <B>Effective Date:</B> August 20, 2026 &nbsp;|&nbsp; <B>Last Updated:</B> September 11, 2026 &nbsp;|&nbsp; <B>Version:</B> 2.1
         </Meta>
 
         <Divider />
@@ -130,7 +130,7 @@ export const PrivacyPolicy: React.FC = () => {
 
         {/* 2. Scope */}
         <Subheading>2. Scope</Subheading>
-        <Paragraph>This Policy covers the EmmaTech website, account sign-up and authentication, and the RAPHA Console. It does not cover third-party services you choose to integrate with; those are governed by their own policies.</Paragraph>
+        <Paragraph>This Policy covers the EmmaTech website, account sign-up and authentication, the RAPHA Console, and the Request Private Access application form. It does not cover third-party services you choose to integrate with; those are governed by their own policies.</Paragraph>
 
         <Divider />
 
@@ -187,14 +187,34 @@ export const PrivacyPolicy: React.FC = () => {
           are never written to these logs.
         </Paragraph>
 
+        <Subheading3>3.7 Request Private Access (Deployment Inquiry) Information</Subheading3>
+        <Paragraph>
+          If you submit the <B>Request Private Access</B> form, we collect the information you provide so we can review and
+          respond to your interest in a RAPHA private deployment. Submitting this form is an <B>inquiry/application — it does
+          not create an account</B> and does not provision any RAPHA tenant. The information collected includes:
+        </Paragraph>
+        <BulletList>
+          <li>Your name, work email, and job title / role;</li>
+          <li>Your organization, industry, organization size, and country / region;</li>
+          <li>Your intended deployment environment;</li>
+          <li>Your responses about your primary security challenge, current security environment, and reasons for evaluating RAPHA;</li>
+          <li>Any additional free-text context you choose to include.</li>
+        </BulletList>
+        <Paragraph>
+          We use this information solely to assess deployment fit and to contact you about your request. It is stored as a
+          durable application record and is accessible only to authorized EmmaTech personnel; it is not shown on any public
+          page. A notification containing the submitted details may be sent to our team through our email delivery provider
+          (see "Email Delivery" below). Please do not include passwords, API keys, or other secrets in the free-text fields.
+        </Paragraph>
+
         <Divider />
 
-        {/* 4. How We Use Information */}
         <Subheading>4. How We Use Information</Subheading>
         <BulletList>
           <li>To create and authenticate your account, and to verify your email address;</li>
           <li>To create your Organization, apply your selected plan, and provision and operate your RAPHA tenant;</li>
           <li>To display your Organization's data in the RAPHA Console;</li>
+          <li>To review and respond to Request Private Access applications and assess RAPHA deployment fit;</li>
           <li>To secure the Service, prevent abuse, and troubleshoot problems;</li>
           <li>To send transactional messages such as verification codes and account/service notices.</li>
         </BulletList>

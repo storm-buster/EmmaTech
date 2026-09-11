@@ -19,6 +19,16 @@ in-memory store (tests / local dev) and no migration is required.
   existing organizations as already-selected. **Must be applied before deploying
   the OTP signup code.**
 - `0003_email_verification_and_plan_selection.down.sql` — rollback.
+- `0006_access_requests.up.sql` — creates the `access_requests` table (durable
+  "Request Private Access" applications: business-contact PII + qualification
+  free-text + a review `status`). Additive and idempotent (`IF NOT EXISTS`); no
+  backfill. **Must be applied before deploying the `/api/access-requests` code**,
+  otherwise the public Request Private Access form fails (missing table).
+- `0006_access_requests.down.sql` — rollback (drops `access_requests`).
+
+> Note: migration numbers `0004`/`0005` belong to separate platform (Admin
+> Portal) work that is not part of this migration set; the ordering here is
+> `0001 → 0002 → 0003 → 0006`.
 
 ## Apply
 

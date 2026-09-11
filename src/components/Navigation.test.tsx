@@ -94,6 +94,8 @@ describe('Navigation — auth-aware, no admin exposure', () => {
     await screen.findAllByText('Sign in');
     const ctas = screen.getAllByText('Request Private Access');
     expect(ctas.length).toBeGreaterThan(0);
+    // Keyboard-accessible: rendered as a real anchor with a navigable hash href.
+    expect(ctas[0].getAttribute('href')).toBe('#/request-access');
     ctas[0].click();
     expect(onNavigate).toHaveBeenCalledWith('request-access');
   });
