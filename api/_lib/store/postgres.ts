@@ -19,6 +19,11 @@ import type {
   OrgRole,
   ThrottledChallengeResult,
   User,
+  AccessRequest,
+  AccessRequestStatus,
+  CreateAccessRequestInput,
+  ListAccessRequestsOptions,
+  AccessRequestListPage,
 } from './types.js';
 import { DuplicateEmailError } from './types.js';
 import type { PlanId } from '../../../src/shared/plans.js';
@@ -368,5 +373,95 @@ export class PostgresStore implements DataStore {
 
       return { ok: true, user, organization } as ConsumeChallengeResult;
     });
+  }
+
+  // ── Phase 1: private-access applications ──────────────────────────────
+  async createAccessRequest(input: CreateAccessRequestInput): Promise<AccessRequest> {
+    const { rows } = await this.q<AccessRequest>(
+      `INSERT INTO access_requests
+         (full_name, work_email, organization, job_title, industry, organization_size,
+          country, security_challenge, current_stack, deployment_environment,
+          evaluation_reason, additional_context)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+       RETURNING id, full_name, work_email, organization, job_title, industry,
+                 organization_size, country, security_challenge, current_stack,
+                 deployment_environment, evaluation_reason, additional_context,
+                 status, created_at, updated_at`,
+      [
+        input.full_name,
+        input.work_email,
+        input.organization,
+        input.job_title,
+        input.industry,
+        input.organization_size,
+        input.country,
+        input.security_challenge,
+        input.current_stack,
+        input.deployment_environment,
+        input.evaluation_reason,
+        input.additional_context,
+      ],
+    );
+    return rows[0];
+  }
+
+  async listAccessRequests(opts: ListAccessRequestsOptions): Promise<AccessRequestListPage> {
+    const where: string[] = [];
+    const params: unknown[] = [];
+    if (opts.status) {
+      params.push(opts.status);
+      where.push(`status = $${params.length}`);
+    }
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const totalRes = await this.q<{ count: string }>(
+      `SELECT COUNT(*)::text AS count FROM access_requests ${whereSql}`,
+      params,
+    );
+    const total = Number(totalRes.rows[0]?.count ?? '0');
+
+    const limit = opts.pageSize;
+    const offset = (opts.page - 1) * opts.pageSize;
+    const pageParams = [...params, limit, offset];
+    const { rows } = await this.q<AccessRequest>(
+      `SELECT id, full_name, work_email, organization, job_title, industry,
+              organization_size, country, security_challenge, current_stack,
+              deployment_environment, evaluation_reason, additional_context,
+              status, created_at, updated_at
+         FROM access_requests
+         ${whereSql}
+         ORDER BY created_at DESC, id
+         LIMIT $${pageParams.length - 1} OFFSET $${pageParams.length}`,
+      pageParams,
+    );
+    return { requests: rows, total };
+  }
+
+  async getAccessRequest(id: string): Promise<AccessRequest | null> {
+    const { rows } = await this.q<AccessRequest>(
+      `SELECT id, full_name, work_email, organization, job_title, industry,
+              organization_size, country, security_challenge, current_stack,
+              deployment_environment, evaluation_reason, additional_context,
+              status, created_at, updated_at
+         FROM access_requests WHERE id = $1`,
+      [id],
+    );
+    return rows[0] ?? null;
+  }
+
+  async setAccessRequestStatus(
+    id: string,
+    status: AccessRequestStatus,
+  ): Promise<AccessRequest | null> {
+    const { rows } = await this.q<AccessRequest>(
+      `UPDATE access_requests SET status = $2, updated_at = now()
+        WHERE id = $1
+       RETURNING id, full_name, work_email, organization, job_title, industry,
+                 organization_size, country, security_challenge, current_stack,
+                 deployment_environment, evaluation_reason, additional_context,
+                 status, created_at, updated_at`,
+      [id, status],
+    );
+    return rows[0] ?? null;
   }
 }

@@ -70,12 +70,31 @@ describe('Navigation — auth-aware, no admin exposure', () => {
     }
   });
 
-  it('renders the expected public nav items', async () => {
+  it('renders the expected public nav items (no public Pricing)', async () => {
     mockedFetchMe.mockResolvedValue(null);
     renderNav();
     await screen.findAllByText('Sign in');
-    for (const label of ['Home', 'Product', 'Compliance', 'Pricing', 'Docs', 'Careers', 'Contact']) {
+    for (const label of ['Home', 'RAPHA', 'Compliance', 'Docs', 'Careers', 'Contact']) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
+    // Pricing is no longer a public navigation item.
+    expect(screen.queryByText('Pricing')).toBeNull();
+  });
+
+  it('exposes a Request Private Access CTA that navigates to the application', async () => {
+    mockedFetchMe.mockResolvedValue(null);
+    const onNavigate = vi.fn();
+    render(
+      <ThemeProvider theme={theme}>
+        <AuthProvider>
+          <Navigation currentRoute="home" onNavigate={onNavigate} />
+        </AuthProvider>
+      </ThemeProvider>,
+    );
+    await screen.findAllByText('Sign in');
+    const ctas = screen.getAllByText('Request Private Access');
+    expect(ctas.length).toBeGreaterThan(0);
+    ctas[0].click();
+    expect(onNavigate).toHaveBeenCalledWith('request-access');
   });
 });

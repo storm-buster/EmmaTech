@@ -133,6 +133,75 @@ export type ThrottledChallengeResult =
   /** A recent challenge for this email is still within the cooldown window. */
   | { throttled: true };
 
+// ── Phase 1 (commercial repositioning): private-access applications ─────────
+/**
+ * Lifecycle of a private-access application. Decoupled from identity: none of
+ * these states creates or grants an account, organization, or RAPHA tenant.
+ */
+export type AccessRequestStatus =
+  | 'submitted'
+  | 'under_review'
+  | 'approved'
+  | 'declined'
+  | 'contacted';
+
+export const ACCESS_REQUEST_STATUSES: readonly AccessRequestStatus[] = [
+  'submitted',
+  'under_review',
+  'approved',
+  'declined',
+  'contacted',
+];
+
+/** A durable "Request Private Access" application. Business-contact PII only —
+ *  NEVER secrets. Exposed solely through the platform-admin API. */
+export interface AccessRequest {
+  id: string;
+  full_name: string;
+  work_email: string;
+  organization: string;
+  job_title: string | null;
+  industry: string;
+  organization_size: string | null;
+  country: string | null;
+  security_challenge: string;
+  current_stack: string | null;
+  deployment_environment: string | null;
+  evaluation_reason: string;
+  additional_context: string | null;
+  status: AccessRequestStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Validated, sanitized input for creating an access request (server-built;
+ *  optional fields are already normalized to a trimmed value or null). */
+export interface CreateAccessRequestInput {
+  full_name: string;
+  work_email: string;
+  organization: string;
+  job_title: string | null;
+  industry: string;
+  organization_size: string | null;
+  country: string | null;
+  security_challenge: string;
+  current_stack: string | null;
+  deployment_environment: string | null;
+  evaluation_reason: string;
+  additional_context: string | null;
+}
+
+export interface ListAccessRequestsOptions {
+  page: number;
+  pageSize: number;
+  status?: AccessRequestStatus;
+}
+
+export interface AccessRequestListPage {
+  requests: AccessRequest[];
+  total: number;
+}
+
 export interface DataStore {
   createUser(input: CreateUserInput): Promise<User>;
   getUserByEmail(email: string): Promise<User | null>;
@@ -197,4 +266,21 @@ export interface DataStore {
    * commits, so a provisioning failure never rolls back the local account.
    */
   createAccountConsumingChallenge(input: ConsumeChallengeAccountInput): Promise<ConsumeChallengeResult>;
+
+  // ── Phase 1: private-access applications (public intake, admin review) ──
+  /**
+   * Persist a private-access application from the PUBLIC website. This NEVER
+   * creates a user, organization, membership, or RAPHA tenant — it is a
+   * commercial lead record only, kept fully separate from provisioning.
+   */
+  createAccessRequest(input: CreateAccessRequestInput): Promise<AccessRequest>;
+  /** Read-only, filtered, paginated access-request list (newest first). */
+  listAccessRequests(opts: ListAccessRequestsOptions): Promise<AccessRequestListPage>;
+  /** Single access-request detail. Returns null when it does not exist. */
+  getAccessRequest(id: string): Promise<AccessRequest | null>;
+  /**
+   * Move an application through the review lifecycle. Returns null when the
+   * request does not exist. Changing status NEVER provisions anything.
+   */
+  setAccessRequestStatus(id: string, status: AccessRequestStatus): Promise<AccessRequest | null>;
 }

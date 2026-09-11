@@ -22,6 +22,11 @@ import type {
   OrgRole,
   ThrottledChallengeResult,
   User,
+  AccessRequest,
+  AccessRequestStatus,
+  CreateAccessRequestInput,
+  ListAccessRequestsOptions,
+  AccessRequestListPage,
 } from './types.js';
 import { DuplicateEmailError } from './types.js';
 
@@ -31,6 +36,7 @@ export class InMemoryStore implements DataStore {
   private organizations = new Map<string, Organization>();
   private memberships: Membership[] = [];
   private challenges = new Map<string, EmailChallenge>();
+  private accessRequests: AccessRequest[] = [];
 
   private now(): string {
     return new Date().toISOString();
@@ -261,5 +267,63 @@ export class InMemoryStore implements DataStore {
     this.organizations.set(org.id, org);
     this.memberships.push({ user_id: user.id, organization_id: org.id, role: 'owner', created_at: ts });
     return { ok: true, user: { ...user }, organization: { ...org } };
+  }
+
+  // ── Phase 1: private-access applications ──────────────────────────────
+  async createAccessRequest(input: CreateAccessRequestInput): Promise<AccessRequest> {
+    const ts = this.now();
+    const request: AccessRequest = {
+      id: randomUUID(),
+      full_name: input.full_name,
+      work_email: input.work_email,
+      organization: input.organization,
+      job_title: input.job_title,
+      industry: input.industry,
+      organization_size: input.organization_size,
+      country: input.country,
+      security_challenge: input.security_challenge,
+      current_stack: input.current_stack,
+      deployment_environment: input.deployment_environment,
+      evaluation_reason: input.evaluation_reason,
+      additional_context: input.additional_context,
+      status: 'submitted',
+      created_at: ts,
+      updated_at: ts,
+    };
+    this.accessRequests.push(request);
+    return { ...request };
+  }
+
+  async listAccessRequests(opts: ListAccessRequestsOptions): Promise<AccessRequestListPage> {
+    let rows = [...this.accessRequests];
+    if (opts.status) rows = rows.filter((r) => r.status === opts.status);
+    // Newest first; tie-break by id for a stable order (mirrors Postgres).
+    rows.sort((a, b) =>
+      a.created_at === b.created_at
+        ? a.id.localeCompare(b.id)
+        : a.created_at < b.created_at
+          ? 1
+          : -1,
+    );
+    const total = rows.length;
+    const start = (opts.page - 1) * opts.pageSize;
+    const page = rows.slice(start, start + opts.pageSize).map((r) => ({ ...r }));
+    return { requests: page, total };
+  }
+
+  async getAccessRequest(id: string): Promise<AccessRequest | null> {
+    const found = this.accessRequests.find((r) => r.id === id);
+    return found ? { ...found } : null;
+  }
+
+  async setAccessRequestStatus(
+    id: string,
+    status: AccessRequestStatus,
+  ): Promise<AccessRequest | null> {
+    const found = this.accessRequests.find((r) => r.id === id);
+    if (!found) return null;
+    found.status = status;
+    found.updated_at = this.now();
+    return { ...found };
   }
 }

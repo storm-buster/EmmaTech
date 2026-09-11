@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { breakpoints } from '../styles/breakpoints';
 import { LogoIcon } from './LogoIcon';
 import { useAuth } from '../auth/AuthContext';
+import { trackEvent } from '../analytics/events';
 
 const Nav = styled.nav<{ $isScrolled: boolean }>`
   position: fixed;
@@ -139,6 +140,43 @@ const MobileMenuButton = styled.button`
   }
 `;
 
+const PrimaryCta = styled.a`
+  display: none;
+  color: ${({ theme }) => theme.colors.neutral.white};
+  background: ${({ theme }) => theme.gradients.primary};
+  border: 1px solid ${({ theme }) => theme.colors.primary.main};
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 0 12px ${({ theme }) => theme.colors.primary.glow};
+  transition: ${({ theme }) => theme.transitions.default};
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 18px ${({ theme }) => theme.colors.primary.glow};
+  }
+
+  ${breakpoints.desktop} {
+    display: inline-block;
+  }
+`;
+
+const MobilePrimaryCta = styled.a`
+  color: ${({ theme }) => theme.colors.neutral.white};
+  background: ${({ theme }) => theme.gradients.primary};
+  border-radius: 8px;
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+  font-weight: 700;
+  font-size: 16px;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+`;
+
 const AuthCta = styled.a`
   display: none;
   color: ${({ theme }) => theme.colors.primary.main};
@@ -204,9 +242,8 @@ interface NavigationProps {
 
 const NAV_ITEMS: { label: string; route: Route }[] = [
   { label: 'Home', route: 'home' },
-  { label: 'Product', route: 'product' },
+  { label: 'RAPHA', route: 'product' },
   { label: 'Compliance', route: 'compliance' },
-  { label: 'Pricing', route: 'pricing' },
   { label: 'Docs', route: 'docs' },
   { label: 'Careers', route: 'careers' },
   { label: 'Contact', route: 'contact' },
@@ -260,7 +297,23 @@ export const Navigation: React.FC<NavigationProps> = ({
             ))}
           </NavLinks>
           <RightCluster>
-            <AuthCta onClick={() => go(authRoute)}>{authLabel}</AuthCta>
+            <PrimaryCta
+              onClick={() => {
+                trackEvent('request_access_click', { source: 'nav' });
+                go('request-access');
+              }}
+              aria-label="Request private access to RAPHA"
+            >
+              Request Private Access
+            </PrimaryCta>
+            <AuthCta
+              onClick={() => {
+                if (!account) trackEvent('sign_in_click', { source: 'nav' });
+                go(authRoute);
+              }}
+            >
+              {authLabel}
+            </AuthCta>
             {account && (
               <AuthCta onClick={() => go('console')} aria-label="Open RAPHA console">
                 Console
@@ -285,7 +338,23 @@ export const Navigation: React.FC<NavigationProps> = ({
             {item.label}
           </MobileNavLink>
         ))}
-        <MobileNavLink onClick={() => go(authRoute)}>{authLabel}</MobileNavLink>
+        <MobilePrimaryCta
+          onClick={() => {
+            trackEvent('request_access_click', { source: 'nav_mobile' });
+            go('request-access');
+          }}
+          aria-label="Request private access to RAPHA"
+        >
+          Request Private Access
+        </MobilePrimaryCta>
+        <MobileNavLink
+          onClick={() => {
+            if (!account) trackEvent('sign_in_click', { source: 'nav_mobile' });
+            go(authRoute);
+          }}
+        >
+          {authLabel}
+        </MobileNavLink>
         {account && <MobileNavLink onClick={() => go('console')}>Console</MobileNavLink>}
       </MobileMenu>
     </>

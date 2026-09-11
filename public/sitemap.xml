@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The public site is a hash-routed SPA: hash fragments (#/product, #/private-deployment,
+  #/request-access, ...) are NOT independent, crawlable URLs, so listing them here would
+  be misleading. Only the single canonical origin is listed. Per-page crawlable URLs
+  depend on the Phase 2 routing/prerendering work.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://www.emmatech.in/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
