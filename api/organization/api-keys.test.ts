@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import apiKeysHandler from './api-keys.js';
+import orgHandler from './[action].js';
+// Route the consolidated organization function as the api-keys action
+// (preserves the exact GET/POST /api/organization/api-keys behavior).
+const apiKeysHandler = (req: VercelRequest, res: VercelResponse) => {
+  const r = req as unknown as { query?: Record<string, unknown> };
+  r.query = { ...(r.query ?? {}), action: 'api-keys' };
+  return orgHandler(req, res);
+};
 import { getConfig } from '../_lib/config.js';
 import { __resetInMemoryStore, getStore } from '../_lib/store/index.js';
 import { createSessionToken, SESSION_COOKIE_NAME } from '../_lib/session.js';
