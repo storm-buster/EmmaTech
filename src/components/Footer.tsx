@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 import { breakpoints } from '../styles/breakpoints';
 import type { Route } from '../App';
+import { routePath } from '../routing';
 import inceptionBadge from '../assets/nvidia-inception-badge.png';
 
 const FooterContainer = styled.footer`
@@ -159,7 +160,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             {PRODUCT_LINKS.map((link) => (
               <FooterLink
                 key={link.route}
-                href={`#/${link.route}`}
+                href={routePath(link.route)}
                 onClick={handleNav(link.route)}
               >
                 {link.label}
@@ -191,7 +192,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             {LEGAL_LINKS.map((link) => (
               <FooterLink
                 key={link.route}
-                href={`#/${link.route}`}
+                href={routePath(link.route)}
                 onClick={handleNav(link.route)}
               >
                 {link.label}
