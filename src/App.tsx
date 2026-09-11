@@ -9,6 +9,7 @@ import { ProblemSection } from './components/ProblemSection';
 import { SolutionSection } from './components/SolutionSection';
 import { WhyRaphaSection } from './components/WhyRaphaSection';
 import { PrivateAccessCta } from './components/PrivateAccessCta';
+import { CuriositySection } from './components/CuriositySection';
 import { PrivateDeployment } from './components/PrivateDeployment';
 import { ContactSection } from './components/ContactSection';
 import { HiringBanner } from './components/HiringBanner';
@@ -154,6 +155,7 @@ function App() {
               <div id="home">
                 <HeroSection onRequestAccess={goRequestAccess} onExplore={goExplore} />
               </div>
+              <CuriositySection />
               <HiringBanner />
             </>
           )}

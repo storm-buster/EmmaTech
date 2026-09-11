@@ -52,7 +52,54 @@ const Lead = styled.p`
   line-height: 1.6;
   color: ${({ theme }) => theme.colors.neutral.mediumGray};
   max-width: 680px;
-  margin-bottom: ${({ theme }) => theme.spacing['2xl']};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
+`;
+
+// Sets expectations directly above the form: this is an application, not signup.
+const ApplyNote = styled.p`
+  font-family: ${({ theme }) => theme.typography.fontFamily.monospace};
+  font-size: 13px;
+  line-height: 1.5;
+  color: ${({ theme }) => theme.colors.neutral.lightGray};
+  border-left: 2px solid ${({ theme }) => theme.colors.primary.main};
+  padding-left: 12px;
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
+`;
+
+const Process = styled.ol`
+  list-style: none;
+  padding: 0;
+  margin: 0 0 ${({ theme }) => theme.spacing['2xl']};
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: ${({ theme }) => theme.spacing.sm};
+
+  ${breakpoints.tablet} {
+    grid-template-columns: repeat(4, 1fr);
+    gap: ${({ theme }) => theme.spacing.md};
+  }
+`;
+
+const ProcessStep = styled.li`
+  border: 1px solid ${({ theme }) => theme.colors.neutral.border};
+  border-radius: 10px;
+  padding: ${({ theme }) => theme.spacing.md};
+  background: rgba(255, 255, 255, 0.02);
+
+  span {
+    display: block;
+    font-family: ${({ theme }) => theme.typography.fontFamily.monospace};
+    font-size: 11px;
+    font-weight: 700;
+    color: ${({ theme }) => theme.colors.primary.main};
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+
+  small {
+    font-size: 13px;
+    color: ${({ theme }) => theme.colors.neutral.lightGray};
+  }
 `;
 
 const Card = styled.div`
@@ -74,6 +121,25 @@ const Form = styled.form`
 
   ${breakpoints.tablet} {
     grid-template-columns: 1fr 1fr;
+  }
+`;
+
+// Section label that groups related fields (spans the full grid width).
+const GroupHeading = styled.h2`
+  grid-column: 1 / -1;
+  font-family: ${({ theme }) => theme.typography.fontFamily.monospace};
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: ${({ theme }) => theme.colors.neutral.mediumGray};
+  padding-top: ${({ theme }) => theme.spacing.sm};
+  margin: 0;
+  border-top: 1px solid ${({ theme }) => theme.colors.neutral.border};
+
+  &:first-of-type {
+    border-top: none;
+    padding-top: 0;
   }
 `;
 
@@ -208,6 +274,13 @@ const DEPLOY_ENVS = [
   'Not sure yet',
 ];
 
+const PROCESS_STEPS = [
+  { n: '01', label: 'Application' },
+  { n: '02', label: 'Deployment-fit review' },
+  { n: '03', label: 'Private briefing' },
+  { n: '04', label: 'Evaluation / pilot' },
+];
+
 export function RequestAccessPage() {
   const {
     register,
@@ -274,9 +347,22 @@ export function RequestAccessPage() {
         requirements, and the EmmaTech team will review your request for deployment fit.
       </Lead>
 
+      <ApplyNote>This is an application for private deployment, not a self-service signup.</ApplyNote>
+
+      <Process aria-label="How the private-access process works">
+        {PROCESS_STEPS.map((s) => (
+          <ProcessStep key={s.n}>
+            <span>{s.n}</span>
+            <small>{s.label}</small>
+          </ProcessStep>
+        ))}
+      </Process>
+
       <Card>
         <Form onSubmit={handleSubmit(onSubmit)} noValidate aria-label="Request private access">
           {formError && <FormError role="alert">{formError}</FormError>}
+
+          <GroupHeading>Applicant</GroupHeading>
 
           <Group>
             <Label htmlFor="full_name">Full name *</Label>
@@ -297,18 +383,20 @@ export function RequestAccessPage() {
             {errors.work_email && <ErrorText role="alert">{errors.work_email.message}</ErrorText>}
           </Group>
 
+          <Group $full>
+            <Label htmlFor="job_title">Job title / role</Label>
+            <Input id="job_title" type="text" autoComplete="organization-title"
+              {...register('job_title')} />
+          </Group>
+
+          <GroupHeading>Organization</GroupHeading>
+
           <Group>
             <Label htmlFor="organization">Organization *</Label>
             <Input id="organization" type="text" autoComplete="organization"
               aria-invalid={errors.organization ? 'true' : 'false'}
               {...register('organization', { required: 'Organization is required' })} />
             {errors.organization && <ErrorText role="alert">{errors.organization.message}</ErrorText>}
-          </Group>
-
-          <Group>
-            <Label htmlFor="job_title">Job title / role</Label>
-            <Input id="job_title" type="text" autoComplete="organization-title"
-              {...register('job_title')} />
           </Group>
 
           <Group>
@@ -335,13 +423,7 @@ export function RequestAccessPage() {
             <Input id="country" type="text" autoComplete="country-name" {...register('country')} />
           </Group>
 
-          <Group>
-            <Label htmlFor="deployment_environment">Deployment environment</Label>
-            <Select id="deployment_environment" defaultValue="" {...register('deployment_environment')}>
-              <option value="">Select an environment…</option>
-              {DEPLOY_ENVS.map((d) => <option key={d} value={d}>{d}</option>)}
-            </Select>
-          </Group>
+          <GroupHeading>Security requirements</GroupHeading>
 
           <Group $full>
             <Label htmlFor="security_challenge">Primary security challenge *</Label>
@@ -353,10 +435,18 @@ export function RequestAccessPage() {
           </Group>
 
           <Group $full>
-            <Label htmlFor="current_stack">Current security stack</Label>
+            <Label htmlFor="current_stack">Current security environment</Label>
             <TextArea id="current_stack"
               placeholder="Existing tools (EDR/XDR, SIEM, firewalls, etc.) — optional"
               {...register('current_stack')} />
+          </Group>
+
+          <Group>
+            <Label htmlFor="deployment_environment">Deployment environment</Label>
+            <Select id="deployment_environment" defaultValue="" {...register('deployment_environment')}>
+              <option value="">Select an environment…</option>
+              {DEPLOY_ENVS.map((d) => <option key={d} value={d}>{d}</option>)}
+            </Select>
           </Group>
 
           <Group $full>
@@ -377,11 +467,12 @@ export function RequestAccessPage() {
 
           <Actions>
             <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting…' : 'Submit request'}
+              {isSubmitting ? 'Submitting…' : 'Request Private Access'}
             </Button>
             <FinePrint>
-              Submitting this form does not create an account or grant access. Requests are reviewed
-              individually; commercial terms are discussed privately with selected organizations.
+              Submitting this application does not create an account or grant access. Requests are
+              reviewed individually for deployment fit; commercial terms are discussed privately with
+              selected organizations.
             </FinePrint>
           </Actions>
         </Form>

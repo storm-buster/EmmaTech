@@ -71,7 +71,7 @@ describe('Commercial repositioning — private-access flow', () => {
     expect(await screen.findByRole('heading', { level: 1, name: /request private access/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/work email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/primary security challenge/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /submit request/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /request private access/i })).toBeInTheDocument();
   });
 
   it('nav Request Private Access CTA navigates to the application', async () => {

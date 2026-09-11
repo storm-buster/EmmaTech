@@ -45,20 +45,37 @@ const NavContainer = styled.div`
 `;
 
 const Logo = styled.div`
-  font-family: ${({ theme }) => theme.typography.fontFamily.display};
-  font-size: 24px;
-  font-weight: 700;
-  color: ${({ theme }) => theme.colors.primary.main};
-  text-shadow: 0 0 10px ${({ theme }) => theme.colors.primary.glow};
   cursor: pointer;
   transition: ${({ theme }) => theme.transitions.default};
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 
   &:hover {
-    transform: scale(1.05);
+    transform: scale(1.03);
   }
+`;
+
+// Company wordmark — the primary brand identity in the header.
+const BrandName = styled.span`
+  font-family: ${({ theme }) => theme.typography.fontFamily.display};
+  font-size: 22px;
+  font-weight: 700;
+  color: ${({ theme }) => theme.colors.neutral.white};
+  letter-spacing: -0.2px;
+`;
+
+// Subordinate product tag — communicates "RAPHA is a product by EmmaTech".
+const ProductTag = styled.span`
+  font-family: ${({ theme }) => theme.typography.fontFamily.monospace};
+  font-size: 10px;
+  font-weight: 700;
+  color: ${({ theme }) => theme.colors.primary.main};
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border: 1px solid ${({ theme }) => theme.colors.neutral.border};
+  border-radius: 6px;
+  padding: 2px 6px;
 `;
 
 const NavLinks = styled.div`
@@ -142,22 +159,22 @@ const MobileMenuButton = styled.button`
 
 const PrimaryCta = styled.a`
   display: none;
-  color: ${({ theme }) => theme.colors.neutral.white};
-  background: ${({ theme }) => theme.gradients.primary};
+  color: ${({ theme }) => theme.colors.primary.main};
+  background: rgba(0, 240, 255, 0.06);
   border: 1px solid ${({ theme }) => theme.colors.primary.main};
   border-radius: 8px;
   padding: 9px 18px;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
-  box-shadow: 0 0 12px ${({ theme }) => theme.colors.primary.glow};
   transition: ${({ theme }) => theme.transitions.default};
 
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 18px ${({ theme }) => theme.colors.primary.glow};
+    background: rgba(0, 240, 255, 0.14);
+    color: ${({ theme }) => theme.colors.neutral.white};
   }
 
   ${breakpoints.desktop} {
@@ -166,12 +183,14 @@ const PrimaryCta = styled.a`
 `;
 
 const MobilePrimaryCta = styled.a`
-  color: ${({ theme }) => theme.colors.neutral.white};
-  background: ${({ theme }) => theme.gradients.primary};
+  color: ${({ theme }) => theme.colors.primary.main};
+  background: rgba(0, 240, 255, 0.06);
+  border: 1px solid ${({ theme }) => theme.colors.primary.main};
   border-radius: 8px;
   padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
-  font-weight: 700;
-  font-size: 16px;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.04em;
   text-align: center;
   text-decoration: none;
   cursor: pointer;
@@ -281,9 +300,10 @@ export const Navigation: React.FC<NavigationProps> = ({
     <>
       <Nav $isScrolled={isScrolled}>
         <NavContainer>
-          <Logo onClick={handleLogoClick}>
+          <Logo onClick={handleLogoClick} aria-label="EmmaTech — home">
             <LogoIcon />
-            RAPHA
+            <BrandName>EmmaTech</BrandName>
+            <ProductTag>RAPHA</ProductTag>
           </Logo>
           <NavLinks>
             {NAV_ITEMS.map((item) => (

@@ -36,12 +36,12 @@ describe('RequestAccessPage', () => {
     renderPage();
     expect(screen.getByRole('heading', { level: 1, name: /request private access/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/work email/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /submit request/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /request private access/i })).toBeInTheDocument();
   });
 
   it('blocks submission and shows validation errors when required fields are empty', async () => {
     renderPage();
-    fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+    fireEvent.click(screen.getByRole('button', { name: /request private access/i }));
     expect(await screen.findByText(/full name is required/i)).toBeInTheDocument();
     expect(submitMock).not.toHaveBeenCalled();
   });
@@ -50,7 +50,7 @@ describe('RequestAccessPage', () => {
     submitMock.mockResolvedValue({ state: 'ok', id: 'ar-1', status: 'submitted' });
     renderPage();
     fillRequired();
-    fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+    fireEvent.click(screen.getByRole('button', { name: /request private access/i }));
     expect(await screen.findByText(/request received/i)).toBeInTheDocument();
     expect(submitMock).toHaveBeenCalledTimes(1);
   });
@@ -59,7 +59,7 @@ describe('RequestAccessPage', () => {
     submitMock.mockResolvedValue({ state: 'invalid', fields: { work_email: 'Please use a valid work email.' } });
     renderPage();
     fillRequired();
-    fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+    fireEvent.click(screen.getByRole('button', { name: /request private access/i }));
     await waitFor(() => expect(screen.getByText(/please use a valid work email/i)).toBeInTheDocument());
   });
 
@@ -67,7 +67,7 @@ describe('RequestAccessPage', () => {
     submitMock.mockResolvedValue({ state: 'error', message: 'Unable to reach the server. Please try again.' });
     renderPage();
     fillRequired();
-    fireEvent.click(screen.getByRole('button', { name: /submit request/i }));
+    fireEvent.click(screen.getByRole('button', { name: /request private access/i }));
     expect(await screen.findByText(/unable to reach the server/i)).toBeInTheDocument();
   });
 });
