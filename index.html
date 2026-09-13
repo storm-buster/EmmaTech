@@ -5,7 +5,44 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/png" href="/vite.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0A0E27" />
+  <meta name="theme-color" content="#0F1115" />
+  <!-- Critical CSS: the app's styling is injected at runtime by styled-components,
+       so without this the prerendered static HTML would first-paint unstyled
+       (white) before the JS bundle loads. This small layer mirrors the theme's
+       base (GlobalStyles body + typography) so the first paint is a coherent dark
+       EmmaTech shell; styled-components then takes over seamlessly (same
+       background — no flash/jump). Kept minimal; the full styling still loads
+       normally. The content stays visible while React loads (no hiding of the
+       page). -->
+  <style id="critical-css">
+    html { font-size: 16px; overflow-x: hidden; }
+    body {
+      margin: 0;
+      background: #0F1115;
+      color: #CBD5E1;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    #root { min-height: 100vh; }
+    /* Prerendered content shell (replaced by React on load) — styled so the
+       pre-hydration paint reads as a real dark EmmaTech page, not raw HTML. */
+    #prerender-content { max-width: 1200px; margin: 0 auto; padding: 120px 24px 64px; }
+    #prerender-content nav {
+      display: flex; flex-wrap: wrap; gap: 18px; align-items: center;
+      padding-bottom: 20px; margin-bottom: 40px;
+      border-bottom: 1px solid rgba(226, 232, 240, 0.08); font-size: 14px;
+    }
+    #prerender-content h1 {
+      font-family: 'Playfair Display', serif; font-weight: 600;
+      line-height: 1.1; letter-spacing: -0.02em; font-size: 40px;
+      color: #F8FAFC; margin: 0 0 16px;
+    }
+    #prerender-content p { max-width: 760px; color: #94A3B8; margin: 0 0 16px; line-height: 1.6; }
+    #prerender-content a { color: #E2E8F0; text-decoration: none; }
+  </style>
   <!-- Per-route SEO metadata (title, description, canonical, robots, Open Graph,
        Twitter, JSON-LD) is injected here at build time by scripts/prerender.mjs
        and managed at runtime by src/components/seo/Seo.tsx. -->
