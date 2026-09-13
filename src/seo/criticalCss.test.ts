@@ -23,6 +23,7 @@ describe('prerender shell — critical CSS (no unstyled flash)', () => {
     expect(style).toMatch(/color:\s*#CBD5E1/i); // theme neutral.lightGray
     expect(style).toMatch(/font-family:\s*'Inter'/i);
     expect(style).toMatch(/#prerender-content/); // the static shell is styled
+    expect(style).toMatch(/text-transform:\s*uppercase/i); // h1 matches GlobalStyles (no case reflow)
   });
 
   it('does NOT hide content while React loads (no visibility:hidden / opacity:0 gate)', () => {
