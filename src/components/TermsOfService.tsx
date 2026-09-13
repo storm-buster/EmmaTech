@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import styled from 'styled-components';
 import { breakpoints } from '../styles/breakpoints';
 
@@ -106,13 +105,6 @@ const Link = styled.a`
 `;
 
 export const TermsOfService: React.FC = () => {
-  useEffect(() => {
-    document.title = 'Terms of Service — EmmaTech';
-    return () => {
-      document.title = 'EmmaTech™ - RAPHA: The Future of Autonomous Cyber Defense';
-    };
-  }, []);
-
   return (
     <PageContainer id="terms">
       <ContentWrapper>

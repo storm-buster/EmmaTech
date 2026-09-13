@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import styled from 'styled-components';
 import { Button } from './Button';
 import { breakpoints } from '../styles/breakpoints';
@@ -69,13 +68,6 @@ const Actions = styled.div`
 `;
 
 export function NotFoundPage({ onNavigate }: NotFoundPageProps) {
-  useEffect(() => {
-    document.title = 'Page not found — EmmaTech';
-    return () => {
-      document.title = 'EmmaTech · RAPHA — Autonomous Cyber Defense, Privately Deployed';
-    };
-  }, []);
-
   return (
     <Page>
       <Code>404</Code>

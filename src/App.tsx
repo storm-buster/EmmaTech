@@ -26,6 +26,7 @@ import { DocsPage } from './components/docs/DocsPage';
 import { ConsolePage } from './components/console/ConsolePage';
 import { RequestAccessPage } from './components/access/RequestAccessPage';
 import { SignupGate } from './components/access/SignupGate';
+import { Seo } from './components/seo/Seo';
 import { parsePath, routePath, navigateTo, subscribeLocation } from './routing';
 
 // ── Pathname multi-page router (Phase 2A) ──
@@ -98,6 +99,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyles />
+        <Seo />
         <SkipToContent />
         <Navigation currentRoute={route} onNavigate={navigate} />
 
