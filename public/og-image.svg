@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="EmmaTech · RAPHA — Autonomous Cyber Defense">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0A0E27"/>
+      <stop offset="1" stop-color="#0d1330"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#00F0FF"/>
+      <stop offset="1" stop-color="#00D9FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="none" stroke="#1c2444" stroke-width="2"/>
+  <!-- accent bar -->
+  <rect x="80" y="150" width="72" height="6" rx="3" fill="url(#accent)"/>
+  <!-- company -->
+  <text x="80" y="210" font-family="Georgia, 'Playfair Display', serif" font-size="34" fill="#c9d1d9" letter-spacing="1">EmmaTech</text>
+  <!-- product wordmark -->
+  <text x="78" y="300" font-family="Georgia, 'Playfair Display', serif" font-size="120" font-weight="700" fill="#ffffff">RAPHA</text>
+  <!-- tagline -->
+  <text x="80" y="372" font-family="Arial, 'Inter', sans-serif" font-size="40" font-weight="600" fill="url(#accent)">Autonomous Cyber Defense. Privately Deployed.</text>
+  <!-- supporting line -->
+  <text x="80" y="424" font-family="Arial, 'Inter', sans-serif" font-size="24" fill="#8b93a7">Detect · Decide · Redirect · Observe</text>
+  <!-- footer mark -->
+  <text x="80" y="560" font-family="'JetBrains Mono', monospace, Consolas" font-size="20" fill="#3FBF7F" letter-spacing="3">DETECT. DECEIVE. DEFEND.</text>
+  <text x="1120" y="560" text-anchor="end" font-family="Arial, 'Inter', sans-serif" font-size="20" fill="#5b6479">emmatech.in</text>
+</svg>

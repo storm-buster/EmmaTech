@@ -1,14 +1,52 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  The public site is a hash-routed SPA: hash fragments (#/product, #/private-deployment,
-  #/request-access, ...) are NOT independent, crawlable URLs, so listing them here would
-  be misleading. Only the single canonical origin is listed. Per-page crawlable URLs
-  depend on the Phase 2 routing/prerendering work.
--->
+<!-- Generated from the SEO manifest (src/seo/routeSeo.ts); regenerated into dist/ at build time by scripts/prerender.mjs. Indexable public routes only — excludes /request-access, /login, /signup, /account, /deploy, /console, /api, and non-indexed docs. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://www.emmatech.in/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://www.emmatech.in/rapha</loc>
+  </url>
+  <url>
+    <loc>https://www.emmatech.in/compliance</loc>
+  </url>
+  <url>
+    <loc>https://www.emmatech.in/private-deployment</loc>
+  </url>
+  <url>
+    <loc>https://www.emmatech.in/contact</loc>
+  </url>
+  <url>
+    <loc>https://www.emmatech.in/careers</loc>
+  </url>
+  <url>
+    <loc>https://www.emmatech.in/privacy</loc>
+  </url>
+  <url>
+    <loc>https://www.emmatech.in/terms</loc>
+  </url>
+  <url>
+    <loc>https://www.emmatech.in/docs</loc>
+  </url>
+  <url>
+    <loc>https://www.emmatech.in/docs/overview</loc>
+  </url>
+  <url>
+    <loc>https://www.emmatech.in/docs/architecture</loc>
+  </url>
+  <url>
+    <loc>https://www.emmatech.in/docs/requirements</loc>
+  </url>
+  <url>
+    <loc>https://www.emmatech.in/docs/quick-start</loc>
+  </url>
+  <url>
+    <loc>https://www.emmatech.in/docs/register-sensor</loc>
+  </url>
+  <url>
+    <loc>https://www.emmatech.in/docs/web-console</loc>
+  </url>
+  <url>
+    <loc>https://www.emmatech.in/docs/linux</loc>
   </url>
 </urlset>

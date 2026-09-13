@@ -195,10 +195,6 @@ export function DocsPage() {
 
   const page = DOC_PAGES[activeId];
 
-  useEffect(() => {
-    document.title = `${page.title} — RAPHA Documentation — EmmaTech`;
-  }, [page.title]);
-
   const goToDoc = (id: string) => (e: React.MouseEvent) => {
     e.preventDefault();
     navigateTo(id === DEFAULT_DOC_ID ? '/docs' : `/docs/${id}`);
