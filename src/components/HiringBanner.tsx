@@ -2,6 +2,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { breakpoints } from '../styles/breakpoints';
 import { roles } from '../data/careersData';
+import { navigateTo } from '../routing';
 
 const BannerContainer = styled.section`
   padding: ${({ theme }) => theme.spacing['2xl']} ${({ theme }) => theme.spacing.lg};
@@ -90,7 +91,13 @@ export const HiringBanner: React.FC = () => (
         <Title>We're hiring — {roles.length} open roles</Title>
         <Subtitle>Join the founding team building autonomous cyber-defense.</Subtitle>
       </TextBlock>
-      <JoinLink href="#/careers">
+      <JoinLink
+        href="/careers"
+        onClick={(e) => {
+          e.preventDefault();
+          navigateTo('/careers');
+        }}
+      >
         Join the founding team →
       </JoinLink>
     </Inner>

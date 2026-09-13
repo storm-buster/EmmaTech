@@ -6,8 +6,8 @@ import { DocsPage } from './DocsPage';
 import { Footer } from '../Footer';
 import { theme } from '../../styles/theme';
 
-function renderDocsAt(hash: string) {
-  window.location.hash = hash;
+function renderDocsAt(path: string) {
+  window.history.pushState({}, '', path);
   return render(
     <ThemeProvider theme={theme}>
       <DocsPage />
@@ -17,17 +17,17 @@ function renderDocsAt(hash: string) {
 
 afterEach(() => {
   cleanup();
-  window.location.hash = '';
+  window.history.replaceState({}, '', '/');
 });
 
 describe('DocsPage routing + rendering', () => {
   it('resolves the /docs route to the Overview page by default', () => {
-    renderDocsAt('#/docs');
+    renderDocsAt('/docs');
     expect(screen.getByRole('heading', { level: 1, name: 'Overview' })).toBeInTheDocument();
   });
 
   it('renders the documentation navigation (sections + all pages)', () => {
-    renderDocsAt('#/docs');
+    renderDocsAt('/docs');
     for (const section of ['Getting Started', 'Installation', 'Sensors', 'Integrations']) {
       expect(screen.getAllByText(section).length).toBeGreaterThan(0);
     }
@@ -48,25 +48,25 @@ describe('DocsPage routing + rendering', () => {
 
   it('renders each core page by deep-link hash', () => {
     const cases: Array<[string, string]> = [
-      ['#/docs/overview', 'Overview'],
-      ['#/docs/architecture', 'Architecture'],
-      ['#/docs/requirements', 'Requirements'],
-      ['#/docs/quick-start', 'Quick Start'],
-      ['#/docs/windows', 'Windows Installation'],
-      ['#/docs/register-sensor', 'Register a Sensor'],
-      ['#/docs/web-services', 'Web Services'],
+      ['/docs/overview', 'Overview'],
+      ['/docs/architecture', 'Architecture'],
+      ['/docs/requirements', 'Requirements'],
+      ['/docs/quick-start', 'Quick Start'],
+      ['/docs/windows', 'Windows Installation'],
+      ['/docs/register-sensor', 'Register a Sensor'],
+      ['/docs/web-services', 'Web Services'],
     ];
     for (const [hash, title] of cases) {
       const { unmount } = renderDocsAt(hash);
       // Content <article> is always visible; there is exactly one <h1>.
       expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(title);
       unmount();
-      window.location.hash = '';
+      window.history.replaceState({}, '', '/');
     }
   });
 
   it('shows a breadcrumb and prev/next navigation', () => {
-    renderDocsAt('#/docs/architecture');
+    renderDocsAt('/docs/architecture');
     expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toBeInTheDocument();
     // Architecture is preceded by Overview and followed by Requirements.
     expect(screen.getByText('Previous')).toBeInTheDocument();
@@ -76,7 +76,7 @@ describe('DocsPage routing + rendering', () => {
 
 describe('DocsPage accuracy constraints', () => {
   it('Linux page states installation is NOT generally available and gives no command', () => {
-    const { container } = renderDocsAt('#/docs/linux');
+    const { container } = renderDocsAt('/docs/linux');
     expect(screen.getByRole('heading', { level: 1, name: 'Linux' })).toBeInTheDocument();
     expect(screen.getByText(/not generally available/i)).toBeInTheDocument();
     // No fake install command.
@@ -85,7 +85,7 @@ describe('DocsPage accuracy constraints', () => {
   });
 
   it('Web Console page does NOT claim rapha.emmatech.in is currently live', () => {
-    const { container } = renderDocsAt('#/docs/web-console');
+    const { container } = renderDocsAt('/docs/web-console');
     // Uses future-safe wording.
     expect(screen.getByText(/planned\/future production URL/i)).toBeInTheDocument();
     expect(screen.getByText(/will be available at the organization console URL/i)).toBeInTheDocument();
@@ -94,7 +94,7 @@ describe('DocsPage accuracy constraints', () => {
   });
 
   it('Web Services page reflects live API-key management (no stale "coming soon", no service token / fake create form)', () => {
-    const { container } = renderDocsAt('#/docs/web-services');
+    const { container } = renderDocsAt('/docs/web-services');
     expect(container.textContent).not.toMatch(/X-Service-Token/i);
     expect(container.textContent).not.toMatch(/create api key/i);
     expect(container.textContent).not.toMatch(/not enabled yet|not available yet|coming soon/i);
@@ -103,14 +103,14 @@ describe('DocsPage accuracy constraints', () => {
   });
 
   it('Quick Start distinguishes enrollment token from API key', () => {
-    const { container } = renderDocsAt('#/docs/quick-start');
+    const { container } = renderDocsAt('/docs/quick-start');
     expect(container.textContent).toMatch(/enrollment token/i);
     expect(container.textContent).toMatch(/api key/i);
     expect(container.textContent).toMatch(/not.*an api key|different credential/i);
   });
 
   it('does not present any raw enrollment token as a real credential', () => {
-    const { container } = renderDocsAt('#/docs/register-sensor');
+    const { container } = renderDocsAt('/docs/register-sensor');
     // Placeholder-only; no realistic long token string.
     expect(container.textContent).not.toMatch(/renr_[A-Za-z0-9]{20,}/);
   });

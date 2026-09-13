@@ -8,11 +8,12 @@ import {
   DOC_PAGES,
   resolveDocId,
 } from '../../docs/docsContent';
+import { navigateTo, subscribeLocation, docIdFromPath } from '../../routing';
 
 /**
  * RAPHA customer documentation shell: responsive sidebar + mobile menu,
- * breadcrumb, and previous/next navigation. Sub-pages are hash-routed as
- * `#/docs/<pageId>` and this component listens for hash changes so deep links
+ * breadcrumb, and previous/next navigation. Sub-pages are pathname-routed as
+ * `/docs/<pageId>` and this component subscribes to location changes so deep links
  * and in-page navigation both work. No documentation framework is used.
  */
 
@@ -175,23 +176,22 @@ const PrevNextLink = styled.a`
   }
 `;
 
-function docIdFromHash(): string {
-  const match = window.location.hash.match(/^#\/docs\/?([^/?#]*)/i);
-  return resolveDocId(match ? match[1] : DEFAULT_DOC_ID);
+function currentDocId(): string {
+  return resolveDocId(docIdFromPath(window.location.pathname) ?? DEFAULT_DOC_ID);
 }
 
 export function DocsPage() {
-  const [activeId, setActiveId] = useState<string>(() => docIdFromHash());
+  const [activeId, setActiveId] = useState<string>(() => currentDocId());
   const [menuOpen, setMenuOpen] = useState(false);
 
-  useEffect(() => {
-    const onHashChange = () => {
-      setActiveId(docIdFromHash());
-      setMenuOpen(false);
-    };
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, []);
+  useEffect(
+    () =>
+      subscribeLocation(() => {
+        setActiveId(currentDocId());
+        setMenuOpen(false);
+      }),
+    [],
+  );
 
   const page = DOC_PAGES[activeId];
 
@@ -201,7 +201,7 @@ export function DocsPage() {
 
   const goToDoc = (id: string) => (e: React.MouseEvent) => {
     e.preventDefault();
-    window.location.hash = id === DEFAULT_DOC_ID ? '#/docs' : `#/docs/${id}`;
+    navigateTo(id === DEFAULT_DOC_ID ? '/docs' : `/docs/${id}`);
   };
 
   const index = DOCS_ORDER.indexOf(activeId);
@@ -229,7 +229,7 @@ export function DocsPage() {
                   {section.items.map((item) => (
                     <li key={item.id}>
                       <NavLink
-                        href={item.id === DEFAULT_DOC_ID ? '#/docs' : `#/docs/${item.id}`}
+                        href={item.id === DEFAULT_DOC_ID ? '/docs' : `/docs/${item.id}`}
                         $active={item.id === activeId}
                         aria-current={item.id === activeId ? 'page' : undefined}
                         onClick={goToDoc(item.id)}
@@ -247,7 +247,7 @@ export function DocsPage() {
 
       <Content>
         <Breadcrumb aria-label="Breadcrumb">
-          <a href="#/docs" onClick={goToDoc(DEFAULT_DOC_ID)}>
+          <a href="/docs" onClick={goToDoc(DEFAULT_DOC_ID)}>
             Documentation
           </a>
           <span aria-hidden="true">/</span>
@@ -260,7 +260,7 @@ export function DocsPage() {
 
         <PrevNext>
           {prevId ? (
-            <PrevNextLink href={`#/docs/${prevId}`} onClick={goToDoc(prevId)}>
+            <PrevNextLink href={`/docs/${prevId}`} onClick={goToDoc(prevId)}>
               <small>Previous</small>
               {DOC_PAGES[prevId].title}
             </PrevNextLink>
@@ -269,7 +269,7 @@ export function DocsPage() {
           )}
           {nextId ? (
             <PrevNextLink
-              href={`#/docs/${nextId}`}
+              href={`/docs/${nextId}`}
               onClick={goToDoc(nextId)}
               style={{ textAlign: 'right' }}
             >

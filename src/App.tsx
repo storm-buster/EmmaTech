@@ -17,6 +17,7 @@ import { Footer } from './components/Footer';
 import { CareersPage } from './components/careers/CareersPage';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
+import { NotFoundPage } from './components/NotFoundPage';
 import { useAuth } from './auth/AuthContext';
 import { LoginPage } from './components/auth/LoginPage';
 import { AccountPage } from './components/auth/AccountPage';
@@ -25,15 +26,18 @@ import { DocsPage } from './components/docs/DocsPage';
 import { ConsolePage } from './components/console/ConsolePage';
 import { RequestAccessPage } from './components/access/RequestAccessPage';
 import { SignupGate } from './components/access/SignupGate';
+import { parsePath, routePath, navigateTo, subscribeLocation } from './routing';
 
-// ── Hash-based multi-page router ──
-// Each page is its own route. The site used to be a single scroll page; it is
-// now split so every nav item is a distinct page.
+// ── Pathname multi-page router (Phase 2A) ──
+// Public marketing routes are real pathnames (`/rapha`, `/compliance`, …) served
+// via the SPA + Vercel rewrites, so they are crawlable/linkable. Authenticated
+// app routes stay client-rendered and are excluded from indexing. Legacy `#/…`
+// URLs are redirected to their pathname equivalent by the bootstrap shim
+// (see `applyLegacyHashRedirect` in main.tsx and `src/routing.ts`).
 //
-// Phase 1 (commercial repositioning): RAPHA is presented as a private/selective
-// deployment. The former public self-service `pricing` page is replaced by the
-// `private-deployment` page (the legacy `#/pricing` hash still resolves there),
-// and a new `request-access` application route is the primary commercial entry.
+// Phase 1 commercial positioning is unchanged: RAPHA is a private/selective
+// deployment; `/private-deployment` replaces public pricing; `/request-access`
+// is the primary commercial entry.
 export type Route =
   | 'home'
   | 'product'
@@ -49,59 +53,21 @@ export type Route =
   | 'account'
   | 'deploy'
   | 'docs'
-  | 'console';
-
-export function parseRoute(hash: string): Route {
-  const path = hash.replace(/^#\/?/, '').split(/[/?#]/)[0].toLowerCase();
-  switch (path) {
-    case 'product':
-      return 'product';
-    case 'compliance':
-      return 'compliance';
-    // Legacy `#/pricing` links resolve to the new private-deployment page so
-    // old bookmarks/inbound links do not break.
-    case 'pricing':
-    case 'private-deployment':
-      return 'private-deployment';
-    case 'request-access':
-      return 'request-access';
-    case 'careers':
-      return 'careers';
-    case 'contact':
-      return 'contact';
-    case 'privacy':
-      return 'privacy';
-    case 'terms':
-      return 'terms';
-    case 'login':
-      return 'login';
-    case 'signup':
-      return 'signup';
-    case 'account':
-      return 'account';
-    case 'deploy':
-      return 'deploy';
-    case 'docs':
-      return 'docs';
-    case 'console':
-      return 'console';
-    default:
-      return 'home';
-  }
-}
+  | 'console'
+  | 'notfound';
 
 function useRoute(): Route {
-  const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
+  const [route, setRoute] = useState<Route>(() => parsePath(window.location.pathname));
 
-  useEffect(() => {
-    const onHashChange = () => {
-      setRoute(parseRoute(window.location.hash));
-      // Every navigation lands at the top of the new page.
-      window.scrollTo({ top: 0, behavior: 'auto' });
-    };
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, []);
+  useEffect(
+    () =>
+      subscribeLocation(() => {
+        setRoute(parsePath(window.location.pathname));
+        // Every navigation lands at the top of the new page.
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }),
+    [],
+  );
 
   return route;
 }
@@ -111,7 +77,7 @@ function App() {
   const { account } = useAuth();
 
   const navigate = (to: Route) => {
-    window.location.hash = to === 'home' ? '#/' : `#/${to}`;
+    navigateTo(routePath(to));
   };
 
   // Primary commercial action across the public site: the private-access
@@ -188,6 +154,9 @@ function App() {
           {route === 'docs' && <DocsPage />}
 
           {route === 'console' && <ConsolePage onNavigate={navigate} />}
+
+          {/* Unknown public pathname → simple 404 (no longer silently Home). */}
+          {route === 'notfound' && <NotFoundPage onNavigate={navigate} />}
         </main>
 
         {!isAuthRoute && <Footer onNavigate={navigate} />}

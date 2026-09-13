@@ -4,6 +4,7 @@ import { breakpoints } from '../styles/breakpoints';
 import { LogoIcon } from './LogoIcon';
 import { useAuth } from '../auth/AuthContext';
 import { trackEvent } from '../analytics/events';
+import { routePath } from '../routing';
 
 const Nav = styled.nav<{ $isScrolled: boolean }>`
   position: fixed;
@@ -309,8 +310,12 @@ export const Navigation: React.FC<NavigationProps> = ({
             {NAV_ITEMS.map((item) => (
               <NavLink
                 key={item.route}
+                href={routePath(item.route)}
                 $active={currentRoute === item.route}
-                onClick={() => go(item.route)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  go(item.route);
+                }}
               >
                 {item.label}
               </NavLink>
@@ -318,7 +323,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           </NavLinks>
           <RightCluster>
             <PrimaryCta
-              href="#/request-access"
+              href="/request-access"
               onClick={(e) => {
                 e.preventDefault();
                 trackEvent('request_access_click', { source: 'nav' });
@@ -329,7 +334,9 @@ export const Navigation: React.FC<NavigationProps> = ({
               Request Private Access
             </PrimaryCta>
             <AuthCta
-              onClick={() => {
+              href={routePath(authRoute)}
+              onClick={(e) => {
+                e.preventDefault();
                 if (!account) trackEvent('sign_in_click', { source: 'nav' });
                 go(authRoute);
               }}
@@ -337,7 +344,14 @@ export const Navigation: React.FC<NavigationProps> = ({
               {authLabel}
             </AuthCta>
             {account && (
-              <AuthCta onClick={() => go('console')} aria-label="Open RAPHA console">
+              <AuthCta
+                href="/console"
+                onClick={(e) => {
+                  e.preventDefault();
+                  go('console');
+                }}
+                aria-label="Open RAPHA console"
+              >
                 Console
               </AuthCta>
             )}
@@ -356,12 +370,19 @@ export const Navigation: React.FC<NavigationProps> = ({
       </Nav>
       <MobileMenu id="mobile-menu" $isOpen={isMobileMenuOpen}>
         {NAV_ITEMS.map((item) => (
-          <MobileNavLink key={item.route} onClick={() => go(item.route)}>
+          <MobileNavLink
+            key={item.route}
+            href={routePath(item.route)}
+            onClick={(e) => {
+              e.preventDefault();
+              go(item.route);
+            }}
+          >
             {item.label}
           </MobileNavLink>
         ))}
         <MobilePrimaryCta
-          href="#/request-access"
+          href="/request-access"
           onClick={(e) => {
             e.preventDefault();
             trackEvent('request_access_click', { source: 'nav_mobile' });
@@ -372,14 +393,26 @@ export const Navigation: React.FC<NavigationProps> = ({
           Request Private Access
         </MobilePrimaryCta>
         <MobileNavLink
-          onClick={() => {
+          href={routePath(authRoute)}
+          onClick={(e) => {
+            e.preventDefault();
             if (!account) trackEvent('sign_in_click', { source: 'nav_mobile' });
             go(authRoute);
           }}
         >
           {authLabel}
         </MobileNavLink>
-        {account && <MobileNavLink onClick={() => go('console')}>Console</MobileNavLink>}
+        {account && (
+          <MobileNavLink
+            href="/console"
+            onClick={(e) => {
+              e.preventDefault();
+              go('console');
+            }}
+          >
+            Console
+          </MobileNavLink>
+        )}
       </MobileMenu>
     </>
   );
