@@ -90,13 +90,13 @@ export const PLANS: Record<PlanId, Plan> = {
     price: '₹18,000',
     period: '/node/year',
     sensorLimit: 20,
-    decoysEnabled: true, // card explicitly lists "Lightweight Cowrie decoys"
+    decoysEnabled: true, // card lists "Lightweight deception decoys" (no specific software named)
     publiclyVisible: true,
     contactOnly: false,
     popular: false,
     features: [
       { text: 'Up to 20 sensors' },
-      { text: 'Lightweight Cowrie decoys' },
+      { text: 'Lightweight deception decoys' },
       { text: 'Real-time SOC dashboard' },
       { text: 'Email + Slack alert push' },
       { text: 'Behavioral baseline ML' },
