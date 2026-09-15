@@ -10,6 +10,8 @@ import {
   notFoundMeta,
   isValidDocId,
   VALID_DOC_IDS,
+  isCanonicalPublicPath,
+  caseRedirectTarget,
 } from './routeSeo';
 
 const PUBLIC = ['/', '/rapha', '/compliance', '/private-deployment', '/contact', '/careers', '/privacy', '/terms', '/docs'];
@@ -149,6 +151,57 @@ describe('isValidDocId (strict docs matching)', () => {
   it('rejects unknown doc ids', () => {
     for (const id of ['nonexistent', 'garbage', 'admin', '', 'overview-x']) {
       expect(isValidDocId(id)).toBe(false);
+    }
+  });
+});
+
+describe('case canonicalization (Phase 2C correction — edge 308 redirect logic)', () => {
+  it('mixed/upper-case variants of valid public routes redirect to lowercase canonical', () => {
+    const cases: Array<[string, string]> = [
+      ['/RAPHA', '/rapha'],
+      ['/Rapha', '/rapha'],
+      ['/rApHa', '/rapha'],
+      ['/RAPHA/', '/rapha'], // trailing slash normalized too
+      ['/Compliance', '/compliance'],
+      ['/Private-Deployment', '/private-deployment'],
+      ['/Contact', '/contact'],
+      ['/Careers', '/careers'],
+      ['/Privacy', '/privacy'],
+      ['/Terms', '/terms'],
+      ['/Docs', '/docs'],
+      ['/Docs/Overview', '/docs/overview'],
+      ['/DOCS/WEB-SERVICES', '/docs/web-services'],
+    ];
+    for (const [input, expected] of cases) {
+      expect(caseRedirectTarget(input)).toBe(expected);
+    }
+  });
+
+  it('lowercase (canonical) paths are never redirected', () => {
+    for (const p of ['/', '/rapha', '/compliance', '/private-deployment', '/docs', '/docs/overview', '/contact']) {
+      expect(caseRedirectTarget(p)).toBeNull();
+    }
+  });
+
+  it('does NOT normalize invalid paths into valid content (no widened matching)', () => {
+    for (const p of ['/RAPHA/GARBAGE', '/Rapha/Test', '/Compliance/x', '/Docs/Nonexistent', '/Docs/Overview/Extra', '/Bogus']) {
+      expect(caseRedirectTarget(p)).toBeNull();
+    }
+  });
+
+  it('does NOT redirect case variants of private/app routes (no auth bypass)', () => {
+    for (const p of ['/LOGIN', '/Signup', '/Account', '/Deploy', '/Console', '/Request-Access']) {
+      expect(caseRedirectTarget(p)).toBeNull();
+      expect(isCanonicalPublicPath(p.toLowerCase())).toBe(false);
+    }
+  });
+
+  it('isCanonicalPublicPath recognizes exactly the public canonical routes', () => {
+    for (const p of ['/', '/rapha', '/compliance', '/private-deployment', '/contact', '/careers', '/privacy', '/terms', '/docs', '/docs/overview', '/docs/web-services']) {
+      expect(isCanonicalPublicPath(p)).toBe(true);
+    }
+    for (const p of ['/rapha/garbage', '/docs/nope', '/login', '/api/x', '/nonexistent']) {
+      expect(isCanonicalPublicPath(p)).toBe(false);
     }
   });
 });

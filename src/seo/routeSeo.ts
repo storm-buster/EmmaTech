@@ -305,6 +305,28 @@ export function canonicalFor(path: string): string {
   return path === '/' ? `${SITE_ORIGIN}/` : `${SITE_ORIGIN}${path}`;
 }
 
+/** True when `pathname` (any case) is a VALID public canonical route: a public
+ *  single-segment route (`/rapha`, `/compliance`, …, `/docs`) or `/docs/<valid-id>`.
+ *  Excludes private/app routes and invalid child/doc paths — so it never widens
+ *  matching. Used by edge case-canonicalization. */
+export function isCanonicalPublicPath(pathname: string): boolean {
+  const clean = (pathname.replace(/\/+$/, '') || '/').toLowerCase();
+  if (STATIC_ROUTES.some((r) => r.path === clean)) return true;
+  const m = clean.match(/^\/docs\/([^/?#]+)$/);
+  return !!(m && isValidDocId(m[1]));
+}
+
+/** Case-canonicalization for the edge middleware: given a request pathname,
+ *  return the lowercase canonical pathname to 308-redirect to, or null when no
+ *  redirect should occur. Only mixed/upper-case variants of VALID public routes
+ *  redirect; lowercase paths, invalid paths, private/app routes, API and static
+ *  assets return null (left untouched → normal routing / strict 404). */
+export function caseRedirectTarget(pathname: string): string | null {
+  if (!/[A-Z]/.test(pathname)) return null; // already lowercase — nothing to normalize
+  const normalized = (pathname.toLowerCase().replace(/\/+$/, '') || '/');
+  return isCanonicalPublicPath(normalized) ? normalized : null;
+}
+
 /** All indexable public paths, in sitemap order (excludes noindex docs). */
 export function indexablePaths(): string[] {
   const staticPaths = STATIC_ROUTES.map((r) => r.path);
