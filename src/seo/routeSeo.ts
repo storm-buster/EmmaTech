@@ -14,7 +14,7 @@
 
 export const SITE_ORIGIN = 'https://www.emmatech.in';
 export const SITE_NAME = 'EmmaTech';
-export const OG_IMAGE = `${SITE_ORIGIN}/og-image.svg`;
+export const OG_IMAGE = `${SITE_ORIGIN}/og-image.png`;
 export const DEFAULT_TITLE = 'EmmaTech · RAPHA — Autonomous Cyber Defense';
 
 export type Robots = 'index,follow' | 'noindex,follow' | 'noindex,nofollow';
@@ -220,6 +220,16 @@ export const PUBLIC_DOCS: DocSeo[] = [
   { id: 'web-services', title: 'Web Services', description: 'Integrating RAPHA with external systems via its API.', indexable: false },
 ];
 
+/** Canonical set of valid documentation ids (single source for route matching). */
+export const VALID_DOC_IDS: readonly string[] = PUBLIC_DOCS.map((d) => d.id);
+
+/** True when `id` is a real documentation page (case-insensitive). Used by the
+ *  router to send unknown `/docs/<id>` paths to NotFound instead of the default. */
+export function isValidDocId(id: string): boolean {
+  const lower = id.toLowerCase();
+  return PUBLIC_DOCS.some((d) => d.id === lower);
+}
+
 function docMeta(doc: DocSeo): SeoMeta {
   const path = `/docs/${doc.id}`;
   return {
@@ -246,6 +256,21 @@ export function privateMeta(path: string, title = 'EmmaTech'): SeoMeta {
     robots: 'noindex,nofollow',
     heading: '',
     intro: '',
+  };
+}
+
+/** Metadata for the static 404 page (dist/404.html). Noindex, but carries a
+ *  heading + intro so the prerendered fallback is a styled, useful dark page
+ *  (with links) rather than a blank shell. Excluded from the sitemap. */
+export function notFoundMeta(): SeoMeta {
+  return {
+    path: '/404',
+    title: 'Page not found | EmmaTech',
+    description: 'The page you are looking for does not exist or may have moved.',
+    robots: 'noindex,nofollow',
+    heading: 'Page not found',
+    intro:
+      'The page you are looking for doesn’t exist or may have moved. Explore RAPHA, review the documentation, or request private access.',
   };
 }
 
@@ -278,6 +303,28 @@ export function metaForPath(pathname: string): SeoMeta {
 
 export function canonicalFor(path: string): string {
   return path === '/' ? `${SITE_ORIGIN}/` : `${SITE_ORIGIN}${path}`;
+}
+
+/** True when `pathname` (any case) is a VALID public canonical route: a public
+ *  single-segment route (`/rapha`, `/compliance`, …, `/docs`) or `/docs/<valid-id>`.
+ *  Excludes private/app routes and invalid child/doc paths — so it never widens
+ *  matching. Used by edge case-canonicalization. */
+export function isCanonicalPublicPath(pathname: string): boolean {
+  const clean = (pathname.replace(/\/+$/, '') || '/').toLowerCase();
+  if (STATIC_ROUTES.some((r) => r.path === clean)) return true;
+  const m = clean.match(/^\/docs\/([^/?#]+)$/);
+  return !!(m && isValidDocId(m[1]));
+}
+
+/** Case-canonicalization for the edge middleware: given a request pathname,
+ *  return the lowercase canonical pathname to 308-redirect to, or null when no
+ *  redirect should occur. Only mixed/upper-case variants of VALID public routes
+ *  redirect; lowercase paths, invalid paths, private/app routes, API and static
+ *  assets return null (left untouched → normal routing / strict 404). */
+export function caseRedirectTarget(pathname: string): string | null {
+  if (!/[A-Z]/.test(pathname)) return null; // already lowercase — nothing to normalize
+  const normalized = (pathname.toLowerCase().replace(/\/+$/, '') || '/');
+  return isCanonicalPublicPath(normalized) ? normalized : null;
 }
 
 /** All indexable public paths, in sitemap order (excludes noindex docs). */

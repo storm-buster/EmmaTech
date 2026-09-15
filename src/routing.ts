@@ -10,6 +10,7 @@
  * fragments never reach the server and cannot be handled by Vercel rewrites.
  */
 import type { Route } from './App';
+import { isValidDocId } from './seo/routeSeo';
 
 /** Canonical pathname for each addressable route (`home` = `/`). */
 const ROUTE_TO_PATH: Record<Exclude<Route, 'notfound'>, string> = {
@@ -35,12 +36,37 @@ export function routePath(route: Route): string {
   return route === 'notfound' ? '/404' : ROUTE_TO_PATH[route];
 }
 
-/** First path segment → Route. Unknown public paths resolve to `notfound`. */
+/**
+ * Map a pathname to a Route with STRICT matching (Phase 2C):
+ *  - single-segment public/app routes match exactly (`/rapha` → product);
+ *  - an unexpected child path (`/rapha/anything`) resolves to `notfound`
+ *    rather than silently rendering the parent page;
+ *  - docs are `/docs` (index) or `/docs/<valid-id>`; unknown doc ids and any
+ *    deeper docs path resolve to `notfound`.
+ * Matching is case-insensitive; canonical URLs remain lowercase.
+ */
 export function parsePath(pathname: string): Route {
-  const seg = (pathname.replace(/^\/+/, '').split(/[/?#]/)[0] || '').toLowerCase();
-  switch (seg) {
-    case '':
-      return 'home';
+  // Strip query/hash + trailing slash, then split into non-empty segments.
+  const clean = (pathname.split(/[?#]/)[0] || '').replace(/\/+$/, '');
+  const segments = clean
+    .replace(/^\/+/, '')
+    .split('/')
+    .filter(Boolean)
+    .map((s) => s.toLowerCase());
+
+  if (segments.length === 0) return 'home';
+
+  // Documentation: index or a single valid page id; anything else → notfound.
+  if (segments[0] === 'docs') {
+    if (segments.length === 1) return 'docs';
+    if (segments.length === 2 && isValidDocId(segments[1])) return 'docs';
+    return 'notfound';
+  }
+
+  // All other routes are single-segment only — reject stray child paths.
+  if (segments.length > 1) return 'notfound';
+
+  switch (segments[0]) {
     case 'rapha':
       return 'product';
     case 'compliance':
@@ -68,8 +94,6 @@ export function parsePath(pathname: string): Route {
       return 'account';
     case 'deploy':
       return 'deploy';
-    case 'docs':
-      return 'docs';
     case 'console':
       return 'console';
     default:
@@ -115,11 +139,14 @@ export function legacyHashToPath(hash: string): string | null {
   }
 }
 
-/** Docs sub-id from `/docs/<id>` (null for the docs index `/docs`). */
+/** Docs sub-id from `/docs/<id>` (null for the docs index `/docs`).
+ *  Lowercased so mixed-case URLs (e.g. `/docs/ARCHITECTURE`) resolve to the
+ *  correct page — matching `parsePath`'s case-insensitive validation and the
+ *  lowercase-kebab doc ids. */
 export function docIdFromPath(pathname: string): string | null {
   const m = pathname.match(/^\/docs\/?([^/?#]*)/i);
   const id = m ? m[1] : '';
-  return id ? id : null;
+  return id ? id.toLowerCase() : null;
 }
 
 // ── Navigation + location subscription (History API) ─────────────────────────

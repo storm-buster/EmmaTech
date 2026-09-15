@@ -72,6 +72,20 @@ describe('DocsPage routing + rendering', () => {
     expect(screen.getByText('Previous')).toBeInTheDocument();
     expect(screen.getByText('Next')).toBeInTheDocument();
   });
+
+  it('renders the correct page for a mixed-case doc id (regression: no fallback to Overview)', () => {
+    // Edge middleware 308-redirects case variants to lowercase in production;
+    // this guards the client path so the rendered page always matches the id.
+    for (const [path, title] of [
+      ['/docs/ARCHITECTURE', 'Architecture'],
+      ['/Docs/Web-Services', 'Web Services'],
+    ] as Array<[string, string]>) {
+      const { unmount } = renderDocsAt(path);
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(title);
+      unmount();
+      window.history.replaceState({}, '', '/');
+    }
+  });
 });
 
 describe('DocsPage accuracy constraints', () => {
