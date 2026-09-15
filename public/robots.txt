@@ -1,6 +1,8 @@
 # EmmaTech / RAPHA — robots policy
-# NOTE: the public site is currently a hash-routed SPA, so there is effectively
-# one crawlable URL (the origin). Per-page crawlable URLs are a Phase 2 SEO task.
+# The public site uses real pathname routes (e.g. /rapha, /compliance, /docs/*),
+# each crawlable with its own metadata; see the sitemap below. Private/app routes
+# (login, signup, account, deploy, console, request-access) are served noindex via
+# X-Robots-Tag and are intentionally excluded from the sitemap.
 User-agent: *
 Allow: /
 # Application endpoints are not content — keep them out of the index.

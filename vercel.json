@@ -2,13 +2,21 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
-      "source": "/((?!api/|.*\\.).*)",
+      "source": "/(login|signup|account|deploy|console|request-access)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/(login|signup|account|deploy|console|request-access)/:path*",
       "destination": "/index.html"
     }
   ],
   "headers": [
     {
       "source": "/(login|signup|account|deploy|console|request-access)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }]
+    },
+    {
+      "source": "/(login|signup|account|deploy|console|request-access)/:path*",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }]
     }
   ]

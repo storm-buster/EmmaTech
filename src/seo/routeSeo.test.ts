@@ -6,6 +6,10 @@ import {
   prerenderPaths,
   buildSitemapXml,
   SITE_ORIGIN,
+  OG_IMAGE,
+  notFoundMeta,
+  isValidDocId,
+  VALID_DOC_IDS,
 } from './routeSeo';
 
 const PUBLIC = ['/', '/rapha', '/compliance', '/private-deployment', '/contact', '/careers', '/privacy', '/terms', '/docs'];
@@ -108,6 +112,43 @@ describe('prerender vs indexable path sets', () => {
   it('never prerenders private/auth routes', () => {
     for (const p of PRIVATE) {
       expect(prerenderPaths()).not.toContain(p);
+    }
+  });
+});
+
+describe('OG image (Phase 2C — raster PNG)', () => {
+  it('OG image is the 1200×630 PNG on the canonical host', () => {
+    expect(OG_IMAGE).toBe(`${SITE_ORIGIN}/og-image.png`);
+    expect(OG_IMAGE).not.toMatch(/\.svg$/);
+  });
+});
+
+describe('notFoundMeta (static 404 page)', () => {
+  const m = notFoundMeta();
+  it('is noindex,nofollow with a useful heading + intro (not blank)', () => {
+    expect(m.robots).toBe('noindex,nofollow');
+    expect(m.title).toMatch(/not found/i);
+    expect(m.heading.length).toBeGreaterThan(3);
+    expect(m.intro.length).toBeGreaterThan(20);
+  });
+  it('is never included in the sitemap', () => {
+    expect(indexablePaths()).not.toContain('/404');
+    expect(buildSitemapXml()).not.toContain('/404');
+  });
+});
+
+describe('isValidDocId (strict docs matching)', () => {
+  it('accepts every real doc id (case-insensitive)', () => {
+    for (const id of VALID_DOC_IDS) {
+      expect(isValidDocId(id)).toBe(true);
+      expect(isValidDocId(id.toUpperCase())).toBe(true);
+    }
+    expect(VALID_DOC_IDS).toContain('overview');
+    expect(VALID_DOC_IDS).toContain('web-services');
+  });
+  it('rejects unknown doc ids', () => {
+    for (const id of ['nonexistent', 'garbage', 'admin', '', 'overview-x']) {
+      expect(isValidDocId(id)).toBe(false);
     }
   });
 });

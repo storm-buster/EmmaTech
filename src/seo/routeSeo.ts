@@ -14,7 +14,7 @@
 
 export const SITE_ORIGIN = 'https://www.emmatech.in';
 export const SITE_NAME = 'EmmaTech';
-export const OG_IMAGE = `${SITE_ORIGIN}/og-image.svg`;
+export const OG_IMAGE = `${SITE_ORIGIN}/og-image.png`;
 export const DEFAULT_TITLE = 'EmmaTech · RAPHA — Autonomous Cyber Defense';
 
 export type Robots = 'index,follow' | 'noindex,follow' | 'noindex,nofollow';
@@ -220,6 +220,16 @@ export const PUBLIC_DOCS: DocSeo[] = [
   { id: 'web-services', title: 'Web Services', description: 'Integrating RAPHA with external systems via its API.', indexable: false },
 ];
 
+/** Canonical set of valid documentation ids (single source for route matching). */
+export const VALID_DOC_IDS: readonly string[] = PUBLIC_DOCS.map((d) => d.id);
+
+/** True when `id` is a real documentation page (case-insensitive). Used by the
+ *  router to send unknown `/docs/<id>` paths to NotFound instead of the default. */
+export function isValidDocId(id: string): boolean {
+  const lower = id.toLowerCase();
+  return PUBLIC_DOCS.some((d) => d.id === lower);
+}
+
 function docMeta(doc: DocSeo): SeoMeta {
   const path = `/docs/${doc.id}`;
   return {
@@ -246,6 +256,21 @@ export function privateMeta(path: string, title = 'EmmaTech'): SeoMeta {
     robots: 'noindex,nofollow',
     heading: '',
     intro: '',
+  };
+}
+
+/** Metadata for the static 404 page (dist/404.html). Noindex, but carries a
+ *  heading + intro so the prerendered fallback is a styled, useful dark page
+ *  (with links) rather than a blank shell. Excluded from the sitemap. */
+export function notFoundMeta(): SeoMeta {
+  return {
+    path: '/404',
+    title: 'Page not found | EmmaTech',
+    description: 'The page you are looking for does not exist or may have moved.',
+    robots: 'noindex,nofollow',
+    heading: 'Page not found',
+    intro:
+      'The page you are looking for doesn’t exist or may have moved. Explore RAPHA, review the documentation, or request private access.',
   };
 }
 

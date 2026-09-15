@@ -112,7 +112,19 @@ for (const path of paths) {
   count++;
 }
 
+// ── Static 404 page (dist/404.html) ──────────────────────────────────────────
+// Vercel serves this with an HTTP 404 status for any path that matches neither a
+// static file nor a rewrite. It boots the SPA (which renders NotFoundPage for
+// the unknown path) and is styled via the critical CSS, so the fallback is a
+// coherent dark page — not raw/white — while still returning 404.
+{
+  const meta = seo.notFoundMeta();
+  let html = shell.replace('<!--SEO_HEAD-->', seoHead(meta));
+  html = html.replace('<div id="root"></div>', `<div id="root">${contentBlock(meta)}</div>`);
+  writeFileSync(join(dist, '404.html'), html, 'utf8');
+}
+
 // ── Sitemap (indexable public routes only) ───────────────────────────────────
 writeFileSync(join(dist, 'sitemap.xml'), seo.buildSitemapXml(), 'utf8');
 
-console.log(`[prerender] wrote ${count} static route(s) + sitemap.xml (${seo.indexablePaths().length} indexable URLs).`);
+console.log(`[prerender] wrote ${count} static route(s) + 404.html + sitemap.xml (${seo.indexablePaths().length} indexable URLs).`);

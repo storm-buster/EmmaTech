@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { parsePath, routePath, legacyHashToPath, docIdFromPath } from './routing';
 
 describe('parsePath — pathname → route', () => {
@@ -87,29 +89,86 @@ describe('docIdFromPath', () => {
   });
 });
 
-describe('Vercel SPA rewrite source safety (matches vercel.json)', () => {
-  // Mirror of vercel.json rewrites[0].source; must catch SPA routes but NEVER
-  // /api/* or any file with an extension (robots.txt, sitemap.xml, installer,
-  // manifest, /assets/*.js|css, images).
-  const re = new RegExp('^/((?!api/|.*\\.).*)$');
-  it('rewrites SPA pathname routes to index.html', () => {
-    for (const p of ['/', '/rapha', '/compliance', '/private-deployment', '/request-access', '/docs', '/docs/windows', '/contact', '/careers', '/login', '/console']) {
-      expect(re.test(p)).toBe(true);
+describe('parsePath — strict matching (Phase 2C)', () => {
+  const cases: Array<[string, string]> = [
+    // Valid exact routes still resolve.
+    ['/rapha', 'product'],
+    ['/compliance', 'compliance'],
+    ['/private-deployment', 'private-deployment'],
+    ['/docs', 'docs'],
+    ['/docs/overview', 'docs'],
+    ['/docs/web-services', 'docs'],
+    ['/docs/OVERVIEW', 'docs'], // case-insensitive valid id
+    // Invalid CHILD paths must NOT silently render the parent → notfound.
+    ['/rapha/anything', 'notfound'],
+    ['/rapha/x/y', 'notfound'],
+    ['/compliance/garbage', 'notfound'],
+    ['/private-deployment/pricing', 'notfound'],
+    ['/contact/extra', 'notfound'],
+    // Invalid or too-deep docs paths → notfound.
+    ['/docs/nonexistent-doc', 'notfound'],
+    ['/docs/overview/extra', 'notfound'],
+    ['/docs/windows/install', 'notfound'],
+    // Query/hash on a valid route are ignored (still valid).
+    ['/rapha?utm=x', 'product'],
+    ['/docs/overview#section', 'docs'],
+  ];
+  for (const [path, route] of cases) {
+    it(`${path} → ${route}`, () => {
+      expect(parsePath(path)).toBe(route);
+    });
+  }
+});
+
+describe('Vercel rewrite source safety (mirrors vercel.json — scoped SPA fallback)', () => {
+  // vercel.json rewrites ONLY the private/app routes to /index.html. Everything
+  // else is served from the filesystem (prerendered public routes + static
+  // assets) or, if absent, falls through to Vercel's 404.html (true 404).
+  const spa = new RegExp('^/(login|signup|account|deploy|console|request-access)(/.*)?$');
+  it('rewrites private/app routes (and their sub-paths) to the SPA shell', () => {
+    for (const p of ['/login', '/signup', '/account', '/deploy', '/console', '/request-access', '/console/anything']) {
+      expect(spa.test(p)).toBe(true);
     }
   });
-  it('never rewrites API or static files', () => {
+  it('does NOT rewrite public routes (served as prerendered files by filesystem)', () => {
+    for (const p of ['/', '/rapha', '/compliance', '/private-deployment', '/docs', '/docs/overview', '/contact', '/careers', '/privacy', '/terms']) {
+      expect(spa.test(p)).toBe(false);
+    }
+  });
+  it('does NOT rewrite API, static assets, or unknown paths (→ function / file / 404.html)', () => {
     for (const p of [
       '/api/access-requests',
       '/api/me',
       '/robots.txt',
       '/sitemap.xml',
+      '/og-image.png',
       '/install-rapha.ps1',
       '/rapha-agent-manifest.json',
       '/assets/index-abc123.js',
-      '/assets/index-abc123.css',
-      '/vite.png',
+      '/nonexistent-xyz',
+      '/rapha/garbage',
     ]) {
-      expect(re.test(p)).toBe(false);
+      expect(spa.test(p)).toBe(false);
     }
+  });
+});
+
+describe('vercel.json integrity (Phase 2C — true 404 via scoped rewrites)', () => {
+  const cfg = JSON.parse(readFileSync(join(process.cwd(), 'vercel.json'), 'utf8'));
+  it('has NO broad catch-all rewrite (so unmatched paths reach 404.html)', () => {
+    const sources = cfg.rewrites.map((r: { source: string }) => r.source);
+    for (const s of sources) {
+      expect(s).not.toContain('?!api'); // the old catch-all is gone
+      expect(s).toMatch(/login\|signup\|account\|deploy\|console\|request-access/);
+    }
+  });
+  it('rewrites only the private/app routes to the SPA shell', () => {
+    expect(cfg.rewrites.every((r: { destination: string }) => r.destination === '/index.html')).toBe(true);
+  });
+  it('keeps X-Robots-Tag noindex on private routes', () => {
+    const hasNoindex = cfg.headers.some((h: { headers: Array<{ key: string; value: string }> }) =>
+      h.headers.some((x) => x.key === 'X-Robots-Tag' && x.value === 'noindex'),
+    );
+    expect(hasNoindex).toBe(true);
   });
 });
