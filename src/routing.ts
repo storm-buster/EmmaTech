@@ -139,11 +139,14 @@ export function legacyHashToPath(hash: string): string | null {
   }
 }
 
-/** Docs sub-id from `/docs/<id>` (null for the docs index `/docs`). */
+/** Docs sub-id from `/docs/<id>` (null for the docs index `/docs`).
+ *  Lowercased so mixed-case URLs (e.g. `/docs/ARCHITECTURE`) resolve to the
+ *  correct page — matching `parsePath`'s case-insensitive validation and the
+ *  lowercase-kebab doc ids. */
 export function docIdFromPath(pathname: string): string | null {
   const m = pathname.match(/^\/docs\/?([^/?#]*)/i);
   const id = m ? m[1] : '';
-  return id ? id : null;
+  return id ? id.toLowerCase() : null;
 }
 
 // ── Navigation + location subscription (History API) ─────────────────────────

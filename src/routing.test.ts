@@ -87,6 +87,10 @@ describe('docIdFromPath', () => {
     expect(docIdFromPath('/docs/web-services')).toBe('web-services');
     expect(docIdFromPath('/rapha')).toBeNull();
   });
+  it('lowercases the extracted id (mixed-case URLs resolve to the correct page)', () => {
+    expect(docIdFromPath('/docs/ARCHITECTURE')).toBe('architecture');
+    expect(docIdFromPath('/Docs/Web-Services')).toBe('web-services');
+  });
 });
 
 describe('parsePath — strict matching (Phase 2C)', () => {
@@ -170,5 +174,11 @@ describe('vercel.json integrity (Phase 2C — true 404 via scoped rewrites)', ()
       h.headers.some((x) => x.key === 'X-Robots-Tag' && x.value === 'noindex'),
     );
     expect(hasNoindex).toBe(true);
+  });
+  it('preserves the legacy /pricing alias as a permanent redirect to /private-deployment', () => {
+    const r = (cfg.redirects || []).find((x: { source: string }) => x.source === '/pricing');
+    expect(r).toBeTruthy();
+    expect(r.destination).toBe('/private-deployment');
+    expect(r.permanent).toBe(true);
   });
 });
