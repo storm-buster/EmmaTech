@@ -154,9 +154,9 @@ const comparisonData = [
     rapha: 'Behavioral baseline',
   },
   {
-    dimension: 'Zero-day coverage',
-    legacy: 'Misses',
-    rapha: 'Catches by design',
+    dimension: 'Novel / unknown threats',
+    legacy: 'Often missed',
+    rapha: 'Behavioral, not signature-based',
   },
   {
     dimension: 'Output',
