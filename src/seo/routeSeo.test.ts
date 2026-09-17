@@ -205,3 +205,52 @@ describe('case canonicalization (Phase 2C correction — edge 308 redirect logic
     }
   });
 });
+
+import { isValidResourceSlug, resourcePath, RESOURCE_SLUGS } from './routeSeo';
+
+describe('resources (Phase 2D — first public resource)', () => {
+  const RES = '/resources/how-to-evaluate-a-cyber-deception-platform';
+
+  it('has indexable, self-canonical metadata with a unique title', () => {
+    const m = metaForPath(RES);
+    expect(m.path).toBe(RES);
+    expect(m.robots).toBe('index,follow');
+    expect(m.title).toBe('How to Evaluate a Cyber Deception Platform | EmmaTech');
+    expect(canonicalFor(RES)).toBe(`${SITE_ORIGIN}${RES}`);
+    expect(m.description.length).toBeGreaterThan(50);
+    expect(m.heading).toMatch(/How to Evaluate a Cyber Deception Platform/);
+  });
+
+  it('carries Article + BreadcrumbList JSON-LD (no Offer/rating/FAQ)', () => {
+    const m = metaForPath(RES);
+    const blocks = Array.isArray(m.jsonLd) ? m.jsonLd : [m.jsonLd];
+    const types = blocks.map((b) => (b as { '@type'?: string })['@type']);
+    expect(types).toContain('Article');
+    expect(types).toContain('BreadcrumbList');
+    const json = JSON.stringify(blocks);
+    expect(json).not.toMatch(/"@type":"(Offer|AggregateRating|Review|FAQPage)"/);
+  });
+
+  it('is included in the sitemap + prerender + canonical-public set', () => {
+    expect(indexablePaths()).toContain(RES);
+    expect(prerenderPaths()).toContain(RES);
+    expect(buildSitemapXml()).toContain(`<loc>${SITE_ORIGIN}${RES}</loc>`);
+    expect(isCanonicalPublicPath(RES)).toBe(true);
+  });
+
+  it('validates only real resource slugs', () => {
+    expect(resourcePath(RESOURCE_SLUGS[0])).toBe(RES);
+    expect(isValidResourceSlug('how-to-evaluate-a-cyber-deception-platform')).toBe(true);
+    expect(isValidResourceSlug('HOW-TO-EVALUATE-A-CYBER-DECEPTION-PLATFORM')).toBe(true);
+    expect(isValidResourceSlug('bogus')).toBe(false);
+    expect(isValidResourceSlug('')).toBe(false);
+  });
+
+  it('metadata contains no private RAPHA implementation terms', () => {
+    const m = metaForPath(RES);
+    const blob = (m.title + ' ' + m.description + ' ' + m.heading + ' ' + m.intro + ' ' + JSON.stringify(m.jsonLd)).toLowerCase();
+    for (const t of ['isolation forest', 'iptables', 'cowrie', '50+', 'zero-day', 'blob.vercel-storage', 'rapha.emmatech.in']) {
+      expect(blob).not.toContain(t);
+    }
+  });
+});

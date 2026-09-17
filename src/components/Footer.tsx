@@ -143,6 +143,10 @@ const LEGAL_LINKS: { label: string; route: Route }[] = [
   { label: 'Terms of Service', route: 'terms' },
 ];
 
+const RESOURCE_LINKS: { label: string; route: Route }[] = [
+  { label: 'How to evaluate a cyber deception platform', route: 'resources' },
+];
+
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   const handleNav = (route: Route) => (e: React.MouseEvent) => {
     if (onNavigate) {
@@ -158,6 +162,21 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <FooterTitle>Product</FooterTitle>
           <FooterLinks>
             {PRODUCT_LINKS.map((link) => (
+              <FooterLink
+                key={link.route}
+                href={routePath(link.route)}
+                onClick={handleNav(link.route)}
+              >
+                {link.label}
+              </FooterLink>
+            ))}
+          </FooterLinks>
+        </FooterSection>
+
+        <FooterSection>
+          <FooterTitle>Resources</FooterTitle>
+          <FooterLinks>
+            {RESOURCE_LINKS.map((link) => (
               <FooterLink
                 key={link.route}
                 href={routePath(link.route)}
