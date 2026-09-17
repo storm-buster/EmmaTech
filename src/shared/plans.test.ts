@@ -28,7 +28,7 @@ describe('canonical plan catalog', () => {
     expect(s.decoysEnabled).toBe(true);
     const texts = s.features.map((f) => f.text);
     expect(texts).toContain('Up to 20 sensors');
-    expect(texts).toContain('Lightweight Cowrie decoys');
+    expect(texts).toContain('Lightweight deception decoys');
     expect(s.ctaText).toBe('Start a pilot');
     expect(s.ctaAction).toBe('signup');
   });
