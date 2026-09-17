@@ -104,7 +104,7 @@ const missionCards = [
   {
     icon: '🛡️',
     title: 'Our Approach',
-    desc: 'RAPHA uses behavioral baselines and autonomous detection to catch zero-days — with forensic-grade, hash-chained evidence.',
+    desc: 'RAPHA uses behavioral baselines and autonomous detection to surface novel, previously-unseen threats — with forensic-grade, hash-chained evidence.',
   },
   {
     icon: '📈',

@@ -79,13 +79,13 @@ const STATIC_ROUTES: SeoMeta[] = [
   },
   {
     path: '/rapha',
-    title: 'RAPHA — Autonomous Cyber Defense Platform | EmmaTech',
+    title: 'RAPHA — Cyber Deception Platform | EmmaTech',
     description:
-      'RAPHA is an autonomous cyber-defense platform that detects, decides, and redirects hostile activity into controlled deception environments, with a tamper-evident forensic trail. Deployed privately by EmmaTech.',
+      'RAPHA is a cyber deception platform: it uses behavioural detection to identify hostile activity and autonomously redirects attackers into controlled deception environments, preserving a tamper-evident forensic trail. Deployed privately by EmmaTech.',
     robots: 'index,follow',
-    heading: 'RAPHA — autonomous detection, decision, and deception.',
+    heading: 'RAPHA — a cyber deception platform.',
     intro:
-      'RAPHA combines behavioural detection with autonomous response: it redirects attackers into deception environments and preserves a tamper-evident forensic record. Deployment is private and individually scoped.',
+      'RAPHA combines behavioural detection with autonomous response: it redirects attackers into controlled deception environments and preserves a tamper-evident forensic record. Deployment is private and individually scoped.',
     jsonLd: [
       {
         '@context': 'https://schema.org',
@@ -95,7 +95,7 @@ const STATIC_ROUTES: SeoMeta[] = [
         operatingSystem: 'Windows',
         provider: { '@type': 'Organization', name: 'EmmaTech', url: `${SITE_ORIGIN}/` },
         description:
-          'Autonomous cyber-defense platform: behavioural detection, autonomous response, and deception, deployed privately.',
+          'Cyber deception platform: behavioural detection, autonomous attacker redirection into controlled deception environments, and a tamper-evident forensic trail. Deployed privately.',
       },
       breadcrumbLd([
         ['Home', '/'],
