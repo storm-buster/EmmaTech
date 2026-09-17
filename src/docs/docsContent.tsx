@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import {
   Callout,
-  CodeBlock,
   DocH1,
   DocH2,
   DocLead,
@@ -221,87 +220,41 @@ const windows = (
   <>
     <DocH1>Windows Installation</DocH1>
     <DocLead>
-      Install the RAPHA Agent as a Windows Service using the PowerShell installer from your release
-      package.
+      RAPHA protects a Windows server through a lightweight agent that runs as a background Windows
+      Service. This page explains the model conceptually; the actual installer and the exact,
+      per-organization deployment steps are provided to authorized customers inside their account.
     </DocLead>
 
-    <Callout variant="warning" title="Use your release package">
+    <Callout variant="note" title="Operational steps require authorized access">
       <p>
-        Command details and artifact hosting are configured per release. Always use the exact
-        installer command and package provided to your organization by EmmaTech. The example below
-        shows the current parameter shape, not a fixed download.
+        The RAPHA installer and its deployment commands are not published publicly. After your
+        organization is approved through <strong>Request Private Access</strong> and you sign in,
+        open the <strong>RAPHA Deployment</strong> page in your account to download the installer and
+        follow the guided steps for your organization.
       </p>
     </Callout>
 
-    <DocH2>1. Prerequisites</DocH2>
+    <DocH2>What the agent does</DocH2>
     <DocUl>
-      <DocLi>Administrator PowerShell on a supported Windows machine.</DocLi>
-      <DocLi>The RAPHA agent release package for your organization.</DocLi>
-      <DocLi>Your RAPHA control-plane base URL (provided by EmmaTech).</DocLi>
+      <DocLi>Runs as an automatic background Windows Service on the protected machine.</DocLi>
+      <DocLi>Registers the machine to your organization using a one-time enrollment credential.</DocLi>
+      <DocLi>Streams behavioural telemetry to your RAPHA tenant for detection and response.</DocLi>
     </DocUl>
 
-    <DocH2>2. Obtain an enrollment token</DocH2>
+    <DocH2>Enrollment credential</DocH2>
     <DocP>
-      In the EmmaTech customer portal, open the RAPHA deployment page and generate an enrollment
-      token. It is shown once — copy it immediately and treat it as a sensitive credential.
+      Enrollment uses a one-time credential generated in your authenticated account. It is shown
+      once, is short-lived, and must be treated as a sensitive secret. It is entered during
+      installation and is never placed in a public URL or command line.
     </DocP>
 
-    <DocH2>3. Run the installer</DocH2>
-    <DocP>
-      From an elevated PowerShell prompt in the package directory, run the installer with your
-      enrollment token and control-plane URL. <InlineCode>-SensorName</InlineCode> is optional.
-    </DocP>
-    <CodeBlock label="PowerShell (Administrator)">{`.\\install-rapha.ps1 \`
-  -EnrollmentToken "renr_XXXXXXXXXXXX" \`
-  -BaseUrl "https://rapha.emmatech.in" \`
-  -SensorName "WIN-SRV-01"`}</CodeBlock>
-    <Callout variant="note" title="About the values above">
+    <Callout variant="note" title="Where to get the operational guide">
       <p>
-        <InlineCode>renr_XXXXXXXXXXXX</InlineCode> is a placeholder — paste your real generated
-        token. <InlineCode>https://rapha.emmatech.in</InlineCode> is shown as an example production
-        URL; use the exact control-plane URL EmmaTech provides for your organization.
+        Signed-in customers: open <strong>Account → RAPHA Deployment</strong> for the installer
+        download and the exact installation, verification, and uninstallation steps for your
+        organization.
       </p>
     </Callout>
-
-    <DocH2>4. Registration</DocH2>
-    <DocP>
-      The installer uses the enrollment token to register the sensor into your tenant and stores the
-      resulting machine credential locally. The token itself is not written to the command history
-      argument list of the underlying process.
-    </DocP>
-
-    <DocH2>5. Service installation</DocH2>
-    <DocP>
-      The installer registers a Windows Service (managed via WinSW) named{' '}
-      <InlineCode>RAPHAAgent</InlineCode>, installed by default under{' '}
-      <InlineCode>%ProgramFiles%\\RAPHA\\Agent</InlineCode> with data under{' '}
-      <InlineCode>%ProgramData%\\RAPHA</InlineCode>.
-    </DocP>
-
-    <DocH2>6. Service startup</DocH2>
-    <DocP>The service is configured to start automatically and run in the background.</DocP>
-
-    <DocH2>7. Verification</DocH2>
-    <CodeBlock label="PowerShell">{`Get-Service -Name RAPHAAgent`}</CodeBlock>
-    <DocP>
-      A <InlineCode>Running</InlineCode> status indicates the agent service is active. You can then
-      confirm the sensor appears in the Web Console once your organization has access to it.
-    </DocP>
-
-    <DocH2>8. Uninstallation</DocH2>
-    <CodeBlock label="PowerShell (Administrator)">{`.\\uninstall-rapha.ps1`}</CodeBlock>
-    <DocP>
-      Uninstalling removes the local service and agent files. Removing the local agent does not by
-      itself delete the sensor record on the server side.
-    </DocP>
-
-    <DocH2>9. Troubleshooting</DocH2>
-    <DocUl>
-      <DocLi>Run PowerShell as Administrator — service installation requires elevation.</DocLi>
-      <DocLi>Confirm the machine can reach your control-plane URL over HTTPS.</DocLi>
-      <DocLi>Ensure the enrollment token is valid and has not expired; generate a new one if needed.</DocLi>
-      <DocLi>Check the agent logs under <InlineCode>%ProgramData%\\RAPHA\\logs</InlineCode>.</DocLi>
-    </DocUl>
   </>
 );
 
@@ -377,9 +330,8 @@ const webConsole = (
     <Callout variant="warning" title="Console availability">
       <p>
         The production RAPHA Web Console will be available at the organization console URL provided
-        by EmmaTech. A custom domain such as <InlineCode>rapha.emmatech.in</InlineCode> is a{' '}
-        <strong>planned/future production URL</strong> and is not guaranteed to be live yet — do not
-        assume it currently works.
+        by EmmaTech. The specific console URL is provided to your organization directly and is not
+        published here.
       </p>
       <p>Once your organization has access to the console, open the URL EmmaTech provides for you.</p>
     </Callout>
@@ -390,52 +342,31 @@ const webServices = (
   <>
     <DocH1>Web Services Integration</DocH1>
     <DocLead>
-      Integrating RAPHA with external systems through its server-side API capabilities, where
-      enabled for your organization.
+      RAPHA can integrate with external systems through a server-side API, where enabled for your
+      organization. This page describes the integration model conceptually; API-key management and
+      the operational integration steps are available to authorized customers in their account.
     </DocLead>
 
     <DocH2>Two credential types</DocH2>
     <DocUl>
-      <DocLi><strong>Enrollment token</strong> — used to register a sensor. Not for API calls.</DocLi>
-      <DocLi><strong>API key</strong> — used for API authentication in integrations.</DocLi>
+      <DocLi><strong>Enrollment token</strong> — registers a sensor. Not used for API calls.</DocLi>
+      <DocLi><strong>API key</strong> — authenticates your REST integrations.</DocLi>
     </DocUl>
 
-    <Callout variant="note" title="API-key management is live">
+    <Callout variant="note" title="API-key management requires authorized access">
       <p>
-        Manage API keys in the <strong>RAPHA Console → API Keys</strong> (listed directly under
-        Overview). API keys are a separate credential type from enrollment tokens and authenticate
-        your REST integrations.
+        API keys are created and managed by signed-in customers in the{' '}
+        <strong>RAPHA Console → API Keys</strong>. Key creation, rotation, and revocation — and the
+        one-time display of a new secret — happen inside your authenticated account, not on this
+        public page.
       </p>
     </Callout>
-
-    <DocH2>Managing API keys</DocH2>
-    <DocUl>
-      <DocLi><strong>Where</strong> — open the RAPHA Console and select <strong>API Keys</strong>.</DocLi>
-      <DocLi><strong>Create</strong> — give the key a name; it is issued with the <code>ingest</code> scope.</DocLi>
-      <DocLi><strong>Rotate</strong> — issues a new secret and stops the previous key from working immediately.</DocLi>
-      <DocLi><strong>Revoke</strong> — permanently disables a key.</DocLi>
-    </DocUl>
-
-    <Callout variant="note" title="The secret is shown once">
-      <p>
-        The raw API key is displayed <strong>only once</strong> — immediately after create or
-        rotate. Copy it then; it cannot be retrieved again. Listing your keys shows metadata only
-        (name, scope, status, created time) and <strong>never</strong> returns the secret.
-      </p>
-    </Callout>
-
-    <DocH2>Using an API key</DocH2>
-    <DocP>
-      Send the API key as the credential your integration requires (never your enrollment token,
-      and never an internal service token). Store it in your own secrets manager, and rotate or
-      revoke it from the Console if it is ever exposed.
-    </DocP>
 
     <Callout variant="note" title="A note on internal credentials">
       <p>
         Service-to-service authentication between EmmaTech and RAPHA is handled internally by
-        EmmaTech and is never exposed to customers. You will never need an internal service token to
-        use RAPHA.
+        EmmaTech and is never exposed to customers. You never need an internal service token to use
+        RAPHA.
       </p>
     </Callout>
   </>

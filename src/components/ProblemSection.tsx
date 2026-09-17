@@ -205,7 +205,7 @@ const complianceItems = [
   {
     id: 'SEBI',
     badge: 'Circular 2024',
-    description: 'Tamper-proof SHA-256 hash chains and exportable forensic timelines satisfy SEBI\'s audit-trail mandate for capital market entities.',
+    description: 'Tamper-evident SHA-256 hash chains and exportable forensic timelines support SEBI\'s audit-trail mandate for capital market entities.',
   },
 ];
 

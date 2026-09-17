@@ -54,3 +54,20 @@ describe('HeroSection', () => {
     expect(onExplore).toHaveBeenCalledTimes(1);
   });
 });
+
+
+describe('HeroSection — Phase 3 proof-point disclosure/evidence guard', () => {
+  it('does not expose the PRIVATE monitored-feature count or unsubstantiated stats; keeps autonomy positioning', () => {
+    const { container } = render(
+      <ThemeProvider theme={theme}>
+        <HeroSection onRequestAccess={() => {}} onExplore={() => {}} />
+      </ThemeProvider>,
+    );
+    const text = container.textContent ?? '';
+    expect(text).not.toMatch(/\b50\+/); // PRIVATE feature-count
+    expect(text).not.toMatch(/features?\s+monitored/i);
+    expect(text).not.toMatch(/<\s*2s|anomaly to honeypot/i); // unsubstantiated response-time
+    expect(text).not.toMatch(/43%/); // unsourced market stat
+    expect(text).toMatch(/human actions required/i); // retained accurate positioning
+  });
+});

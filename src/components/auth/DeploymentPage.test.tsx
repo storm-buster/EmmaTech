@@ -58,6 +58,9 @@ function stubFetch(opts: { tokenStatus?: number; expiresAt?: unknown; sensors?: 
     if (url.includes('/api/console/sensors')) {
       return jsonRes(200, { tenant_id: 'tenant-o1', sensors: opts.sensors ?? [] });
     }
+    if (url.includes('/api/organization/installer')) {
+      return { ok: true, status: 200, blob: async () => new Blob(['# install-rapha.ps1'], { type: 'text/plain' }), json: async () => ({}) };
+    }
     return jsonRes(200, ACCOUNT);
   });
   vi.stubGlobal('fetch', fetchMock);
@@ -108,22 +111,37 @@ describe('DeploymentPage — hardened deployment flow', () => {
     expect(screen.getByText(expectedExpiry)).toBeInTheDocument();
     expect(document.body.textContent ?? '').not.toContain('1970');
 
-    // Primary + run commands present; neither contains the token.
-    const cmd = await screen.findByLabelText('installer command');
+    // Installer is delivered via the AUTHENTICATED download button — there is no
+    // public installer URL or Invoke-WebRequest command anywhere on the page.
+    expect(await screen.findByText('Download installer (install-rapha.ps1)')).toBeInTheDocument();
+    expect(document.body.textContent ?? '').not.toContain('https://www.emmatech.in/install-rapha.ps1');
+    expect(document.body.textContent ?? '').not.toContain('Invoke-WebRequest');
+    // Execution command unchanged (powershell.exe -NoProfile -ExecutionPolicy Bypass), token-free.
     const run = await screen.findByLabelText('installer run command');
-    // EXACT, static download command (quoted canonical www URL + quoted $PWD path).
-    expect(cmd.textContent).toBe(
-      'Invoke-WebRequest "https://www.emmatech.in/install-rapha.ps1" -OutFile "$PWD\\install-rapha.ps1"',
-    );
-    // Negative guards: unquoted -OutFile form and apex (non-www) URL must be absent.
-    expect(cmd.textContent ?? '').not.toContain('-OutFile install-rapha.ps1');
-    expect(cmd.textContent ?? '').not.toContain('https://emmatech.in/install-rapha.ps1');
-    expect(cmd.textContent ?? '').not.toContain('renr_shownonce_abcdefghijklmnop');
-    // Execution command unchanged (powershell.exe -NoProfile -ExecutionPolicy Bypass).
     expect(run.textContent ?? '').toContain(
       'powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\install-rapha.ps1 -SensorName "WEB-SERVER-01"',
     );
     expect(run.textContent ?? '').not.toContain('renr_shownonce_abcdefghijklmnop');
+  });
+
+  it('downloads the installer through the AUTHENTICATED endpoint (not a public URL)', async () => {
+    const { calls } = stubFetch();
+    // jsdom lacks object-URL APIs used by the download helper.
+    const createObjectURL = vi.fn(() => 'blob:mock');
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', { value: createObjectURL, configurable: true });
+    Object.defineProperty(URL, 'revokeObjectURL', { value: revokeObjectURL, configurable: true });
+    renderPage();
+    fireEvent.change(await screen.findByLabelText('Server name'), { target: { value: 'WEB-SERVER-01' } });
+    fireEvent.click(screen.getByText('Generate enrollment credential'));
+    fireEvent.click(await screen.findByText('Download installer (install-rapha.ps1)'));
+    await waitFor(() =>
+      expect(
+        calls.some(
+          (c) => c.url.includes('/api/organization/installer') && (c.init?.credentials === 'include'),
+        ),
+      ).toBe(true),
+    );
   });
 
   it('copies the token via an explicit Copy action', async () => {
