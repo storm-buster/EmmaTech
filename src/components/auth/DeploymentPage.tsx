@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { Button } from '../Button';
 import { useAuth } from '../../auth/AuthContext';
-import { AuthApiError, generateEnrollmentToken } from '../../auth/authClient';
+import { AuthApiError, generateEnrollmentToken, downloadInstaller } from '../../auth/authClient';
 import type { EnrollmentCredential } from '../../auth/authClient';
 import { fetchConsoleSensors } from '../../auth/consoleClient';
 import type { SensorRow } from '../../auth/consoleClient';
@@ -15,10 +15,9 @@ interface Props {
   onNavigate: (to: Route) => void;
 }
 
-/** Stable, public EmmaTech installer URL (static asset). Token is NEVER in it.
- *  Uses the canonical www host: the apex `emmatech.in` issues a 308 redirect
- *  that Windows PowerShell 5.1's Invoke-WebRequest does not follow for -OutFile. */
-const INSTALLER_URL = 'https://www.emmatech.in/install-rapha.ps1';
+/** The RAPHA installer is delivered ONLY through the authenticated same-origin
+ *  endpoint (HttpOnly session cookie) — it is not a public static asset, and the
+ *  server injects a short-lived tokenized package URL into it at download time. */
 const SERVER_NAME_RE = /^[A-Za-z0-9_.-]{1,200}$/;
 const POLL_MS = 15000;
 
@@ -173,6 +172,8 @@ export function DeploymentPage({ onNavigate }: Props) {
   const [copied, setCopied] = useState(false);
   const [sensors, setSensors] = useState<SensorRow[]>([]);
   const [checking, setChecking] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const nameRef = useRef('');
 
   useEffect(() => {
@@ -250,12 +251,21 @@ export function DeploymentPage({ onNavigate }: Props) {
     }
   };
 
-  // The token is intentionally NOT in these commands; the installer prompts for it.
-  // The download command is EXACT and static (quoted www URL + quoted $PWD path):
-  // the apex host 308-redirects and Windows PowerShell 5.1's IWR -OutFile does not
-  // follow it. $PWD keeps the file in the current directory regardless of cwd.
-  const downloadCommand =
-    'Invoke-WebRequest "https://www.emmatech.in/install-rapha.ps1" -OutFile "$PWD\\install-rapha.ps1"';
+  const onDownloadInstaller = async () => {
+    setDownloadError(null);
+    setDownloading(true);
+    try {
+      await downloadInstaller();
+    } catch (err) {
+      setDownloadError(
+        err instanceof AuthApiError ? err.message : 'Unable to download the installer. Please try again.',
+      );
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  // The token is intentionally NOT in this command; the installer prompts for it.
   const runCommand =
     `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\install-rapha.ps1 -SensorName "${trimmedName || 'WEB-SERVER-01'}"`;
 
@@ -355,12 +365,17 @@ export function DeploymentPage({ onNavigate }: Props) {
             {/* STEP 3 — install */}
             <StepTitle>2. Install the RAPHA agent on your Windows server</StepTitle>
             <Steps>
-              <li>On the server (Windows 10/11), open <strong>PowerShell as Administrator</strong>.</li>
-              <li>Download the EmmaTech installer:</li>
+              <li>Download the RAPHA installer (authenticated — only signed-in customers can retrieve it):</li>
             </Steps>
-            <CodeBlock aria-label="installer command">{downloadCommand}</CodeBlock>
-            <Steps start={2}>
-              <li>Run it (you will be prompted for the enrollment token):</li>
+            <Actions>
+              <Button variant="primary" onClick={onDownloadInstaller} disabled={downloading}>
+                {downloading ? 'Preparing download…' : 'Download installer (install-rapha.ps1)'}
+              </Button>
+            </Actions>
+            {downloadError && <ErrorText role="alert">{downloadError}</ErrorText>}
+            <Steps>
+              <li>Copy <strong>install-rapha.ps1</strong> to your Windows server (Windows 10/11).</li>
+              <li>On the server, open <strong>PowerShell as Administrator</strong> in the folder containing the file, and run it (you will be prompted for the enrollment token):</li>
             </Steps>
             <CodeBlock aria-label="installer run command">{runCommand}</CodeBlock>
             <Steps start={3}>
@@ -368,9 +383,10 @@ export function DeploymentPage({ onNavigate }: Props) {
               <li>The installer verifies the download, installs the agent + service, and enrolls this server.</li>
             </Steps>
             <Hint>
-              Works on Windows PowerShell 5.1 and PowerShell 7+. The installer is downloaded from
-              EmmaTech ({INSTALLER_URL}); no GitHub access is required. The enrollment token is never
-              part of the command or any URL.
+              Works on Windows PowerShell 5.1 and PowerShell 7+. The installer is delivered only
+              through your authenticated EmmaTech session and carries a short-lived, single-use
+              package authorization; no GitHub access is required and the enrollment token is never
+              part of any command or URL.
             </Hint>
 
             {/* STEP 4/5 — wait for connection / online */}

@@ -194,3 +194,30 @@ export async function generateEnrollmentToken(sensorName?: string): Promise<Enro
   }
   return data as unknown as EnrollmentCredential;
 }
+
+/**
+ * Download the RAPHA Windows installer through the AUTHENTICATED same-origin
+ * endpoint (HttpOnly session cookie). The installer is not a public asset; the
+ * server injects a short-lived, tokenized package URL into it at download time.
+ * The customer transfers the downloaded `install-rapha.ps1` to their server and
+ * runs it (the embedded token authorizes the one-time package fetch).
+ */
+export async function downloadInstaller(): Promise<void> {
+  const res = await fetch('/api/organization/installer', { method: 'GET', credentials: 'include' });
+  if (!res.ok) {
+    const data = await parseJson(res);
+    throw new AuthApiError(res.status, (data.error as string) || 'Unable to download the installer');
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  try {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'install-rapha.ps1';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}

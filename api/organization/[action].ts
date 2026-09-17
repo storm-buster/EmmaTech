@@ -1,6 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { Readable } from 'node:stream';
+import { get as blobGet } from '@vercel/blob';
 import { getSessionUserId } from '../_lib/auth.js';
-import { getConfig } from '../_lib/config.js';
+import { getConfig, requireSessionSecret } from '../_lib/config.js';
+import { renderInstaller, INSTALLER_FILENAME } from '../_lib/installerAsset.js';
+import { createDownloadToken, verifyDownloadToken } from '../_lib/downloadToken.js';
 import { methodNotAllowed, newRequestId, readJsonBody, sendJson } from '../_lib/http.js';
 import { logError, logInfo } from '../_lib/log.js';
 import { RaphaError, RaphaServiceClient, type RaphaApiKeyMetadata } from '../_lib/rapha.js';
@@ -48,8 +52,119 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     await handleProvision(req, res);
     return;
   }
+  if (action === 'installer') {
+    await handleInstaller(req, res);
+    return;
+  }
+  if (action === 'agent-package') {
+    await handleAgentPackage(req, res);
+    return;
+  }
   // Unknown action → 404 (no auth/RAPHA/service logic invoked).
   sendJson(res, 404, { error: 'Unknown organization action' });
+}
+
+// ── /api/organization/installer (GET) — authenticated installer download ────
+/**
+ * Cookie-authenticated. Mints a short-lived, org+object-scoped download token
+ * and injects a tokenized package URL into the installer, so the rendered
+ * script contains NO permanent/public agent-package URL. Anonymous → 401;
+ * authenticated without an organization → 403.
+ */
+async function handleInstaller(req: VercelRequest, res: VercelResponse): Promise<void> {
+  if (req.method !== 'GET') {
+    methodNotAllowed(res, 'GET');
+    return;
+  }
+  const cfg = getConfig();
+  const userId = getSessionUserId(req, cfg);
+  if (!userId) {
+    sendJson(res, 401, { error: 'Not authenticated' });
+    return;
+  }
+  let store;
+  try {
+    store = getStore(cfg);
+  } catch {
+    sendJson(res, 503, { error: 'Service is not configured for persistence' });
+    return;
+  }
+  const account = await getAccountForUser(store, userId);
+  if (!account || !account.organization) {
+    sendJson(res, 403, { error: 'No authorized organization' });
+    return;
+  }
+  let sessionSecret: string;
+  try {
+    sessionSecret = requireSessionSecret(cfg);
+  } catch {
+    sendJson(res, 503, { error: 'Service is not configured' });
+    return;
+  }
+  const token = createDownloadToken(
+    { org: account.organization.id, path: cfg.agentPackagePathname },
+    sessionSecret,
+  );
+  const hostHeader = req.headers['x-forwarded-host'] ?? req.headers.host ?? 'www.emmatech.in';
+  const host = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader;
+  const packageUrl = `https://${host}/api/organization/agent-package?dt=${encodeURIComponent(token)}`;
+  const script = renderInstaller(packageUrl);
+  logInfo({ userId, organizationId: account.organization.id, operation: 'rapha.installer_download', status: 'success' });
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${INSTALLER_FILENAME}"`);
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.status(200).send(script);
+}
+
+// ── /api/organization/agent-package (GET) — token-authorized private stream ──
+/**
+ * Authorized by the short-lived download token (NOT the browser cookie, because
+ * the installer runs on the customer's server). Streams the agent package from
+ * the PRIVATE Blob store via the @vercel/blob `get()` SDK (server-side auth via
+ * OIDC / BLOB_READ_WRITE_TOKEN — never exposed to the client). Invalid/expired
+ * token → 403. No permanent public URL is ever returned.
+ */
+async function handleAgentPackage(req: VercelRequest, res: VercelResponse): Promise<void> {
+  if (req.method !== 'GET') {
+    methodNotAllowed(res, 'GET');
+    return;
+  }
+  const cfg = getConfig();
+  let sessionSecret: string;
+  try {
+    sessionSecret = requireSessionSecret(cfg);
+  } catch {
+    sendJson(res, 503, { error: 'Service is not configured' });
+    return;
+  }
+  const rawDt = Array.isArray(req.query?.dt) ? req.query.dt[0] : req.query?.dt;
+  const payload = verifyDownloadToken(typeof rawDt === 'string' ? rawDt : null, sessionSecret);
+  if (!payload) {
+    sendJson(res, 403, { error: 'Invalid or expired download authorization' });
+    return;
+  }
+  if (!cfg.blobConfigured) {
+    sendJson(res, 503, { error: 'Agent package storage is not configured' });
+    return;
+  }
+  try {
+    const result = await blobGet(payload.path, { access: 'private' });
+    if (!result || result.statusCode !== 200 || !result.stream) {
+      sendJson(res, 404, { error: 'Agent package not found' });
+      return;
+    }
+    logInfo({ organizationId: payload.org, operation: 'rapha.agent_package_download', status: 'success' });
+    res.setHeader('Content-Type', result.blob?.contentType ?? 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${payload.path.split('/').pop() ?? 'rapha-agent.zip'}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.status(200);
+    Readable.fromWeb(result.stream as Parameters<typeof Readable.fromWeb>[0]).pipe(res);
+  } catch {
+    logError({ organizationId: payload.org, operation: 'rapha.agent_package_download', status: 'failure', outcome: 'blob_error' });
+    sendJson(res, 502, { error: 'Unable to retrieve the agent package' });
+  }
 }
 
 // ── /api/organization/provision (POST) — verbatim from provision.ts ─────────
