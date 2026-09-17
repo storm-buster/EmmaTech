@@ -98,22 +98,31 @@ describe('DocsPage accuracy constraints', () => {
     expect(container.textContent).not.toMatch(/systemctl/i);
   });
 
-  it('Web Console page does NOT claim rapha.emmatech.in is currently live', () => {
+  it('Web Console page does NOT expose the control-plane hostname (uses the org console URL wording)', () => {
     const { container } = renderDocsAt('/docs/web-console');
-    // Uses future-safe wording.
-    expect(screen.getByText(/planned\/future production URL/i)).toBeInTheDocument();
-    expect(screen.getByText(/will be available at the organization console URL/i)).toBeInTheDocument();
-    // Never instructs the user to just open the (not-yet-bound) domain as if live.
+    expect(container.textContent).not.toMatch(/rapha\.emmatech\.in/i);
+    expect(screen.getByText(/organization console URL provided/i)).toBeInTheDocument();
     expect(container.textContent).not.toMatch(/open https:\/\/rapha\.emmatech\.in/i);
   });
 
-  it('Web Services page reflects live API-key management (no stale "coming soon", no service token / fake create form)', () => {
+  it('Web Services page is conceptual and routes API-key operations to the authenticated Console (no operational workflow/service token)', () => {
     const { container } = renderDocsAt('/docs/web-services');
     expect(container.textContent).not.toMatch(/X-Service-Token/i);
     expect(container.textContent).not.toMatch(/create api key/i);
     expect(container.textContent).not.toMatch(/not enabled yet|not available yet|coming soon/i);
-    expect(screen.getByText(/API-key management is live/i)).toBeInTheDocument();
-    expect(screen.getByText(/shown/i)).toBeTruthy();
+    expect(screen.getByText(/API-key management requires authorized access/i)).toBeInTheDocument();
+    expect(container.textContent).toMatch(/RAPHA Console/i);
+  });
+
+  it('Windows page is conceptual — no installer command, control-plane URL, service internals; points to authenticated Deployment', () => {
+    const { container } = renderDocsAt('/docs/windows');
+    const t = container.textContent ?? '';
+    expect(t).not.toMatch(/install-rapha\.ps1/i);
+    expect(t).not.toMatch(/rapha\.emmatech\.in/i);
+    expect(t).not.toMatch(/RAPHAAgent/);
+    expect(t).not.toMatch(/uninstall-rapha/i);
+    expect(t).toMatch(/RAPHA Deployment/i);
+    expect(t).toMatch(/Request Private Access/i);
   });
 
   it('Quick Start distinguishes enrollment token from API key', () => {

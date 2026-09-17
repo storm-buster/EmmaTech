@@ -23,6 +23,10 @@ export interface AppConfig {
   resendApiKey: string | null;
   /** Verified "from" address for OTP emails (e.g. "EmmaTech <noreply@emmatech.in>"). */
   otpEmailFrom: string | null;
+  /** Pathname of the RAPHA agent package object in the PRIVATE Blob store. */
+  agentPackagePathname: string;
+  /** True when a private Blob store is reachable (OIDC store id or RW token present). */
+  blobConfigured: boolean;
 }
 
 export class ConfigError extends Error {
@@ -42,6 +46,11 @@ export function getConfig(): AppConfig {
     databaseUrl: (process.env.DATABASE_URL ?? '').trim() || null,
     resendApiKey: (process.env.RESEND_API_KEY ?? '').trim() || null,
     otpEmailFrom: (process.env.OTP_EMAIL_FROM ?? '').trim() || null,
+    agentPackagePathname: (process.env.RAPHA_AGENT_BLOB_PATHNAME ?? '').trim() || 'rapha-agent-1.0.1-windows.zip',
+    // On Vercel, a private store connected to the project provides OIDC + BLOB_STORE_ID
+    // automatically; outside Vercel a BLOB_READ_WRITE_TOKEN is used. Either indicates
+    // the private store is configured for reads.
+    blobConfigured: Boolean((process.env.BLOB_READ_WRITE_TOKEN ?? '').trim() || (process.env.BLOB_STORE_ID ?? '').trim()),
   };
 }
 
