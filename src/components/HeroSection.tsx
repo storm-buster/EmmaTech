@@ -309,32 +309,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.9 }}
             >
-              <StatNumber>43%</StatNumber>
-              <StatLabel>of attacks target SMEs globally</StatLabel>
-            </StatItem>
-            <StatItem
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 1.0 }}
-            >
-              <StatNumber>&lt; 2s</StatNumber>
-              <StatLabel>from anomaly to honeypot redirect</StatLabel>
-            </StatItem>
-            <StatItem
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 1.1 }}
-            >
-              <StatNumber>50+</StatNumber>
-              <StatLabel>system features monitored per second</StatLabel>
-            </StatItem>
-            <StatItem
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 1.2 }}
-            >
               <StatNumber>0</StatNumber>
-              <StatLabel>human actions required</StatLabel>
+              <StatLabel>human actions required for autonomous response</StatLabel>
             </StatItem>
           </StatsGrid>
         </TextContent>

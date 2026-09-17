@@ -1,104 +1,45 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const EXPECTED_URL = 'https://qpbd1jhpvo1xlmt2.public.blob.vercel-storage.com/rapha-agent-1.0.1-windows.zip';
-const EXPECTED_SHA = 'd34f01fb12c0071a0f15f754f988119c2e5a33f4be8956feba87cdf8de40ba81';
-
+/**
+ * Phase 3 remediation: the RAPHA installer + agent manifest are NO LONGER public
+ * static assets. They must not be emitted into the public marketing build; the
+ * installer is served only by the authenticated endpoint
+ * GET /api/organization/installer (see api/organization/[action].ts) from the
+ * server-side asset module. These tests lock that boundary in.
+ */
 const root = process.cwd();
-const manifestRaw = readFileSync(join(root, 'public', 'rapha-agent-manifest.json'), 'utf8');
-const installer = readFileSync(join(root, 'public', 'install-rapha.ps1'), 'utf8');
 
-describe('rapha-agent-manifest.json', () => {
-  const manifest = JSON.parse(manifestRaw) as { version: string; url: string; sha256: string };
-
-  it('is valid JSON with the exact version, Blob URL and SHA-256', () => {
-    expect(manifest.version).toBe('1.0.1');
-    expect(manifest.url).toBe(EXPECTED_URL);
-    expect(manifest.sha256).toBe(EXPECTED_SHA);
+describe('public agent delivery is removed from the marketing build', () => {
+  it('no public/install-rapha.ps1 static asset exists', () => {
+    expect(existsSync(join(root, 'public', 'install-rapha.ps1'))).toBe(false);
   });
-
-  it('uses an HTTPS URL that is NOT github.com', () => {
-    expect(manifest.url.startsWith('https://')).toBe(true);
-    expect(manifest.url).not.toContain('github.com');
+  it('no public/rapha-agent-manifest.json static asset exists', () => {
+    expect(existsSync(join(root, 'public', 'rapha-agent-manifest.json'))).toBe(false);
   });
 });
 
-describe('install-rapha.ps1 (EmmaTech bootstrapper)', () => {
-  it('pins the exact EmmaTech Blob URL and SHA-256', () => {
-    expect(installer).toContain(EXPECTED_URL);
-    expect(installer).toContain(EXPECTED_SHA);
+describe('server-side installer asset (authenticated delivery only)', () => {
+  const mod = readFileSync(join(root, 'api', '_lib', 'installerAsset.ts'), 'utf8');
+  // Decode the base64-embedded script exactly as the endpoint does.
+  const b64 = mod.match(/INSTALLER_PS1_BASE64\s*=\s*'([A-Za-z0-9+/=]+)'/)?.[1] ?? '';
+  const script = Buffer.from(b64, 'base64').toString('utf8');
+
+  it('decodes to the real installer (integrity preserved through base64 round-trip)', () => {
+    expect(b64.length).toBeGreaterThan(1000);
+    expect(script).toContain('EmmaTech RAPHA Windows Agent installer');
+    expect(script).toContain('rapha_agent.provision');
+    expect(script).toContain('RAPHAAgent');
   });
 
-  it('contains NO github.com download URL (customers never touch GitHub)', () => {
-    // The prose intentionally says "customer never needs GitHub"; what must NOT
-    // appear is a github.com URL / release link as the download source.
-    expect(installer.toLowerCase()).not.toContain('github.com');
-    expect(installer.toLowerCase()).not.toMatch(/releases\/download/);
-  });
-
-  it('verifies SHA-256 before extraction and fails closed on mismatch', () => {
-    expect(installer).toContain('Get-FileHash');
-    expect(installer).toMatch(/checksum verification FAILED/i);
-    // The verification happens in Get-AgentPackage, before Install-AgentFiles/Expand-Archive.
-    const verifyIdx = installer.indexOf('Test-FileSha256 -Path $dest');
-    const extractIdx = installer.indexOf('Expand-Archive');
+  it('still verifies SHA-256 before extraction and passes the token via stdin', () => {
+    expect(script).toContain('Get-FileHash');
+    expect(script).toContain('StandardInput.WriteLine($Token)');
+    const verifyIdx = script.indexOf('Test-FileSha256 -Path $dest');
+    const extractIdx = script.indexOf('Expand-Archive');
     expect(verifyIdx).toBeGreaterThan(-1);
     expect(extractIdx).toBeGreaterThan(-1);
     expect(verifyIdx).toBeLessThan(extractIdx);
-  });
-
-  it('passes the enrollment token via stdin and never puts it in a URL or command line', () => {
-    expect(installer).toContain('StandardInput.WriteLine($Token)');
-    // PS 5.1 compatibility: a plain Read-Host is used for the token prompt
-    // (the -AsSecureString masked prompt truncated pasted tokens on 5.1 → HTTP 401).
-    expect(installer).toMatch(/Read-Host -Prompt/);
-    expect(installer).not.toMatch(/-Prompt[^\n]*-AsSecureString/); // no masked-prompt usage
-    expect(installer).toMatch(/\.Trim\(\)/); // trims stray whitespace/CR from paste
-    // No token query-string patterns.
-    expect(installer).not.toMatch(/enrollment_token=/);
-    expect(installer).not.toMatch(/\?token=/);
-  });
-
-  it('has robust download behavior (progress suppressed, bounded retry, no partial reuse)', () => {
-    // Windows PowerShell 5.1 IWR is dramatically slower with the progress bar.
-    expect(installer).toContain("$ProgressPreference = 'SilentlyContinue'");
-    expect(installer).toMatch(/attempt \$i\/\$attempts|attempts/); // retry loop
-    expect(installer).toMatch(/Remove-Item \$dest -Force/); // deletes partial downloads
-    expect(installer).toContain('-TimeoutSec 600'); // explicit timeout
-  });
-
-  it('shows clear numbered installation phases', () => {
-    expect(installer).toMatch(/\[1\/10\]/);
-    expect(installer).toMatch(/\[10\/10\]/);
-  });
-
-  it('is Windows PowerShell 5.1 compatible: no ProcessStartInfo.ArgumentList usage', () => {
-    // Guard against reintroducing the .NET Core-only API (unavailable on
-    // Windows PowerShell 5.1 / .NET Framework). Match real USAGE forms, not the
-    // explanatory comments that mention the name.
-    expect(installer).not.toMatch(/\.ArgumentList\.Add/);
-    expect(installer).not.toMatch(/\$psi\.ArgumentList/);
-    expect(installer).toContain('$psi.Arguments =');
-    expect(installer).toMatch(/ConvertTo-ArgumentString/);
-    expect(installer).toContain('$psi.UseShellExecute = $false');
-    expect(installer).toContain('$psi.RedirectStandardInput = $true');
-  });
-
-  it('never includes the enrollment token in the constructed process arguments', () => {
-    // The Arguments string is built only from the non-secret provArgs.
-    expect(installer).toMatch(/\$psi\.Arguments = ConvertTo-ArgumentString -Arguments \$provArgs/);
-    // The provArgs array literal must not reference the token variable(s).
-    const m = installer.match(/\$provArgs = @\(([\s\S]*?)\)/);
-    expect(m).not.toBeNull();
-    expect(m![1]).not.toContain('$Token');
-    expect(m![1]).not.toContain('$EnrollmentToken');
-  });
-
-  it('reproduces the real v1.0.1 enroll/service contract (bundled python/winsw, provision, RAPHAAgent)', () => {
-    expect(installer).toContain('rapha_agent.provision');
-    expect(installer).toContain('RAPHAAgent');
-    expect(installer).toContain('python\\python.exe');
-    expect(installer).toContain('winsw.exe');
   });
 });

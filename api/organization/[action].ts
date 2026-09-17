@@ -8,6 +8,7 @@ import { getStore } from '../_lib/store/index.js';
 import { EnrollmentError, requestEnrollmentToken } from '../_lib/enrollment.js';
 import { getAccountForUser, provisionOrganizationTenant, toPublicOrganization } from '../_lib/service.js';
 import { resolveConsoleContext, mapRaphaError } from '../_lib/console.js';
+import { getInstallerScript, INSTALLER_FILENAME } from '../_lib/installerAsset.js';
 import {
   API_KEYS_UNAVAILABLE_REASON,
   DEFAULT_API_KEY_SCOPES,
@@ -48,8 +49,56 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     await handleProvision(req, res);
     return;
   }
+  if (action === 'installer') {
+    await handleInstaller(req, res);
+    return;
+  }
   // Unknown action → 404 (no auth/RAPHA/service logic invoked).
   sendJson(res, 404, { error: 'Unknown organization action' });
+}
+
+// ── /api/organization/installer (GET) — authenticated installer download ────
+/**
+ * Serves the RAPHA Windows installer bootstrapper ONLY to an authenticated
+ * customer whose organization exists. The installer is NOT a public static
+ * asset anymore; it is delivered as an attachment over the browser's HttpOnly
+ * session cookie, so anonymous visitors cannot retrieve it or the agent-package
+ * URL it contains. Never cached by shared caches.
+ *
+ * NOTE (documented residual): the agent package referenced inside the script is
+ * still on a public, permanent Vercel Blob URL; a private blob + short-lived
+ * signed URLs is a Wave 2 infra change (the current stack has no signing SDK).
+ */
+async function handleInstaller(req: VercelRequest, res: VercelResponse): Promise<void> {
+  if (req.method !== 'GET') {
+    methodNotAllowed(res, 'GET');
+    return;
+  }
+  const cfg = getConfig();
+  const userId = getSessionUserId(req, cfg);
+  if (!userId) {
+    sendJson(res, 401, { error: 'Not authenticated' });
+    return;
+  }
+  let store;
+  try {
+    store = getStore(cfg);
+  } catch {
+    sendJson(res, 503, { error: 'Service is not configured for persistence' });
+    return;
+  }
+  const account = await getAccountForUser(store, userId);
+  if (!account || !account.organization) {
+    sendJson(res, 404, { error: 'No organization found' });
+    return;
+  }
+  logInfo({ userId, organizationId: account.organization.id, operation: 'rapha.installer_download', status: 'success' });
+  const script = getInstallerScript();
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${INSTALLER_FILENAME}"`);
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.status(200).send(script);
 }
 
 // ── /api/organization/provision (POST) — verbatim from provision.ts ─────────

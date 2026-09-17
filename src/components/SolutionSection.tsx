@@ -246,7 +246,7 @@ const innovations = [
     title: 'Sensors',
     subtitle: 'COLLECTION',
     description:
-      'Lightweight agents stream 50+ system features every second from each protected node CPU, memory, network, process tree, disk.',
+      'Lightweight agents continuously stream behavioural signals from each protected node — system, process, and network activity.',
     icon: <SensorIcon />,
   },
   {
@@ -254,7 +254,7 @@ const innovations = [
     title: 'Orchestrator',
     subtitle: 'DECISION',
     description:
-      'Per-device Isolation Forest scores each window. Risk policy is applied locally no cloud round-trip.',
+      'Behavioural anomaly scoring runs per device and applies risk policy locally — no cloud round-trip.',
     icon: <ChipIcon />,
   },
   {
@@ -262,7 +262,7 @@ const innovations = [
     title: 'Response',
     subtitle: 'ACTION',
     description:
-      'iptables rules redirect the attacker into Cowrie. Decoys deploy. Target system isolated all in milliseconds.',
+      'Confirmed threats are automatically redirected into an isolated decoy environment while the target system is contained — in real time.',
     icon: <LightningIcon />,
   },
   {
@@ -270,7 +270,7 @@ const innovations = [
     title: 'Intelligence',
     subtitle: 'FORENSICS',
     description:
-      'Full attacker session recorded. SHA-256 hash chain. Behavior profile stored. Tamper-proof audit trail.',
+      'The full attacker session is recorded and behaviour-profiled, preserved as a cryptographically hash-chained, tamper-evident audit trail.',
     icon: <DocumentIcon />,
   },
   {
@@ -293,7 +293,7 @@ export const SolutionSection: React.FC = () => {
           <TitleSub>One autonomous loop.</TitleSub>
         </TitleContainer>
         <SectionDescription>
-          Detection and response happen on the node, in milliseconds.
+          Detection and response happen on the node, in real time.
           Governance, policy and model updates flow from the central control plane.
           Sensors are platform-specific; the brain is platform-independent.
         </SectionDescription>
