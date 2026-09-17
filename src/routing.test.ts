@@ -182,3 +182,22 @@ describe('vercel.json integrity (Phase 2C — true 404 via scoped rewrites)', ()
     expect(r.permanent).toBe(true);
   });
 });
+
+describe('parsePath — resources (Phase 2D)', () => {
+  const cases: Array<[string, string]> = [
+    ['/resources/how-to-evaluate-a-cyber-deception-platform', 'resources'],
+    ['/resources/how-to-evaluate-a-cyber-deception-platform/', 'resources'],
+    ['/RESOURCES/How-To-Evaluate-A-Cyber-Deception-Platform', 'resources'], // case-insensitive
+    ['/resources', 'notfound'], // no index page
+    ['/resources/bogus', 'notfound'],
+    ['/resources/how-to-evaluate-a-cyber-deception-platform/extra', 'notfound'],
+  ];
+  for (const [path, route] of cases) {
+    it(`${path} -> ${route}`, () => {
+      expect(parsePath(path)).toBe(route);
+    });
+  }
+  it('routePath maps the resources route to its canonical path', () => {
+    expect(routePath('resources')).toBe('/resources/how-to-evaluate-a-cyber-deception-platform');
+  });
+});

@@ -195,6 +195,39 @@ const STATIC_ROUTES: SeoMeta[] = [
       ['Documentation', '/docs'],
     ]),
   },
+  {
+    path: '/resources/how-to-evaluate-a-cyber-deception-platform',
+    title: 'How to Evaluate a Cyber Deception Platform | EmmaTech',
+    description:
+      'A practical, vendor-neutral guide for security leaders evaluating a cyber deception platform: the questions to ask, decoy realism, deployment and integration considerations, what happens after detection, forensic evidence, and how to structure a pilot.',
+    robots: 'index,follow',
+    heading: 'How to Evaluate a Cyber Deception Platform',
+    intro:
+      'A practical, vendor-neutral evaluation guide for security leaders, architects, and SOC teams: what a cyber deception platform is, the questions that separate operational value from decoy counts, how to structure a pilot, and how RAPHA approaches these requirements.',
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: 'How to Evaluate a Cyber Deception Platform',
+        description:
+          'A practical, vendor-neutral guide for security leaders evaluating a cyber deception platform: questions to ask, decoy realism, deployment and integration considerations, what happens after detection, forensic evidence, and how to structure a pilot.',
+        author: { '@type': 'Organization', name: 'EmmaTech', url: `${SITE_ORIGIN}/` },
+        publisher: {
+          '@type': 'Organization',
+          name: 'EmmaTech',
+          logo: { '@type': 'ImageObject', url: OG_IMAGE },
+        },
+        datePublished: '2026-09-17',
+        dateModified: '2026-09-17',
+        image: OG_IMAGE,
+        mainEntityOfPage: `${SITE_ORIGIN}/resources/how-to-evaluate-a-cyber-deception-platform`,
+      },
+      breadcrumbLd([
+        ['Home', '/'],
+        ['How to Evaluate a Cyber Deception Platform', '/resources/how-to-evaluate-a-cyber-deception-platform'],
+      ]),
+    ],
+  },
 ];
 
 // ── Public documentation pages (indexation classified for Phase 2B) ──────────
@@ -222,6 +255,22 @@ export const PUBLIC_DOCS: DocSeo[] = [
 
 /** Canonical set of valid documentation ids (single source for route matching). */
 export const VALID_DOC_IDS: readonly string[] = PUBLIC_DOCS.map((d) => d.id);
+
+/** Public resource (article) slugs under `/resources/<slug>`. Single source for
+ *  route matching, mirroring the docs model. */
+export const RESOURCE_SLUGS: readonly string[] = ['how-to-evaluate-a-cyber-deception-platform'];
+
+/** Canonical pathname of a resource article. */
+export function resourcePath(slug: string): string {
+  return `/resources/${slug}`;
+}
+
+/** True when `slug` is a real published resource (case-insensitive). Used by the
+ *  router so unknown `/resources/<slug>` paths reach NotFound. */
+export function isValidResourceSlug(slug: string): boolean {
+  const lower = slug.toLowerCase();
+  return RESOURCE_SLUGS.some((s) => s === lower);
+}
 
 /** True when `id` is a real documentation page (case-insensitive). Used by the
  *  router to send unknown `/docs/<id>` paths to NotFound instead of the default. */

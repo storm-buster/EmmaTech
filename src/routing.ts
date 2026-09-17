@@ -10,7 +10,7 @@
  * fragments never reach the server and cannot be handled by Vercel rewrites.
  */
 import type { Route } from './App';
-import { isValidDocId } from './seo/routeSeo';
+import { isValidDocId, isValidResourceSlug } from './seo/routeSeo';
 
 /** Canonical pathname for each addressable route (`home` = `/`). */
 const ROUTE_TO_PATH: Record<Exclude<Route, 'notfound'>, string> = {
@@ -29,6 +29,7 @@ const ROUTE_TO_PATH: Record<Exclude<Route, 'notfound'>, string> = {
   deploy: '/deploy',
   docs: '/docs',
   console: '/console',
+  resources: '/resources/how-to-evaluate-a-cyber-deception-platform',
 };
 
 /** Route → canonical pathname (used for real `href`s and navigation). */
@@ -60,6 +61,13 @@ export function parsePath(pathname: string): Route {
   if (segments[0] === 'docs') {
     if (segments.length === 1) return 'docs';
     if (segments.length === 2 && isValidDocId(segments[1])) return 'docs';
+    return 'notfound';
+  }
+
+  // Resources: `/resources/<valid-slug>` only; bare `/resources`, unknown slugs,
+  // and deeper paths resolve to notfound.
+  if (segments[0] === 'resources') {
+    if (segments.length === 2 && isValidResourceSlug(segments[1])) return 'resources';
     return 'notfound';
   }
 
