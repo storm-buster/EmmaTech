@@ -150,7 +150,7 @@ export const PLANS: Record<PlanId, Plan> = {
       { text: 'Isolated / air-gapped deploy' },
       { text: 'DPDP / RBI / SEBI focus' },
       { text: 'Forensic export & legal hold' },
-      { text: 'On-prem federated training' },
+      { text: 'On-prem deployment option' },
       { text: 'Custom policy authoring' },
       { text: 'Dedicated engineering' },
     ],

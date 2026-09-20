@@ -40,3 +40,18 @@ describe('SolutionSection — public disclosure boundary', () => {
     expect(text).toMatch(/decoy/i);
   });
 });
+
+describe('SolutionSection (/rapha) — detection-location consistency guard (Phase 4)', () => {
+  const { container } = render(
+    <ThemeProvider theme={theme}>
+      <SolutionSection />
+    </ThemeProvider>,
+  );
+  const text = container.textContent ?? '';
+
+  it('does not assert an on-device detection location that contradicts the docs (server-side control plane)', () => {
+    expect(text).not.toMatch(/on the node/i);
+    expect(text).not.toMatch(/no cloud round-trip/i);
+    expect(text).not.toMatch(/runs per device and applies risk policy locally/i);
+  });
+});

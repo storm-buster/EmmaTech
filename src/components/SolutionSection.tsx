@@ -254,7 +254,7 @@ const innovations = [
     title: 'Orchestrator',
     subtitle: 'DECISION',
     description:
-      'Behavioural anomaly scoring runs per device and applies risk policy locally — no cloud round-trip.',
+      'Behavioural anomaly scoring evaluates each protected device against your risk policy.',
     icon: <ChipIcon />,
   },
   {
@@ -293,7 +293,7 @@ export const SolutionSection: React.FC = () => {
           <TitleSub>One autonomous loop.</TitleSub>
         </TitleContainer>
         <SectionDescription>
-          Detection and response happen on the node, in real time.
+          Detection and response happen in real time.
           Governance, policy and model updates flow from the central control plane.
           Sensors are platform-specific; the brain is platform-independent.
         </SectionDescription>

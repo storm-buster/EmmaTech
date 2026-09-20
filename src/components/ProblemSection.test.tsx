@@ -47,3 +47,27 @@ describe('ProblemSection (/compliance) — unsupported-claim guard', () => {
     expect(text).toMatch(/align/i); // "align with" posture, not certification
   });
 });
+
+describe('ProblemSection (/compliance) — privacy/data-flow claim guard (Phase 4)', () => {
+  const text = renderCompliance();
+
+  it('does not reintroduce unsubstantiated privacy / federated claims', () => {
+    for (const forbidden of [
+      /federated training/i,
+      /federated learning/i,
+      /never leaves the (machine|host)/i,
+      /personal data never leaves/i,
+      /privacy by design/i,
+      /privacy-preserving/i,
+      /privacy-first/i,
+      /all processing is local/i,
+      /zero data exposure/i,
+    ]) {
+      expect(text).not.toMatch(forbidden);
+    }
+  });
+
+  it('keeps a factual private-deployment statement in the DPDP context', () => {
+    expect(text).toMatch(/deployed privately|private deployment/i);
+  });
+});
