@@ -169,6 +169,15 @@ export interface AccessRequest {
   deployment_environment: string | null;
   evaluation_reason: string;
   additional_context: string | null;
+  // Phase 5.2 — coarse first-party acquisition attribution (no PII/secrets).
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_content: string | null;
+  referrer_domain: string | null;
+  landing_path: string | null;
+  first_touch_at: string | null;
+  last_touch_at: string | null;
   status: AccessRequestStatus;
   created_at: string;
   updated_at: string;
@@ -189,6 +198,14 @@ export interface CreateAccessRequestInput {
   deployment_environment: string | null;
   evaluation_reason: string;
   additional_context: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_content: string | null;
+  referrer_domain: string | null;
+  landing_path: string | null;
+  first_touch_at: string | null;
+  last_touch_at: string | null;
 }
 
 export interface ListAccessRequestsOptions {

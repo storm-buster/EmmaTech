@@ -381,11 +381,15 @@ export class PostgresStore implements DataStore {
       `INSERT INTO access_requests
          (full_name, work_email, organization, job_title, industry, organization_size,
           country, security_challenge, current_stack, deployment_environment,
-          evaluation_reason, additional_context)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+          evaluation_reason, additional_context,
+          utm_source, utm_medium, utm_campaign, utm_content, referrer_domain,
+          landing_path, first_touch_at, last_touch_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
        RETURNING id, full_name, work_email, organization, job_title, industry,
                  organization_size, country, security_challenge, current_stack,
                  deployment_environment, evaluation_reason, additional_context,
+                 utm_source, utm_medium, utm_campaign, utm_content, referrer_domain,
+                 landing_path, first_touch_at, last_touch_at,
                  status, created_at, updated_at`,
       [
         input.full_name,
@@ -400,6 +404,14 @@ export class PostgresStore implements DataStore {
         input.deployment_environment,
         input.evaluation_reason,
         input.additional_context,
+        input.utm_source,
+        input.utm_medium,
+        input.utm_campaign,
+        input.utm_content,
+        input.referrer_domain,
+        input.landing_path,
+        input.first_touch_at,
+        input.last_touch_at,
       ],
     );
     return rows[0];

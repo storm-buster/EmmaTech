@@ -30,6 +30,8 @@ import { RequestAccessPage } from './components/access/RequestAccessPage';
 import { SignupGate } from './components/access/SignupGate';
 import { Seo } from './components/seo/Seo';
 import { parsePath, routePath, navigateTo, subscribeLocation } from './routing';
+import { captureAttributionOnLoad, currentSourceLabel } from './analytics/attribution';
+import { trackEvent, type AnalyticsEventName } from './analytics/events';
 
 // ── Pathname multi-page router (Phase 2A) ──
 // Public marketing routes are real pathnames (`/rapha`, `/compliance`, …) served
@@ -63,6 +65,33 @@ export type Route =
 
 function useRoute(): Route {
   const [route, setRoute] = useState<Route>(() => parsePath(window.location.pathname));
+
+  // Capture first-party acquisition attribution ONCE on initial load (UTM +
+  // referrer are only meaningful for the entry navigation).
+  useEffect(() => {
+    captureAttributionOnLoad();
+  }, []);
+
+  // Emit a PII-free page_view (+ a coarse per-route view event) on every route,
+  // tagged with the current coarse acquisition source. No provider is wired yet,
+  // so trackEvent is a safe no-op until one exists.
+  useEffect(() => {
+    const src = currentSourceLabel();
+    trackEvent('page_view', {
+      path: window.location.pathname,
+      source: src.source ?? undefined,
+      medium: src.medium ?? undefined,
+      campaign: src.campaign ?? undefined,
+    });
+    const viewEvent: Partial<Record<Route, AnalyticsEventName>> = {
+      product: 'rapha_view',
+      resources: 'resource_view',
+      security: 'security_view',
+      docs: 'docs_view',
+    };
+    const ev = viewEvent[route];
+    if (ev) trackEvent(ev, { path: window.location.pathname, source: src.source ?? undefined });
+  }, [route]);
 
   useEffect(
     () =>
