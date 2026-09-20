@@ -24,6 +24,7 @@ import { AccountPage } from './components/auth/AccountPage';
 import { DeploymentPage } from './components/auth/DeploymentPage';
 import { DocsPage } from './components/docs/DocsPage';
 import { HowToEvaluateDeceptionPlatform } from './components/resources/HowToEvaluateDeceptionPlatform';
+import { SecurityPage } from './components/SecurityPage';
 import { ConsolePage } from './components/console/ConsolePage';
 import { RequestAccessPage } from './components/access/RequestAccessPage';
 import { SignupGate } from './components/access/SignupGate';
@@ -57,6 +58,7 @@ export type Route =
   | 'docs'
   | 'console'
   | 'resources'
+  | 'security'
   | 'notfound';
 
 function useRoute(): Route {
@@ -158,6 +160,8 @@ function App() {
           {route === 'docs' && <DocsPage />}
 
           {route === 'resources' && <HowToEvaluateDeceptionPlatform onNavigate={navigate} />}
+
+          {route === 'security' && <SecurityPage onNavigate={navigate} />}
 
           {route === 'console' && <ConsolePage onNavigate={navigate} />}
 
