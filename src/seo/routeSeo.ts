@@ -196,6 +196,32 @@ const STATIC_ROUTES: SeoMeta[] = [
     ]),
   },
   {
+    path: '/security',
+    title: 'Security at EmmaTech | EmmaTech',
+    description:
+      'How EmmaTech approaches authentication and access control, protected software delivery, structured logging and traceability, dependency and secret-scanning practices, and responsible security disclosure.',
+    robots: 'index,follow',
+    heading: 'Security at EmmaTech',
+    intro:
+      'A factual overview of the security practices currently implemented across the EmmaTech platform and its supporting systems: authentication and access control, protected software delivery, logging and traceability, software supply practices, and responsible disclosure.',
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: 'Security at EmmaTech',
+        url: `${SITE_ORIGIN}/security`,
+        description:
+          'How EmmaTech approaches authentication, protected delivery, logging, software practices, secret scanning, and responsible security disclosure.',
+        isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: `${SITE_ORIGIN}/` },
+        publisher: { '@type': 'Organization', name: 'EmmaTech', url: `${SITE_ORIGIN}/` },
+      },
+      breadcrumbLd([
+        ['Home', '/'],
+        ['Security', '/security'],
+      ]),
+    ],
+  },
+  {
     path: '/resources/how-to-evaluate-a-cyber-deception-platform',
     title: 'How to Evaluate a Cyber Deception Platform | EmmaTech',
     description:

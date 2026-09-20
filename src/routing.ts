@@ -30,6 +30,7 @@ const ROUTE_TO_PATH: Record<Exclude<Route, 'notfound'>, string> = {
   docs: '/docs',
   console: '/console',
   resources: '/resources/how-to-evaluate-a-cyber-deception-platform',
+  security: '/security',
 };
 
 /** Route → canonical pathname (used for real `href`s and navigation). */
@@ -94,6 +95,8 @@ export function parsePath(pathname: string): Route {
       return 'privacy';
     case 'terms':
       return 'terms';
+    case 'security':
+      return 'security';
     case 'login':
       return 'login';
     case 'signup':

@@ -254,3 +254,37 @@ describe('resources (Phase 2D — first public resource)', () => {
     }
   });
 });
+
+describe('security page SEO (Phase 4)', () => {
+  const SEC = '/security';
+  it('is indexable, self-canonical, unique title', () => {
+    const m = metaForPath(SEC);
+    expect(m.path).toBe(SEC);
+    expect(m.robots).toBe('index,follow');
+    expect(m.title).toBe('Security at EmmaTech | EmmaTech');
+    expect(canonicalFor(SEC)).toBe(`${SITE_ORIGIN}/security`);
+    expect(m.heading).toBe('Security at EmmaTech');
+    expect(m.description.length).toBeGreaterThan(50);
+  });
+  it('carries WebPage + BreadcrumbList JSON-LD (no cert/rating/offer/FAQ)', () => {
+    const m = metaForPath(SEC);
+    const blocks = Array.isArray(m.jsonLd) ? m.jsonLd : [m.jsonLd];
+    const types = blocks.map((b) => (b as { '@type'?: string })['@type']);
+    expect(types).toContain('WebPage');
+    expect(types).toContain('BreadcrumbList');
+    expect(JSON.stringify(blocks)).not.toMatch(/"@type":"(Offer|AggregateRating|Review|FAQPage|Certification)"/);
+  });
+  it('is in sitemap + prerender + canonical-public set', () => {
+    expect(indexablePaths()).toContain(SEC);
+    expect(prerenderPaths()).toContain(SEC);
+    expect(buildSitemapXml()).toContain(`<loc>${SITE_ORIGIN}/security</loc>`);
+    expect(isCanonicalPublicPath(SEC)).toBe(true);
+  });
+  it('metadata contains no private terms or unsupported claims', () => {
+    const m = metaForPath(SEC);
+    const blob = (m.title + ' ' + m.description + ' ' + m.heading + ' ' + m.intro + ' ' + JSON.stringify(m.jsonLd)).toLowerCase();
+    for (const t of ['isolation forest', 'iptables', 'cowrie', '50+', 'zero-day', 'soc 2', 'iso 27001', 'certified', 'blob.vercel-storage']) {
+      expect(blob).not.toContain(t);
+    }
+  });
+});

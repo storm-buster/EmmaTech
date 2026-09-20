@@ -201,3 +201,13 @@ describe('parsePath — resources (Phase 2D)', () => {
     expect(routePath('resources')).toBe('/resources/how-to-evaluate-a-cyber-deception-platform');
   });
 });
+
+describe('parsePath — security (Phase 4)', () => {
+  it('/security -> security; child paths -> notfound', () => {
+    expect(parsePath('/security')).toBe('security');
+    expect(parsePath('/security/')).toBe('security');
+    expect(parsePath('/Security')).toBe('security'); // case-insensitive
+    expect(parsePath('/security/extra')).toBe('notfound');
+    expect(routePath('security')).toBe('/security');
+  });
+});

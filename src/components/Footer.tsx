@@ -139,6 +139,7 @@ const PRODUCT_LINKS: { label: string; route: Route }[] = [
 ];
 
 const LEGAL_LINKS: { label: string; route: Route }[] = [
+  { label: 'Security', route: 'security' },
   { label: 'Privacy Policy', route: 'privacy' },
   { label: 'Terms of Service', route: 'terms' },
 ];
