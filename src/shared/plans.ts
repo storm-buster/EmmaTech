@@ -148,7 +148,7 @@ export const PLANS: Record<PlanId, Plan> = {
     popular: false,
     features: [
       { text: 'Isolated / air-gapped deploy' },
-      { text: 'DPDP / RBI / SEBI ready' },
+      { text: 'DPDP / RBI / SEBI focus' },
       { text: 'Forensic export & legal hold' },
       { text: 'On-prem federated training' },
       { text: 'Custom policy authoring' },

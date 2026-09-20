@@ -195,7 +195,7 @@ const complianceItems = [
   {
     id: 'RBI',
     badge: 'Cybersecurity Framework',
-    description: 'Real-time monitoring, incident response, forensic audit trail RAPHA maps directly to the RBI master direction on IT governance for NBFCs.',
+    description: 'Real-time monitoring, incident response, and a forensic audit trail — capabilities that align with the RBI master direction on IT governance for NBFCs.',
   },
   {
     id: 'DPDP',
@@ -210,15 +210,12 @@ const complianceItems = [
 ];
 
 const marqueeStandards = [
-  'ISO 27001 ready',
   'DPDP Act 2023',
   'RBI master direction',
   'SEBI 2024 circular',
-  'CERT-In aligned',
   'Made in India',
   'On-prem option',
   'Federated learning',
-  'SOC 2 roadmap',
 ];
 
 export const ProblemSection: React.FC = () => {
