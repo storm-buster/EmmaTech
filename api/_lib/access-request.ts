@@ -25,6 +25,61 @@ export const ACCESS_REQUEST_LIMITS = {
   additional_context: 4000,
 } as const;
 
+/** Coarse first-party acquisition attribution — UNTRUSTED client input. Each
+ *  field is optional, length-bounded, markup-stripped, defaults to null, and
+ *  never blocks the submission. Only the defined keys are read. */
+const ATTRIBUTION_LIMITS = {
+  utm_source: 64,
+  utm_medium: 32,
+  utm_campaign: 100,
+  utm_content: 100,
+  referrer_domain: 253,
+  landing_path: 512,
+} as const;
+
+function attrText(v: unknown, max: number): string | null {
+  if (typeof v !== 'string') return null;
+  // eslint-disable-next-line no-control-regex
+  const s = v.replace(/[\u0000-\u001F\u007F<>"'`\\]/g, '').trim().slice(0, max);
+  return s.length > 0 ? s : null;
+}
+
+function attrDomain(v: unknown): string | null {
+  const s = attrText(v, ATTRIBUTION_LIMITS.referrer_domain);
+  if (!s) return null;
+  const host = s.toLowerCase();
+  return /^[a-z0-9.-]{1,253}$/.test(host) ? host : null;
+}
+
+function attrTimestamp(v: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  const t = Date.parse(v);
+  return Number.isNaN(t) ? null : new Date(t).toISOString();
+}
+
+/** Sanitized attribution subset from a raw body (only the defined keys). */
+export function sanitizeAttribution(body: Record<string, unknown>): {
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_content: string | null;
+  referrer_domain: string | null;
+  landing_path: string | null;
+  first_touch_at: string | null;
+  last_touch_at: string | null;
+} {
+  return {
+    utm_source: attrText(body.utm_source, ATTRIBUTION_LIMITS.utm_source),
+    utm_medium: attrText(body.utm_medium, ATTRIBUTION_LIMITS.utm_medium),
+    utm_campaign: attrText(body.utm_campaign, ATTRIBUTION_LIMITS.utm_campaign),
+    utm_content: attrText(body.utm_content, ATTRIBUTION_LIMITS.utm_content),
+    referrer_domain: attrDomain(body.referrer_domain),
+    landing_path: attrText(body.landing_path, ATTRIBUTION_LIMITS.landing_path),
+    first_touch_at: attrTimestamp(body.first_touch_at),
+    last_touch_at: attrTimestamp(body.last_touch_at),
+  };
+}
+
 export type AccessRequestValidation =
   | { ok: true; value: CreateAccessRequestInput }
   | { ok: false; fields: Record<string, string> };
@@ -115,6 +170,7 @@ export function validateAccessRequestInput(body: Record<string, unknown>): Acces
       deployment_environment,
       evaluation_reason,
       additional_context,
+      ...sanitizeAttribution(body),
     },
   };
 }

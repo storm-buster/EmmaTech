@@ -22,6 +22,19 @@ export interface AccessRequestForm {
   additional_context?: string;
 }
 
+/** Coarse, first-party acquisition metadata sent alongside (never merged into)
+ *  the applicant's PII fields. All fields optional. */
+export interface AccessRequestAttribution {
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
+  utm_content?: string | null;
+  referrer_domain?: string | null;
+  landing_path?: string | null;
+  first_touch_at?: string | null;
+  last_touch_at?: string | null;
+}
+
 export type SubmitAccessRequestResult =
   | { state: 'ok'; id: string; status: string }
   /** 400 — field-level validation errors keyed by field name. */
@@ -33,13 +46,16 @@ export type SubmitAccessRequestResult =
 
 export async function submitAccessRequest(
   form: AccessRequestForm,
+  attribution?: AccessRequestAttribution,
 ): Promise<SubmitAccessRequestResult> {
   let res: Response;
   try {
     res = await fetch('/api/access-requests', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(form),
+      // Attribution is coarse acquisition metadata sent as distinct fields —
+      // it is NEVER merged into the applicant's PII fields.
+      body: JSON.stringify(attribution ? { ...form, ...attribution } : form),
     });
   } catch {
     return { state: 'error', message: 'Unable to reach the server. Please try again.' };

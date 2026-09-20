@@ -199,6 +199,23 @@ export const PrivacyPolicy: React.FC = () => {
           (see "Email Delivery" below). Please do not include passwords, API keys, or other secrets in the free-text fields.
         </Paragraph>
 
+        <Subheading3>3.8 Acquisition / Attribution Information</Subheading3>
+        <Paragraph>
+          To understand which channels and content lead organizations to EmmaTech, we record{' '}
+          <B>coarse, first-party acquisition information</B> in your browser using{' '}
+          <code>localStorage</code> and <code>sessionStorage</code> (not cookies, and no third-party
+          analytics provider). This is limited to: campaign parameters present in a link you followed
+          (<code>utm_source</code>, <code>utm_medium</code>, <code>utm_campaign</code>,{' '}
+          <code>utm_content</code>), the <B>domain</B> of the site that referred you (never the full
+          referring URL), the path on which you first landed, and first/last acquisition timestamps.
+          We do <B>not</B> collect your browsing history across other sites, a device fingerprint, your
+          IP address as an identifier, or any advertising identifiers. If you later submit the Request
+          Private Access form, this coarse acquisition snapshot is stored alongside (and kept distinct
+          from) your application so we can understand which sources produce qualified interest. This is
+          acquisition attribution, which is a form of tracking in the ordinary sense; we describe here
+          only what is actually collected and make no legal characterization of it.
+        </Paragraph>
+
         <Divider />
 
         <Subheading>4. How We Use Information</Subheading>

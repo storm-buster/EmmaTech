@@ -6,6 +6,7 @@ import { Button } from '../Button';
 import { breakpoints } from '../../styles/breakpoints';
 import { submitAccessRequest, type AccessRequestForm } from '../../access/accessClient';
 import { trackEvent } from '../../analytics/events';
+import { getConversionSnapshot } from '../../analytics/attribution';
 
 /**
  * Public "Request Private Access" application. Feels like an application to a
@@ -301,17 +302,27 @@ export function RequestAccessPage() {
 
   useEffect(() => {
     trackEvent('request_access_start');
+    trackEvent('request_access_started');
   }, []);
 
   const onSubmit = async (data: AccessRequestForm) => {
     setFormError(null);
     trackEvent('request_access_submit');
-    const result = await submitAccessRequest(data);
+    // Coarse, PII-free acquisition snapshot attached alongside the form.
+    const attribution = getConversionSnapshot();
+    const result = await submitAccessRequest(data, attribution);
     if (result.state === 'ok') {
+      trackEvent('request_access_submitted', {
+        source: attribution.utm_source ?? undefined,
+        medium: attribution.utm_medium ?? undefined,
+        campaign: attribution.utm_campaign ?? undefined,
+      });
+      trackEvent('request_access_success');
       setSubmitted(true);
       return;
     }
     if (result.state === 'invalid') {
+      trackEvent('request_access_error', { error_code: 'invalid' });
       const entries = Object.entries(result.fields);
       if (entries.length === 0) {
         setFormError('Please review your entries and try again.');
@@ -323,9 +334,11 @@ export function RequestAccessPage() {
       return;
     }
     if (result.state === 'rate_limited') {
+      trackEvent('request_access_error', { error_code: 'rate_limited' });
       setFormError('You have submitted several requests recently. Please try again later.');
       return;
     }
+    trackEvent('request_access_error', { error_code: 'error' });
     setFormError(result.message);
   };
 

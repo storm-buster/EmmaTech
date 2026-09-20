@@ -20,7 +20,19 @@ export type AnalyticsEventName =
   | 'request_access_start'
   | 'request_access_submit'
   | 'private_deployment_view'
-  | 'sign_in_click';
+  | 'sign_in_click'
+  // Phase 5.2 — funnel + acquisition taxonomy (still provider-neutral; no-op
+  // until a provider/dataLayer is present). Payloads must be PII-free.
+  | 'page_view'
+  | 'rapha_view'
+  | 'resource_view'
+  | 'security_view'
+  | 'docs_view'
+  | 'request_access_started'
+  | 'request_access_submitted'
+  | 'request_access_success'
+  | 'request_access_error'
+  | 'external_link_click';
 
 type EventProps = Record<string, string | number | boolean | undefined>;
 
