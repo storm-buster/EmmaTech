@@ -200,7 +200,7 @@ const complianceItems = [
   {
     id: 'DPDP',
     badge: 'Privacy Act 2023',
-    description: 'Per-device baseline + federated training means personal data never leaves the data fiduciary\'s machine. Privacy by design.',
+    description: 'RAPHA is deployed privately and individually scoped to each organization, so how data is handled is defined within each private deployment rather than by a shared, public service.',
   },
   {
     id: 'SEBI',
@@ -215,7 +215,6 @@ const marqueeStandards = [
   'SEBI 2024 circular',
   'Made in India',
   'On-prem option',
-  'Federated learning',
 ];
 
 export const ProblemSection: React.FC = () => {
