@@ -27,6 +27,37 @@ export interface AppConfig {
   agentPackagePathname: string;
   /** True when a private Blob store is reachable (OIDC store id or RW token present). */
   blobConfigured: boolean;
+  /**
+   * Allowlist of internal STAFF user ids permitted to access internal-only,
+   * read-only surfaces (e.g. Phase 5.3 aggregate acquisition reporting).
+   *
+   * Parsed from REPORTING_STAFF_USER_IDS (comma-separated user ids). This is an
+   * explicit allowlist — an empty set means NO ONE is staff (fail closed); it is
+   * NEVER interpreted as "allow everyone". It is distinct from, and independent
+   * of, organization membership/roles (an org `owner` is NOT staff).
+   */
+  staffUserIds: ReadonlySet<string>;
+}
+
+/** Conservative user-id shape for allowlist entries (UUIDs and similar opaque
+ *  ids). Rejects entries containing spaces, wildcards, or control characters so
+ *  a malformed value can never widen authorization. */
+const STAFF_ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
+
+/**
+ * Parse the comma-separated staff allowlist into a de-duplicated set of
+ * well-formed user ids. Blank, malformed, or wildcard-like entries are dropped
+ * (never authorized). An absent/empty/all-invalid value yields an EMPTY set,
+ * which the staff gate treats as "deny all".
+ */
+export function parseStaffAllowlist(raw: string | undefined | null): ReadonlySet<string> {
+  const out = new Set<string>();
+  if (typeof raw !== 'string') return out;
+  for (const part of raw.split(',')) {
+    const id = part.trim();
+    if (id && STAFF_ID_RE.test(id)) out.add(id);
+  }
+  return out;
 }
 
 export class ConfigError extends Error {
@@ -51,6 +82,7 @@ export function getConfig(): AppConfig {
     // automatically; outside Vercel a BLOB_READ_WRITE_TOKEN is used. Either indicates
     // the private store is configured for reads.
     blobConfigured: Boolean((process.env.BLOB_READ_WRITE_TOKEN ?? '').trim() || (process.env.BLOB_STORE_ID ?? '').trim()),
+    staffUserIds: parseStaffAllowlist(process.env.REPORTING_STAFF_USER_IDS),
   };
 }
 
