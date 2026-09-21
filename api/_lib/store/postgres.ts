@@ -24,8 +24,14 @@ import type {
   CreateAccessRequestInput,
   ListAccessRequestsOptions,
   AccessRequestListPage,
+  AcquisitionReportOptions,
+  AcquisitionReport,
 } from './types.js';
 import { DuplicateEmailError } from './types.js';
+import { resolveReportParams, ACQUISITION_REPORT } from '../acquisition-report.js';
+
+const ACQ_DIRECT_UNKNOWN = ACQUISITION_REPORT.DIRECT_UNKNOWN;
+const ACQ_UNKNOWN_PATH = ACQUISITION_REPORT.UNKNOWN_PATH;
 import type { PlanId } from '../../../src/shared/plans.js';
 import { DEFAULT_PLAN_ID } from '../../../src/shared/plans.js';
 
@@ -475,5 +481,127 @@ export class PostgresStore implements DataStore {
       [id, status],
     );
     return rows[0] ?? null;
+  }
+
+  /**
+   * Aggregate-only acquisition report. Every query is filtered to the required
+   * half-open created_at window ($1 <= created_at < $2), selects ONLY coarse
+   * aggregation columns (never PII), applies k-suppression via `HAVING
+   * COUNT(*) >= $k` in SQL, and bounds open-ended dimensions with `LIMIT $topN`.
+   * Never reuses listAccessRequests and never materializes row-level PII.
+   */
+  async getAcquisitionReport(opts: AcquisitionReportOptions): Promise<AcquisitionReport> {
+    const { from, to, days, topN, minGroupSize } = resolveReportParams(opts);
+    // Shared window params; per-query params append k / topN as needed.
+    const win = [from, to];
+
+    const [bySourceRes, bySmcRes, byPathRes, byStatusRes, byDayRes, touchRes, totalRes] =
+      await Promise.all([
+        // Leads by source (NULL → direct/unknown); suppressed + topN-bounded.
+        this.q<{ key: string; count: number }>(
+          `SELECT COALESCE(utm_source, $3) AS key, COUNT(*)::int AS count
+             FROM access_requests
+            WHERE created_at >= $1 AND created_at < $2
+            GROUP BY COALESCE(utm_source, $3)
+           HAVING COUNT(*) >= $4
+            ORDER BY count DESC, key ASC
+            LIMIT $5`,
+          [...win, ACQ_DIRECT_UNKNOWN, minGroupSize, topN],
+        ),
+        // Source / medium / campaign triple; NULL medium+campaign preserved.
+        this.q<{ utm_source: string; utm_medium: string | null; utm_campaign: string | null; count: number }>(
+          `SELECT COALESCE(utm_source, $3) AS utm_source, utm_medium, utm_campaign,
+                  COUNT(*)::int AS count
+             FROM access_requests
+            WHERE created_at >= $1 AND created_at < $2
+            GROUP BY COALESCE(utm_source, $3), utm_medium, utm_campaign
+           HAVING COUNT(*) >= $4
+            ORDER BY count DESC, utm_source ASC, utm_medium ASC NULLS LAST, utm_campaign ASC NULLS LAST
+            LIMIT $5`,
+          [...win, ACQ_DIRECT_UNKNOWN, minGroupSize, topN],
+        ),
+        // Landing paths (path only — the stored column never contains a query string).
+        this.q<{ key: string; count: number }>(
+          `SELECT COALESCE(landing_path, $3) AS key, COUNT(*)::int AS count
+             FROM access_requests
+            WHERE created_at >= $1 AND created_at < $2
+            GROUP BY COALESCE(landing_path, $3)
+           HAVING COUNT(*) >= $4
+            ORDER BY count DESC, key ASC
+            LIMIT $5`,
+          [...win, ACQ_UNKNOWN_PATH, minGroupSize, topN],
+        ),
+        // Status distribution (bounded by the fixed 5-value domain).
+        this.q<{ key: string; count: number }>(
+          `SELECT status AS key, COUNT(*)::int AS count
+             FROM access_requests
+            WHERE created_at >= $1 AND created_at < $2
+            GROUP BY status
+           HAVING COUNT(*) >= $3
+            ORDER BY count DESC, key ASC`,
+          [...win, minGroupSize],
+        ),
+        // Submissions per UTC calendar day (bounded by the ≤ maxWindow-day range).
+        this.q<{ day: string; count: number }>(
+          `SELECT to_char(date_trunc('day', created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS day,
+                  COUNT(*)::int AS count
+             FROM access_requests
+            WHERE created_at >= $1 AND created_at < $2
+            GROUP BY 1
+           HAVING COUNT(*) >= $3
+            ORDER BY day ASC`,
+          [...win, minGroupSize],
+        ),
+        // Touch-pattern summary (counts + gated averages; NO row-level timestamps).
+        this.q<{
+          single_touch: number; multi_touch: number; unknown_touch: number;
+          consideration_avg: string | null; consideration_n: number;
+          tts_avg: string | null; tts_n: number;
+        }>(
+          `SELECT
+             COUNT(*) FILTER (WHERE first_touch_at IS NOT NULL AND last_touch_at IS NOT NULL AND last_touch_at = first_touch_at)::int AS single_touch,
+             COUNT(*) FILTER (WHERE first_touch_at IS NOT NULL AND last_touch_at IS NOT NULL AND last_touch_at > first_touch_at)::int AS multi_touch,
+             COUNT(*) FILTER (WHERE first_touch_at IS NULL OR last_touch_at IS NULL)::int AS unknown_touch,
+             AVG(EXTRACT(EPOCH FROM (last_touch_at - first_touch_at)))
+               FILTER (WHERE first_touch_at IS NOT NULL AND last_touch_at IS NOT NULL AND last_touch_at >= first_touch_at) AS consideration_avg,
+             COUNT(*) FILTER (WHERE first_touch_at IS NOT NULL AND last_touch_at IS NOT NULL AND last_touch_at >= first_touch_at)::int AS consideration_n,
+             AVG(EXTRACT(EPOCH FROM (created_at - first_touch_at)))
+               FILTER (WHERE first_touch_at IS NOT NULL AND created_at >= first_touch_at) AS tts_avg,
+             COUNT(*) FILTER (WHERE first_touch_at IS NOT NULL AND created_at >= first_touch_at)::int AS tts_n
+           FROM access_requests
+          WHERE created_at >= $1 AND created_at < $2`,
+          [...win],
+        ),
+        // Global total in window (aggregate, not a group).
+        this.q<{ count: number }>(
+          `SELECT COUNT(*)::int AS count FROM access_requests
+            WHERE created_at >= $1 AND created_at < $2`,
+          [...win],
+        ),
+      ]);
+
+    const t = touchRes.rows[0];
+    const gate = (avg: string | null, n: number): number | null =>
+      avg != null && n >= minGroupSize ? Math.round(Number(avg)) : null;
+
+    return {
+      window: { from, to, days },
+      policy: { minGroupSize, topN },
+      bySource: bySourceRes.rows.map((r) => ({ key: r.key, count: r.count })),
+      bySourceMediumCampaign: bySmcRes.rows.map((r) => ({
+        utm_source: r.utm_source, utm_medium: r.utm_medium, utm_campaign: r.utm_campaign, count: r.count,
+      })),
+      byLandingPath: byPathRes.rows.map((r) => ({ key: r.key, count: r.count })),
+      byStatus: byStatusRes.rows.map((r) => ({ key: r.key, count: r.count })),
+      byDay: byDayRes.rows.map((r) => ({ day: r.day, count: r.count })),
+      touchPatterns: {
+        single_touch: t?.single_touch ?? 0,
+        multi_touch: t?.multi_touch ?? 0,
+        unknown_touch: t?.unknown_touch ?? 0,
+        avg_consideration_seconds: gate(t?.consideration_avg ?? null, t?.consideration_n ?? 0),
+        avg_time_to_submit_seconds: gate(t?.tts_avg ?? null, t?.tts_n ?? 0),
+      },
+      totalInWindow: totalRes.rows[0]?.count ?? 0,
+    };
   }
 }

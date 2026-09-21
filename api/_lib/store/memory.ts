@@ -27,8 +27,14 @@ import type {
   CreateAccessRequestInput,
   ListAccessRequestsOptions,
   AccessRequestListPage,
+  AcquisitionReportOptions,
+  AcquisitionReport,
+  AcquisitionGroupCount,
+  SourceMediumCampaignCount,
+  DailyCount,
 } from './types.js';
 import { DuplicateEmailError } from './types.js';
+import { resolveReportParams, ACQUISITION_REPORT } from '../acquisition-report.js';
 
 export class InMemoryStore implements DataStore {
   private users = new Map<string, User>();
@@ -333,5 +339,110 @@ export class InMemoryStore implements DataStore {
     found.status = status;
     found.updated_at = this.now();
     return { ...found };
+  }
+
+  /**
+   * Aggregate-only acquisition report — deterministic mirror of the Postgres
+   * implementation (same window filter, suppression, topN, UTC-day bucketing,
+   * and touch-pattern rules). Returns counts/coarse labels only — never an
+   * AccessRequest row and never any PII.
+   */
+  async getAcquisitionReport(opts: AcquisitionReportOptions): Promise<AcquisitionReport> {
+    const { from, to, days, topN, minGroupSize } = resolveReportParams(opts);
+    const fromMs = new Date(from).getTime();
+    const toMs = new Date(to).getTime();
+    const DU = ACQUISITION_REPORT.DIRECT_UNKNOWN;
+    const UP = ACQUISITION_REPORT.UNKNOWN_PATH;
+
+    // Half-open created_at window. We only read coarse columns below.
+    const rows = this.accessRequests.filter((r) => {
+      const t = new Date(r.created_at).getTime();
+      return !Number.isNaN(t) && t >= fromMs && t < toMs;
+    });
+
+    // Generic single-key grouping → suppressed, count-desc / key-asc ordered.
+    const groupCount = (keyOf: (r: AccessRequest) => string, limit?: number): AcquisitionGroupCount[] => {
+      const m = new Map<string, number>();
+      for (const r of rows) m.set(keyOf(r), (m.get(keyOf(r)) ?? 0) + 1);
+      let out = [...m.entries()]
+        .map(([key, count]) => ({ key, count }))
+        .filter((g) => g.count >= minGroupSize)
+        .sort((a, b) => (b.count - a.count) || a.key.localeCompare(b.key));
+      if (limit !== undefined) out = out.slice(0, limit);
+      return out;
+    };
+
+    // Null-last ascending string compare (mirrors "ASC NULLS LAST").
+    const cmpNullsLast = (a: string | null, b: string | null): number =>
+      a === b ? 0 : a === null ? 1 : b === null ? -1 : a.localeCompare(b);
+
+    // Source / medium / campaign triple.
+    const smcMap = new Map<string, SourceMediumCampaignCount>();
+    for (const r of rows) {
+      const utm_source = r.utm_source ?? DU;
+      const k = JSON.stringify([utm_source, r.utm_medium, r.utm_campaign]);
+      const cur = smcMap.get(k);
+      if (cur) cur.count += 1;
+      else smcMap.set(k, { utm_source, utm_medium: r.utm_medium, utm_campaign: r.utm_campaign, count: 1 });
+    }
+    const bySourceMediumCampaign = [...smcMap.values()]
+      .filter((g) => g.count >= minGroupSize)
+      .sort((a, b) =>
+        (b.count - a.count) ||
+        a.utm_source.localeCompare(b.utm_source) ||
+        cmpNullsLast(a.utm_medium, b.utm_medium) ||
+        cmpNullsLast(a.utm_campaign, b.utm_campaign))
+      .slice(0, topN);
+
+    // Submissions per UTC calendar day (bounded by the window; no topN).
+    const dayMap = new Map<string, number>();
+    for (const r of rows) {
+      const t = new Date(r.created_at);
+      if (Number.isNaN(t.getTime())) continue;
+      const day = t.toISOString().slice(0, 10);
+      dayMap.set(day, (dayMap.get(day) ?? 0) + 1);
+    }
+    const byDay: DailyCount[] = [...dayMap.entries()]
+      .map(([day, count]) => ({ day, count }))
+      .filter((d) => d.count >= minGroupSize)
+      .sort((a, b) => a.day.localeCompare(b.day));
+
+    // Touch patterns (mirror pg FILTER semantics; invalid strings ≡ null/unknown).
+    const ms = (v: string | null): number | null => {
+      if (!v) return null;
+      const t = new Date(v).getTime();
+      return Number.isNaN(t) ? null : t;
+    };
+    let single_touch = 0, multi_touch = 0, unknown_touch = 0;
+    let considSum = 0, considN = 0, ttsSum = 0, ttsN = 0;
+    for (const r of rows) {
+      const f = ms(r.first_touch_at);
+      const l = ms(r.last_touch_at);
+      const c = ms(r.created_at);
+      if (f === null || l === null) unknown_touch += 1;
+      else if (l === f) single_touch += 1;
+      else if (l > f) multi_touch += 1;
+      // (both present but l < f → counted in none, mirroring pg)
+      if (f !== null && l !== null && l >= f) { considSum += (l - f) / 1000; considN += 1; }
+      if (f !== null && c !== null && c >= f) { ttsSum += (c - f) / 1000; ttsN += 1; }
+    }
+    const gate = (sum: number, n: number): number | null =>
+      n >= minGroupSize ? Math.round(sum / n) : null;
+
+    return {
+      window: { from, to, days },
+      policy: { minGroupSize, topN },
+      bySource: groupCount((r) => r.utm_source ?? DU, topN),
+      bySourceMediumCampaign,
+      byLandingPath: groupCount((r) => r.landing_path ?? UP, topN),
+      byStatus: groupCount((r) => r.status), // bounded by status domain; no topN
+      byDay,
+      touchPatterns: {
+        single_touch, multi_touch, unknown_touch,
+        avg_consideration_seconds: gate(considSum, considN),
+        avg_time_to_submit_seconds: gate(ttsSum, ttsN),
+      },
+      totalInWindow: rows.length,
+    };
   }
 }
