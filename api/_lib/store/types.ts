@@ -219,6 +219,90 @@ export interface AccessRequestListPage {
   total: number;
 }
 
+// ── Phase 5.3 — aggregate acquisition reporting (read-only, NO PII) ──────────
+/**
+ * Options for the aggregate acquisition report. A FINITE created_at window is
+ * REQUIRED (half-open `from <= created_at < to`); an unbounded/oversized range
+ * is rejected by the data-access layer rather than scanning the whole table.
+ */
+export interface AcquisitionReportOptions {
+  /** Inclusive lower bound on created_at (ISO 8601 timestamp). Required. */
+  from: string;
+  /** Exclusive upper bound on created_at (ISO 8601 timestamp). Required. */
+  to: string;
+  /** Max groups per open-ended grouped dimension (default 10, min 1, max 50). */
+  topN?: number;
+}
+
+/** A grouped count over a single COARSE acquisition dimension. `key` is a
+ *  coarse label (e.g. a utm_source, a landing path, a status, or the
+ *  'direct/unknown' bucket) — NEVER PII and NEVER a full referrer URL. */
+export interface AcquisitionGroupCount {
+  key: string;
+  count: number;
+}
+
+/** A grouped count over the (source, medium, campaign) triple. NULL medium /
+ *  campaign are preserved as null; NULL source maps to the direct/unknown bucket. */
+export interface SourceMediumCampaignCount {
+  utm_source: string;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  count: number;
+}
+
+/** Submissions bucketed by UTC calendar day (created_at, `YYYY-MM-DD`). */
+export interface DailyCount {
+  day: string;
+  count: number;
+}
+
+/**
+ * Touch-pattern summary derived ONLY from what the stored model supports:
+ * whether first_touch_at == last_touch_at. It does NOT claim first-touch-source
+ * vs last-touch-source analysis. Averages are exposed only when computed over
+ * at least the minimum group size (else null) and never expose individual rows
+ * or timestamps.
+ */
+export interface TouchPatternSummary {
+  /** first_touch_at == last_touch_at (both present). */
+  single_touch: number;
+  /** last_touch_at > first_touch_at (both present). */
+  multi_touch: number;
+  /** first_touch_at and/or last_touch_at missing or invalid. */
+  unknown_touch: number;
+  /** Avg (last_touch_at - first_touch_at) in seconds over valid samples, or null. */
+  avg_consideration_seconds: number | null;
+  /** Avg (created_at - first_touch_at) in seconds over valid samples, or null. */
+  avg_time_to_submit_seconds: number | null;
+}
+
+/**
+ * Aggregate-only acquisition report. Contains COUNTS and coarse dimension
+ * labels exclusively — never an AccessRequest row and never any PII column.
+ * Grouped dimensions are small-group suppressed (count < minGroupSize omitted).
+ */
+export interface AcquisitionReport {
+  /** The half-open created_at window actually applied. */
+  window: { from: string; to: string; days: number };
+  /** The suppression / bound policy actually applied. */
+  policy: { minGroupSize: number; topN: number };
+  /** Leads by stored utm_source (NULL → 'direct/unknown'); topN-bounded. */
+  bySource: AcquisitionGroupCount[];
+  /** Leads by (source, medium, campaign); topN-bounded. */
+  bySourceMediumCampaign: SourceMediumCampaignCount[];
+  /** Leads by landing_path (path only, never query strings); topN-bounded. */
+  byLandingPath: AcquisitionGroupCount[];
+  /** Leads by status (bounded by the fixed status domain). */
+  byStatus: AcquisitionGroupCount[];
+  /** Submissions per UTC day (bounded by the ≤ maxWindow-day range). */
+  byDay: DailyCount[];
+  /** Touch-pattern summary (counts + gated averages only). */
+  touchPatterns: TouchPatternSummary;
+  /** Total submissions in the window (global aggregate, not a group). */
+  totalInWindow: number;
+}
+
 export interface DataStore {
   createUser(input: CreateUserInput): Promise<User>;
   getUserByEmail(email: string): Promise<User | null>;
@@ -300,4 +384,12 @@ export interface DataStore {
    * request does not exist. Changing status NEVER provisions anything.
    */
   setAccessRequestStatus(id: string, status: AccessRequestStatus): Promise<AccessRequest | null>;
+  /**
+   * Aggregate-only acquisition report over access_requests within a REQUIRED,
+   * finite created_at window. Returns counts and coarse dimension labels only —
+   * never an AccessRequest row and never any PII. Grouped dimensions are
+   * small-group suppressed at the data-access layer. Does NOT reuse
+   * listAccessRequests and never materializes row-level PII.
+   */
+  getAcquisitionReport(opts: AcquisitionReportOptions): Promise<AcquisitionReport>;
 }
