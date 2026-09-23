@@ -9,21 +9,21 @@
   ],
   "rewrites": [
     {
-      "source": "/(login|signup|account|deploy|console|request-access)",
+      "source": "/(login|signup|account|deploy|console|request-access|reports)",
       "destination": "/index.html"
     },
     {
-      "source": "/(login|signup|account|deploy|console|request-access)/:path*",
+      "source": "/(login|signup|account|deploy|console|request-access|reports)/:path*",
       "destination": "/index.html"
     }
   ],
   "headers": [
     {
-      "source": "/(login|signup|account|deploy|console|request-access)",
+      "source": "/(login|signup|account|deploy|console|request-access|reports)",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }]
     },
     {
-      "source": "/(login|signup|account|deploy|console|request-access)/:path*",
+      "source": "/(login|signup|account|deploy|console|request-access|reports)/:path*",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }]
     }
   ]

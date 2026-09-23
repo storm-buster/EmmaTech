@@ -31,6 +31,7 @@ const ROUTE_TO_PATH: Record<Exclude<Route, 'notfound'>, string> = {
   console: '/console',
   resources: '/resources/how-to-evaluate-a-cyber-deception-platform',
   security: '/security',
+  reports: '/reports',
 };
 
 /** Route → canonical pathname (used for real `href`s and navigation). */
@@ -107,6 +108,10 @@ export function parsePath(pathname: string): Route {
       return 'deploy';
     case 'console':
       return 'console';
+    // Internal, staff-gated acquisition dashboard. Directly addressable only
+    // (not in any navigation); the report API is the authorization boundary.
+    case 'reports':
+      return 'reports';
     default:
       return 'notfound';
   }

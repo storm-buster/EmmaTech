@@ -26,6 +26,7 @@ import { DocsPage } from './components/docs/DocsPage';
 import { HowToEvaluateDeceptionPlatform } from './components/resources/HowToEvaluateDeceptionPlatform';
 import { SecurityPage } from './components/SecurityPage';
 import { ConsolePage } from './components/console/ConsolePage';
+import { AcquisitionReportPage } from './components/reports/AcquisitionReportPage';
 import { RequestAccessPage } from './components/access/RequestAccessPage';
 import { SignupGate } from './components/access/SignupGate';
 import { Seo } from './components/seo/Seo';
@@ -61,6 +62,7 @@ export type Route =
   | 'console'
   | 'resources'
   | 'security'
+  | 'reports'
   | 'notfound';
 
 function useRoute(): Route {
@@ -127,7 +129,8 @@ function App() {
     route === 'signup' ||
     route === 'account' ||
     route === 'deploy' ||
-    route === 'console';
+    route === 'console' ||
+    route === 'reports';
 
   return (
     <ThemeProvider theme={theme}>
@@ -193,6 +196,11 @@ function App() {
           {route === 'security' && <SecurityPage onNavigate={navigate} />}
 
           {route === 'console' && <ConsolePage onNavigate={navigate} />}
+
+          {/* Internal, staff-gated acquisition dashboard. Directly addressable
+              only (never in navigation); the report API is the sole authz
+              boundary and returns a generic 404 for non-staff. */}
+          {route === 'reports' && <AcquisitionReportPage />}
 
           {/* Unknown public pathname → simple 404 (no longer silently Home). */}
           {route === 'notfound' && <NotFoundPage onNavigate={navigate} />}
