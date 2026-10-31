@@ -41,4 +41,10 @@ describe('server-side installer template (private, tokenized delivery)', () => {
     expect(extractIdx).toBeGreaterThan(-1);
     expect(verifyIdx).toBeLessThan(extractIdx);
   });
+  it('pins Agent 1.0.2 (exact SHA-256 + version; no 1.0.1 references remain)', () => {
+    expect(template).toContain('c0ea8f4c46dd621e38225c4a91a0234db7c9224e5c485bb5f36e6ad2efa3e727');
+    expect(template).not.toContain('d34f01fb12c0071a0f15f754f988119c2e5a33f4be8956feba87cdf8de40ba81');
+    expect(template).toContain('v1.0.2');
+    expect(template).not.toContain('1.0.1');
+  });
 });
