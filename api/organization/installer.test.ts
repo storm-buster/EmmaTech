@@ -16,7 +16,7 @@ import { hashPassword } from '../_lib/password.js';
 import { createDownloadToken } from '../_lib/downloadToken.js';
 
 const SESSION_SECRET = 'phase3-wave2-test-secret';
-const PATHNAME = 'rapha-agent-1.0.1-windows.zip';
+const PATHNAME = 'rapha-agent-1.0.2-windows.zip';
 
 const asAction = (action: string) => (req: VercelRequest, res: VercelResponse) => {
   const r = req as unknown as { query?: Record<string, unknown> };
@@ -63,6 +63,7 @@ beforeEach(() => {
   delete process.env.DATABASE_URL;
   delete process.env.BLOB_READ_WRITE_TOKEN;
   delete process.env.BLOB_STORE_ID;
+  delete process.env.RAPHA_BLOB_STORE_ID;
   process.env.NODE_ENV = 'test';
   __resetInMemoryStore();
   __resetRateLimits();
@@ -116,7 +117,12 @@ describe('GET /api/organization/agent-package — token-authorized private strea
     expect(state.statusCode).toBe(403);
   });
 
-  it('valid token but blob store not configured → 503 (never falls back to public)', async () => {
+  it('valid token but the PRIVATE RAPHA store is not configured → 503 (never falls back to the public store)', async () => {
+    // A configured PUBLIC store (and even an unrelated RW token) must NOT satisfy the
+    // agent endpoint — only RAPHA_BLOB_STORE_ID does.
+    process.env.BLOB_STORE_ID = 'store_public_emmatech';
+    process.env.BLOB_READ_WRITE_TOKEN = 'vercel_blob_rw_other_store';
+    delete process.env.RAPHA_BLOB_STORE_ID;
     const token = createDownloadToken({ org: 'o1', path: PATHNAME }, SESSION_SECRET, 60);
     const { res, state } = makeRes();
     await agentPackage(makeReq({ method: 'GET', query: { dt: token } }), res);
@@ -125,7 +131,7 @@ describe('GET /api/organization/agent-package — token-authorized private strea
   });
 
   it('valid token + configured store → streams the PRIVATE blob via get(access:private)', async () => {
-    process.env.BLOB_READ_WRITE_TOKEN = 'vercel_blob_rw_test';
+    process.env.RAPHA_BLOB_STORE_ID = 'store_rapha_private';
     const webStream = new ReadableStream<Uint8Array>({
       start(c) { c.enqueue(new TextEncoder().encode('PK-ZIP-BYTES')); c.close(); },
     });
@@ -153,7 +159,7 @@ describe('GET /api/organization/agent-package — token-authorized private strea
     await new Promise((r) => sink.on('finish', r));
 
     expect(status).toBe(200);
-    expect(vi.mocked(blobGet)).toHaveBeenCalledWith(PATHNAME, { access: 'private' });
+    expect(vi.mocked(blobGet)).toHaveBeenCalledWith(PATHNAME, { access: 'private', storeId: 'store_rapha_private' });
     expect(headers['content-type']).toBe('application/zip');
     expect(headers['cache-control']).toContain('no-store');
     expect(Buffer.concat(chunks).toString()).toBe('PK-ZIP-BYTES');

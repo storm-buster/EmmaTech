@@ -121,9 +121,10 @@ async function handleInstaller(req: VercelRequest, res: VercelResponse): Promise
 /**
  * Authorized by the short-lived download token (NOT the browser cookie, because
  * the installer runs on the customer's server). Streams the agent package from
- * the PRIVATE Blob store via the @vercel/blob `get()` SDK (server-side auth via
- * OIDC / BLOB_READ_WRITE_TOKEN — never exposed to the client). Invalid/expired
- * token → 403. No permanent public URL is ever returned.
+ * the PRIVATE RAPHA Blob store (RAPHA_BLOB_STORE_ID, selected EXPLICITLY) via the
+ * @vercel/blob `get()` SDK (server-side OIDC — never exposed to the client, and
+ * never the public EmmaTech store). Invalid/expired token → 403. No permanent
+ * public URL is ever returned.
  */
 async function handleAgentPackage(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (req.method !== 'GET') {
@@ -144,12 +145,15 @@ async function handleAgentPackage(req: VercelRequest, res: VercelResponse): Prom
     sendJson(res, 403, { error: 'Invalid or expired download authorization' });
     return;
   }
-  if (!cfg.blobConfigured) {
+  // Agent packages are served ONLY from the PRIVATE RAPHA Blob store, selected
+  // explicitly by RAPHA_BLOB_STORE_ID. Fail closed (503) when it is not configured —
+  // NEVER fall back to the default/public EmmaTech Blob store.
+  if (!cfg.agentBlobConfigured) {
     sendJson(res, 503, { error: 'Agent package storage is not configured' });
     return;
   }
   try {
-    const result = await blobGet(payload.path, { access: 'private' });
+    const result = await blobGet(payload.path, { access: 'private', storeId: cfg.raphaBlobStoreId });
     if (!result || result.statusCode !== 200 || !result.stream) {
       sendJson(res, 404, { error: 'Agent package not found' });
       return;

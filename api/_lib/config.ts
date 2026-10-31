@@ -28,6 +28,18 @@ export interface AppConfig {
   /** True when a private Blob store is reachable (OIDC store id or RW token present). */
   blobConfigured: boolean;
   /**
+   * Private RAPHA Blob store id for agent-package reads. Derived ONLY from
+   * RAPHA_BLOB_STORE_ID — never the public BLOB_STORE_ID, and never inferred from
+   * BLOB_READ_WRITE_TOKEN (which may belong to a different store). Empty when unset.
+   */
+  raphaBlobStoreId: string;
+  /**
+   * True ONLY when the PRIVATE RAPHA agent-package store (RAPHA_BLOB_STORE_ID) is
+   * configured. Gates the agent-package endpoint (fail closed → 503). Distinct from
+   * `blobConfigured`, which covers other (non-agent) EmmaTech Blob features.
+   */
+  agentBlobConfigured: boolean;
+  /**
    * Allowlist of internal STAFF user ids permitted to access internal-only,
    * read-only surfaces (e.g. Phase 5.3 aggregate acquisition reporting).
    *
@@ -77,11 +89,17 @@ export function getConfig(): AppConfig {
     databaseUrl: (process.env.DATABASE_URL ?? '').trim() || null,
     resendApiKey: (process.env.RESEND_API_KEY ?? '').trim() || null,
     otpEmailFrom: (process.env.OTP_EMAIL_FROM ?? '').trim() || null,
-    agentPackagePathname: (process.env.RAPHA_AGENT_BLOB_PATHNAME ?? '').trim() || 'rapha-agent-1.0.1-windows.zip',
+    agentPackagePathname: (process.env.RAPHA_AGENT_BLOB_PATHNAME ?? '').trim() || 'rapha-agent-1.0.2-windows.zip',
     // On Vercel, a private store connected to the project provides OIDC + BLOB_STORE_ID
     // automatically; outside Vercel a BLOB_READ_WRITE_TOKEN is used. Either indicates
-    // the private store is configured for reads.
+    // a private store is configured for reads. (Used by non-agent Blob features.)
     blobConfigured: Boolean((process.env.BLOB_READ_WRITE_TOKEN ?? '').trim() || (process.env.BLOB_STORE_ID ?? '').trim()),
+    // Agent packages live in the PRIVATE RAPHA store, selected EXPLICITLY by
+    // RAPHA_BLOB_STORE_ID. NEVER fall back to the public BLOB_STORE_ID, and do NOT
+    // treat BLOB_READ_WRITE_TOKEN as evidence of the RAPHA store (it may belong to a
+    // different store). Missing RAPHA_BLOB_STORE_ID → agentBlobConfigured=false → 503.
+    raphaBlobStoreId: (process.env.RAPHA_BLOB_STORE_ID ?? '').trim(),
+    agentBlobConfigured: Boolean((process.env.RAPHA_BLOB_STORE_ID ?? '').trim()),
     staffUserIds: parseStaffAllowlist(process.env.REPORTING_STAFF_USER_IDS),
   };
 }
